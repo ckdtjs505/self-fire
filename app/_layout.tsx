@@ -1,11 +1,13 @@
-import { Drawer } from "expo-router/drawer";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Stack } from "expo-router";
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView>
-      <Drawer>
-        <Drawer.Screen name="index" />
-      </Drawer>
-    </GestureHandlerRootView>
+    <Stack>
+      <Stack.Screen
+        name="(navi)"
+        options={{
+          headerShown: false,
+        }}
+      />
+    </Stack>
   );
 }
