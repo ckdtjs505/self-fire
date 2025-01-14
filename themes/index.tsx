@@ -24,3 +24,5 @@ export const getCurrentTheme = () => {
   console.log(currentThemeId);
   return themelist[currentThemeIdx].theme;
 };
+
+export type { Theme };

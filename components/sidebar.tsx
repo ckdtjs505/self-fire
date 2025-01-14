@@ -1,8 +1,6 @@
-import { createBox, createText } from "@shopify/restyle";
-import { Theme } from "@/themes/light";
 import { View } from "react-native";
-const Box = createBox<Theme>();
-const Text = createText<Theme>();
+import Box from "@/atom/box";
+import Text from "@/atom/text";
 type Props = {};
 const Sidebar: React.FC<Props> = () => {
   return (
