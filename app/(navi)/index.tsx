@@ -1,4 +1,5 @@
-import Header from "@/components/header";
+import HeaderLeft from "@/components/header-left";
+import HeaderRight from "@/components/header-right";
 import { Text, View } from "react-native";
 
 export default function Index() {
@@ -10,7 +11,8 @@ export default function Index() {
         alignItems: "center",
       }}
     >
-      <Header></Header>
+      <HeaderLeft></HeaderLeft>
+      <HeaderRight></HeaderRight>
       <Text>Hello changsun World!!</Text>
     </View>
   );
