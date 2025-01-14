@@ -6,7 +6,12 @@ export default function Navigator() {
   return (
     <GestureHandlerRootView>
       <Drawer drawerContent={Sidebar}>
-        <Drawer.Screen name="index" />
+        <Drawer.Screen
+          name="index"
+          options={{
+            headerShown: false,
+          }}
+        />
       </Drawer>
     </GestureHandlerRootView>
   );

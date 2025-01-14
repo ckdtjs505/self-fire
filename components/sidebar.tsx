@@ -1,6 +1,5 @@
+import { Box, Text } from "@/atom";
 import { View } from "react-native";
-import Box from "@/atom/box";
-import Text from "@/atom/text";
 type Props = {};
 const Sidebar: React.FC<Props> = () => {
   return (

@@ -1,3 +1,4 @@
+import Header from "@/components/header";
 import { Text, View } from "react-native";
 
 export default function Index() {
@@ -9,6 +10,7 @@ export default function Index() {
         alignItems: "center",
       }}
     >
+      <Header></Header>
       <Text>Hello changsun World!!</Text>
     </View>
   );

@@ -43,6 +43,7 @@ const theme = createTheme({
     $foreground: palette.paper100,
     $sidebarBackground: palette.navy20,
     $sidebarForeground: palette.navy900,
+    $headerBackground: palette.paper20,
   },
   borderRadii: {
     xs: 4,
