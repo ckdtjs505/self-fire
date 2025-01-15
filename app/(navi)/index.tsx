@@ -9,12 +9,11 @@ import SwiperFlatList from "react-native-swiper-flatlist";
 const { width, height } = Dimensions.get("window");
 export default function Index() {
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
+    <Box
+      bg="$background"
+      flex={1}
+      justifyContent={"center"}
+      alignItems={"center"}
     >
       <HeaderLeft></HeaderLeft>
       <HeaderRight></HeaderRight>
@@ -35,6 +34,6 @@ export default function Index() {
           );
         }}
       />
-    </View>
+    </Box>
   );
 }
