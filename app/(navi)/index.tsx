@@ -1,5 +1,5 @@
 import HeaderLeft from "@/components/header-left";
-import HeaderRight from "@/components/header-right";
+import Quotebar from "@/components/quote-bar";
 import QuoteItem from "@/components/quote-items";
 import { Text, View } from "react-native";
 
@@ -13,9 +13,9 @@ export default function Index() {
       }}
     >
       <HeaderLeft></HeaderLeft>
-      <HeaderRight></HeaderRight>
 
       <QuoteItem></QuoteItem>
+      <Quotebar></Quotebar>
     </View>
   );
 }

@@ -1,20 +1,17 @@
 import { Box } from "@/atom";
 import { MaterialIcons } from "@expo/vector-icons";
-const HeaderRight: React.FC = () => {
+const Quotebar: React.FC = () => {
   return (
     <Box
-      position={"absolute"}
-      right={0}
-      top={0}
       m="md"
       p="xs"
-      height={230}
-      width={60}
+      height={60}
+      width={200}
       justifyContent={"space-around"}
       borderRadius={"lg"}
       alignItems={"center"}
       backgroundColor={"$headerBackground"}
-      flexDirection={"column"}
+      flexDirection={"row"}
     >
       <MaterialIcons color={"#171a21"} name="image" size={32}></MaterialIcons>
       <MaterialIcons color={"#171a21"} name="share" size={32}></MaterialIcons>
@@ -31,4 +28,4 @@ const HeaderRight: React.FC = () => {
     </Box>
   );
 };
-export default HeaderRight;
+export default Quotebar;
