@@ -1,8 +1,11 @@
+import { Box } from "@/atom";
 import HeaderLeft from "@/components/header-left";
-import Quotebar from "@/components/quote-bar";
 import QuoteItem from "@/components/quote-items";
-import { Text, View } from "react-native";
+import { quotes } from "@/data/quotes";
+import { Dimensions, View } from "react-native";
+import SwiperFlatList from "react-native-swiper-flatlist";
 
+const { width, height } = Dimensions.get("window");
 export default function Index() {
   return (
     <View
@@ -13,9 +16,23 @@ export default function Index() {
       }}
     >
       <HeaderLeft></HeaderLeft>
-
-      <QuoteItem></QuoteItem>
-      <Quotebar></Quotebar>
+      <SwiperFlatList
+        vertical={true}
+        data={quotes}
+        renderItem={({ item }) => {
+          return (
+            <Box
+              flex={1}
+              justifyContent={"center"}
+              alignItems={"center"}
+              width={width}
+              height={height}
+            >
+              <QuoteItem text={item.text} author={item.author} />
+            </Box>
+          );
+        }}
+      />
     </View>
   );
 }

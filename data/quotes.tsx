@@ -1,4 +1,4 @@
-const quotes: Quote[] = [
+export const quotes: Quote[] = [
   {
     id: "1",
     text: "기회는 준비된 자에게 찾아온다.",
@@ -62,7 +62,10 @@ const quotes: Quote[] = [
 ];
 
 export const getQuote = () => {
-  //const randomNumber = Math.floor(Math.random() * quotes.length);
-  const randomNumber = 5;
+  const randomNumber = Math.floor(Math.random() * quotes.length);
   return quotes[randomNumber];
+};
+
+export const getQuotesAll = () => {
+  return quotes;
 };

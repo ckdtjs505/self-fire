@@ -1,21 +1,28 @@
 import { Box, Text } from "@/atom";
 import { getQuote } from "@/data/quotes";
-
+import Quotebar from "./quote-bar";
 const quote = getQuote();
-const chunckQuote: string[] = [];
-const splitQuote = quote.text.split(" ");
-for (let i = 0; i < splitQuote.length; i += 3) {
-  const temp = splitQuote.slice(i, i + 3).join(" ");
-  chunckQuote.push(temp);
-}
+const getChunckQuote = (text: string) => {
+  const chunckQuote: string[] = [];
+  const splitQuote = text.split(" ");
+  for (let i = 0; i < splitQuote.length; i += 3) {
+    const temp = splitQuote.slice(i, i + 3).join(" ");
+    chunckQuote.push(temp);
+  }
 
-const QuoteItem = () => {
+  return chunckQuote;
+};
+
+const QuoteItem = ({ text, author }) => {
+  const quotesTexts = getChunckQuote(text);
+
   return (
-    <Box alignItems={"center"} width={"80%"} height={200} margin={"lg"}>
+    <Box flex={1} justifyContent={"center"} alignItems={"center"} margin={"lg"}>
       <Box margin={"lg"}>
-        {chunckQuote.map((val) => {
+        {quotesTexts.map((val, idx) => {
           return (
             <Text
+              key={idx}
               fontSize={30}
               fontWeight={"heavy"}
               textAlign={"center"}
@@ -26,7 +33,8 @@ const QuoteItem = () => {
           );
         })}
       </Box>
-      <Text> - {quote.author} - </Text>
+      <Text> - {author} - </Text>
+      <Quotebar></Quotebar>
     </Box>
   );
 };
