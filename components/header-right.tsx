@@ -16,10 +16,18 @@ const HeaderRight: React.FC = () => {
       backgroundColor={"$headerBackground"}
       flexDirection={"column"}
     >
-      <MaterialIcons name="image" size={32}></MaterialIcons>
-      <MaterialIcons name="share" size={32}></MaterialIcons>
-      <MaterialIcons name="bookmark-add" size={32}></MaterialIcons>
-      <MaterialIcons name="settings" size={32}></MaterialIcons>
+      <MaterialIcons color={"#171a21"} name="image" size={32}></MaterialIcons>
+      <MaterialIcons color={"#171a21"} name="share" size={32}></MaterialIcons>
+      <MaterialIcons
+        color={"#171a21"}
+        name="bookmark-add"
+        size={32}
+      ></MaterialIcons>
+      <MaterialIcons
+        color={"#171a21"}
+        name="settings"
+        size={32}
+      ></MaterialIcons>
     </Box>
   );
 };
