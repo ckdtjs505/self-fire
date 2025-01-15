@@ -5,7 +5,7 @@ const Quotebar: React.FC = () => {
     <Box
       m="md"
       p="xs"
-      height={60}
+      height={50}
       width={200}
       justifyContent={"space-around"}
       borderRadius={"lg"}
@@ -13,17 +13,17 @@ const Quotebar: React.FC = () => {
       backgroundColor={"$headerBackground"}
       flexDirection={"row"}
     >
-      <MaterialIcons color={"#171a21"} name="image" size={32}></MaterialIcons>
-      <MaterialIcons color={"#171a21"} name="share" size={32}></MaterialIcons>
+      <MaterialIcons color={"#171a21"} name="image" size={24}></MaterialIcons>
+      <MaterialIcons color={"#171a21"} name="share" size={24}></MaterialIcons>
       <MaterialIcons
         color={"#171a21"}
         name="bookmark-add"
-        size={32}
+        size={24}
       ></MaterialIcons>
       <MaterialIcons
         color={"#171a21"}
         name="settings"
-        size={32}
+        size={24}
       ></MaterialIcons>
     </Box>
   );

@@ -17,12 +17,13 @@ const HeaderLeft: React.FC<Props> = () => {
       alignItems={"center"}
       justifyContent={"space-between"}
       flexDirection={"row"}
+      zIndex={10}
     >
       <Pressable
         onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
       >
         <Box m="md" p="xs">
-          <MaterialIcons name="menu" size={32}></MaterialIcons>
+          <MaterialIcons name="menu" size={24}></MaterialIcons>
         </Box>
       </Pressable>
     </Box>

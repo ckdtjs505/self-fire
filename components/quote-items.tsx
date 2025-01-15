@@ -18,12 +18,12 @@ const QuoteItem = ({ text, author }) => {
 
   return (
     <Box flex={1} justifyContent={"center"} alignItems={"center"} margin={"lg"}>
-      <Box margin={"lg"}>
+      <Box margin={"md"}>
         {quotesTexts.map((val, idx) => {
           return (
             <Text
               key={idx}
-              fontSize={30}
+              fontSize={28}
               fontWeight={"heavy"}
               textAlign={"center"}
               color={"black"}
