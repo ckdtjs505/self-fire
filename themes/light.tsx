@@ -40,7 +40,7 @@ const theme = createTheme({
 
     $primary: palette.blue70,
     $background: palette.paper10,
-    $foreground: palette.paper100,
+    $foreground: palette.paper900,
     $sidebarBackground: palette.navy20,
     $sidebarForeground: palette.navy900,
     $headerBackground: palette.paper20,

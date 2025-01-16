@@ -1,5 +1,5 @@
 import { Box } from "@/atom";
-import { MaterialIcons } from "@expo/vector-icons";
+import FeatherIcon from "./icon";
 const Quotebar: React.FC = () => {
   return (
     <Box
@@ -13,12 +13,8 @@ const Quotebar: React.FC = () => {
       backgroundColor={"$headerBackground"}
       flexDirection={"row"}
     >
-      <MaterialIcons color={"#171a21"} name="share" size={24}></MaterialIcons>
-      <MaterialIcons
-        color={"#171a21"}
-        name="bookmark-add"
-        size={24}
-      ></MaterialIcons>
+      <FeatherIcon name="share" size={24}></FeatherIcon>
+      <FeatherIcon name="heart" size={24}></FeatherIcon>
     </Box>
   );
 };

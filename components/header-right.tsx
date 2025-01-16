@@ -1,5 +1,6 @@
 import { Box } from "@/atom";
-import { MaterialIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
+import FeatherIcon from "./icon";
 const HeaderRight: React.FC = () => {
   return (
     <Box
@@ -24,7 +25,7 @@ const HeaderRight: React.FC = () => {
         alignContent={"center"}
         alignItems={"center"}
       >
-        <MaterialIcons color={"#171a21"} name="image" size={24}></MaterialIcons>
+        <FeatherIcon name="image" size={24}></FeatherIcon>
       </Box>
       <Box
         borderRadius={"hg"}
@@ -36,11 +37,7 @@ const HeaderRight: React.FC = () => {
         alignContent={"center"}
         alignItems={"center"}
       >
-        <MaterialIcons
-          color={"#171a21"}
-          name="settings"
-          size={24}
-        ></MaterialIcons>
+        <FeatherIcon name="settings" size={24}></FeatherIcon>
       </Box>
     </Box>
   );

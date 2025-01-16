@@ -1,8 +1,8 @@
 import { Box } from "@/atom";
-import { MaterialIcons } from "@expo/vector-icons";
 import { DrawerActions } from "@react-navigation/native";
 import { useNavigation } from "expo-router";
 import { Pressable } from "react-native";
+import FeatherIcon from "./icon";
 
 type Props = {};
 const HeaderLeft: React.FC<Props> = () => {
@@ -23,7 +23,7 @@ const HeaderLeft: React.FC<Props> = () => {
         onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
       >
         <Box m="md" p="xs">
-          <MaterialIcons name="menu" size={24}></MaterialIcons>
+          <FeatherIcon name="menu" size={24}></FeatherIcon>
         </Box>
       </Pressable>
     </Box>

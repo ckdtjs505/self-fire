@@ -1,7 +1,6 @@
 import { Box, Text } from "@/atom";
 import { getQuote } from "@/data/quotes";
 import Quotebar from "./quote-bar";
-const quote = getQuote();
 const getChunckQuote = (text: string) => {
   const chunckQuote: string[] = [];
   const splitQuote = text.split(" ");
@@ -12,8 +11,11 @@ const getChunckQuote = (text: string) => {
 
   return chunckQuote;
 };
-
-const QuoteItem = ({ text, author }) => {
+type Props = {
+  text: string;
+  author: string;
+};
+const QuoteItem: React.FC<Props> = ({ text, author }) => {
   const quotesTexts = getChunckQuote(text);
 
   return (
@@ -26,7 +28,6 @@ const QuoteItem = ({ text, author }) => {
               fontSize={28}
               fontWeight={"heavy"}
               textAlign={"center"}
-              color={"black"}
             >
               {val}
             </Text>
