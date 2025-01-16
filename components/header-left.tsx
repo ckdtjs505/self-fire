@@ -23,7 +23,7 @@ const HeaderLeft: React.FC<Props> = () => {
         onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
       >
         <Box m="md" p="xs">
-          <FeatherIcon name="menu" size={24}></FeatherIcon>
+          <FeatherIcon name="menu" size={22}></FeatherIcon>
         </Box>
       </Pressable>
     </Box>

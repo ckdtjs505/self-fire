@@ -6,7 +6,7 @@ type themeMeta = {
   theme: Theme;
 };
 
-const currentThemeId: string = "dark";
+const currentThemeId: string = "light";
 
 const themelist: themeMeta[] = [
   {
