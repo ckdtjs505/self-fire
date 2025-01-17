@@ -2,14 +2,12 @@ import { Box, SafeAreaView } from "@/atom";
 import HeaderLeft from "@/components/header-left";
 import HeaderRight from "@/components/header-right";
 import QuoteItem from "@/components/quote-items";
-import { quotes } from "@/data/quotes";
+import { getQuote, quotes } from "@/data/quotes";
 import { Dimensions } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import SwiperFlatList from "react-native-swiper-flatlist";
+import Swiper from "react-native-swiper";
 
 export default function Index() {
-  const insets = useSafeAreaInsets();
-  const { width, height } = Dimensions.get("window");
+  const { width, height } = Dimensions.get("screen");
 
   return (
     <SafeAreaView flex={1}>
@@ -21,23 +19,19 @@ export default function Index() {
       >
         <HeaderLeft></HeaderLeft>
         <HeaderRight></HeaderRight>
-        <SwiperFlatList
-          vertical={true}
-          data={quotes}
-          renderItem={({ item }) => {
-            return (
-              <Box
-                flex={1}
-                justifyContent={"center"}
-                alignItems={"center"}
-                width={width}
-                height={height - insets.top - insets.bottom}
-              >
-                <QuoteItem text={item.text} author={item.author} />
-              </Box>
-            );
-          }}
-        />
+        <Box flex={1} justifyContent={"center"} alignItems={"center"}>
+          <Swiper
+            horizontal={false}
+            showsButtons={false}
+            showsPagination={false}
+            onIndexChanged={() => {
+              console.log("index Change");
+            }}
+          >
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
+          </Swiper>
+        </Box>
       </Box>
     </SafeAreaView>
   );
