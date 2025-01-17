@@ -6,6 +6,7 @@ const StatusBar = () => {
 
   return (
     <StatusBarRN
+      translucent={true}
       barStyle={theme.barStyle as StatusBarStyle}
       backgroundColor={theme.colors["$background"]}
     ></StatusBarRN>
