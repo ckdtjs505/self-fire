@@ -1,4 +1,4 @@
 import Box from "./box";
 import Text from "./text";
-
-export { Box, Text };
+import SafeAreaView from "./safeAreaView";
+export { Box, Text, SafeAreaView };
