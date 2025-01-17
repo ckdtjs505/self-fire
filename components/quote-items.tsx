@@ -35,7 +35,7 @@ const QuoteItem: React.FC<Props> = ({ text, author }) => {
         })}
       </Box>
       <Text> - {author} - </Text>
-      <Quotebar></Quotebar>
+      <Quotebar text={text} author={author}></Quotebar>
     </Box>
   );
 };

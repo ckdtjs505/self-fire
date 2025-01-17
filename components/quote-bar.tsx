@@ -1,6 +1,12 @@
 import { Box } from "@/atom";
 import FeatherIcon from "./icon";
-const Quotebar: React.FC = () => {
+import ShareButton from "./share-button";
+type Props = {
+  text: string;
+  author: string;
+};
+
+const Quotebar: React.FC<Props> = ({ text, author }) => {
   return (
     <Box
       m="md"
@@ -13,7 +19,7 @@ const Quotebar: React.FC = () => {
       backgroundColor={"$headerBackground"}
       flexDirection={"row"}
     >
-      <FeatherIcon name="share" size={24}></FeatherIcon>
+      <ShareButton text={`${text} -${author}`}></ShareButton>
       <FeatherIcon name="heart" size={24}></FeatherIcon>
     </Box>
   );
