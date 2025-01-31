@@ -7,7 +7,6 @@ import { Dimensions } from "react-native";
 import Swiper from "react-native-swiper";
 
 export default function Index() {
-  const { width, height } = Dimensions.get("screen");
 
   return (
     <SafeAreaView flex={1}>

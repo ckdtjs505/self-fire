@@ -1,13 +1,10 @@
 import { Box } from "@/atom";
 import FeatherIcon from "./icon";
-import { Pressable } from "react-native-gesture-handler";
 import { router } from "expo-router";
+import { Pressable } from "react-native";
 const HeaderRight: React.FC = () => {
-
-
   return (
     <Box
-
       position={"absolute"}
       top={0}
       right={0}
@@ -18,9 +15,13 @@ const HeaderRight: React.FC = () => {
       justifyContent={"space-between"}
       alignItems={"center"}
       flexDirection={"row"}
+      zIndex={10}
     >
       <Pressable
-        onPress={ ()=> router.push('/ThemesScreen') }
+        onPress={() => {
+          console.log('click')
+          router.push("/ThemesScreen");
+        }}
       >
         <Box
           borderRadius={"hg"}
