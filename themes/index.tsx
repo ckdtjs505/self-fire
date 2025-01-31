@@ -1,14 +1,14 @@
 import light, { Theme } from "./light";
 import dark from "./dark";
 type themeMeta = {
-  id: string;
+  id: themeId;
   name: string;
   theme: Theme;
 };
 
-const currentThemeId: string = "light";
+export type themeId = "light" | "dark";
 
-const themelist: themeMeta[] = [
+export const themelist: themeMeta[] = [
   {
     id: "light",
     name: "light",
@@ -21,9 +21,9 @@ const themelist: themeMeta[] = [
   },
 ];
 
-export const getCurrentTheme = () => {
+export const getCurrentTheme = (themeId: themeId) => {
   const currentThemeIdx = themelist.findIndex((theme, number) => {
-    return theme.id === currentThemeId;
+    return theme.id === themeId;
   });
 
   return themelist[currentThemeIdx].theme;

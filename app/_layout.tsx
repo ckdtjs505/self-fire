@@ -1,16 +1,13 @@
-import StatusBar from "@/components/status-bar";
-import { getCurrentTheme } from "@/themes";
+import { useThemeStore } from "@/store/theme";
 import { ThemeProvider } from "@shopify/restyle";
 import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-const currentTheme = getCurrentTheme();
-
 export default function RootLayout() {
+  const { currentTheme } = useThemeStore();
   return (
     <SafeAreaProvider>
       <ThemeProvider theme={currentTheme}>
-        <StatusBar></StatusBar>
         <Stack>
           <Stack.Screen
             name="(navi)"
@@ -18,6 +15,11 @@ export default function RootLayout() {
               headerShown: false,
             }}
           />
+
+          <Stack.Screen 
+            name="ThemesScreen"
+          />
+
         </Stack>
       </ThemeProvider>
     </SafeAreaProvider>
