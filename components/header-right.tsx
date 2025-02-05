@@ -1,8 +1,8 @@
 import { Box } from "@/atom";
 import FeatherIcon from "./icon";
-import { router } from "expo-router";
 import { Pressable } from "react-native";
 const HeaderRight: React.FC = () => {
+
   return (
     <Box
       position={"absolute"}
@@ -17,12 +17,7 @@ const HeaderRight: React.FC = () => {
       flexDirection={"row"}
       zIndex={10}
     >
-      <Pressable
-        onPress={() => {
-          console.log('click')
-          router.push("/ThemesScreen");
-        }}
-      >
+      <Pressable>
         <Box
           borderRadius={"hg"}
           borderWidth={1}

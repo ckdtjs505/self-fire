@@ -15,11 +15,6 @@ export default function RootLayout() {
               headerShown: false,
             }}
           />
-
-          <Stack.Screen 
-            name="ThemesScreen"
-          />
-
         </Stack>
       </ThemeProvider>
     </SafeAreaProvider>
