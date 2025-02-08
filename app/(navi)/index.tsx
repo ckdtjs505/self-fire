@@ -5,7 +5,7 @@ import QuoteItem from "@/components/quote-items";
 import ThemePicker from "@/components/theme-picker";
 import { getQuote } from "@/data/quotes";
 import { router } from "expo-router";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Pressable } from "react-native";
 import Swiper from "react-native-swiper";
 
@@ -49,7 +49,7 @@ export default function Index() {
               <FeatherIcon name="image" size={22}></FeatherIcon>
             </Box>
           </Pressable>
-          <Pressable onPress={ () => router.push('/SettingScreen')}>
+          <Pressable onPress={() => router.push("/SettingScreen")}>
             <Box
               borderRadius={"hg"}
               borderWidth={1}
@@ -72,9 +72,25 @@ export default function Index() {
             showsButtons={false}
             showsPagination={false}
             onIndexChanged={() => {
-              console.log("index Change");
             }}
           >
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
+            <QuoteItem text={getQuote().text} author={getQuote().author} />
             <QuoteItem text={getQuote().text} author={getQuote().author} />
             <QuoteItem text={getQuote().text} author={getQuote().author} />
           </Swiper>
