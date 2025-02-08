@@ -4,6 +4,7 @@ import FeatherIcon from "@/components/icon";
 import QuoteItem from "@/components/quote-items";
 import ThemePicker from "@/components/theme-picker";
 import { getQuote } from "@/data/quotes";
+import { router } from "expo-router";
 import { useRef } from "react";
 import { Pressable } from "react-native";
 import Swiper from "react-native-swiper";
@@ -48,19 +49,21 @@ export default function Index() {
               <FeatherIcon name="image" size={22}></FeatherIcon>
             </Box>
           </Pressable>
-          <Box
-            borderRadius={"hg"}
-            borderWidth={1}
-            borderColor={"$foreground"}
-            width={40}
-            height={40}
-            justifyContent={"center"}
-            flexDirection={"column"}
-            alignContent={"center"}
-            alignItems={"center"}
-          >
-            <FeatherIcon name="settings" size={22}></FeatherIcon>
-          </Box>
+          <Pressable onPress={ () => router.push('/SettingScreen')}>
+            <Box
+              borderRadius={"hg"}
+              borderWidth={1}
+              borderColor={"$foreground"}
+              width={40}
+              height={40}
+              justifyContent={"center"}
+              flexDirection={"column"}
+              alignContent={"center"}
+              alignItems={"center"}
+            >
+              <FeatherIcon name="settings" size={22}></FeatherIcon>
+            </Box>
+          </Pressable>
         </Box>
 
         <Box flex={1} justifyContent={"center"} alignItems={"center"}>

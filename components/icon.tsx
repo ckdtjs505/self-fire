@@ -4,6 +4,8 @@ import { Feather } from "@expo/vector-icons";
 import { Theme } from "@/themes";
 
 export type IconProps = React.ComponentProps<typeof Feather>;
+export type IconNames = React.ComponentProps<typeof Feather>["name"];
+
 type Props = Omit<IconProps, "color"> & ColorProps<Theme>;
 const FeatherIcon: React.FC<Props> = ({ color = "$foreground", ...rest }) => {
   const theme = useTheme<Theme>();
