@@ -28,7 +28,7 @@ const theme = createTheme({
       fontSize: 16,
     },
   },
-  barStyle: "light-content",
+  barStyle: "light",
 });
 
 export type Theme = typeof theme;

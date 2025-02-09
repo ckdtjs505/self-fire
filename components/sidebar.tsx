@@ -21,7 +21,7 @@ const Sidebar: React.FC<Props> = () => {
       </Box>
 
       <Box margin={"md"}>
-        {quotes.map(({ text }, idx) => {
+        {quotes.splice(10).map(({ text }, idx) => {
           return (
             <Pressable
               key={idx}
