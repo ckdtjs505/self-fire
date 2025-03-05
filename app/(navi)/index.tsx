@@ -71,28 +71,10 @@ export default function Index() {
             horizontal={false}
             showsButtons={false}
             showsPagination={false}
-            onIndexChanged={() => {
-            }}
+            onIndexChanged={() => {}}
           >
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
-            <QuoteItem text={getQuote().text} author={getQuote().author} />
+            <QuoteItem {...getQuote()}></QuoteItem>
+            <QuoteItem {...getQuote()}></QuoteItem>
           </Swiper>
         </Box>
       </Box>

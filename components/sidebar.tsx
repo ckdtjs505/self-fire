@@ -1,9 +1,20 @@
 import { Box, Text } from "@/atom";
 import { quotes } from "@/data/quotes";
+import { useFavoriteQuoteStore } from "@/store/quote";
 import { Alert } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
+import { useStore } from "zustand";
 type Props = {};
 const Sidebar: React.FC<Props> = () => {
+  const favorites = useStore(useFavoriteQuoteStore, (state) => state.favorites);
+  const removeFavorites = useStore(
+    useFavoriteQuoteStore,
+    (state) => state.removeFavorite,
+  );
+  const favoriteQuote = favorites.map((quoteId) =>
+    quotes.find((quote) => quote.id === quoteId),
+  );
+
   return (
     <Box
       flex={1}
@@ -21,7 +32,7 @@ const Sidebar: React.FC<Props> = () => {
       </Box>
 
       <Box margin={"md"}>
-        {quotes.splice(10).map(({ text }, idx) => {
+        {favoriteQuote.map(({ text, id }, idx) => {
           return (
             <Pressable
               key={idx}
@@ -30,7 +41,7 @@ const Sidebar: React.FC<Props> = () => {
                   {
                     text: "삭제",
                     onPress: () => {
-                      console.log("delete");
+                      removeFavorites(id);
                     },
                   },
                   { text: "취소" },

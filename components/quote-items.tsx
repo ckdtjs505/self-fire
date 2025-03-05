@@ -1,5 +1,4 @@
 import { Box, Text } from "@/atom";
-import { getQuote } from "@/data/quotes";
 import Quotebar from "./quote-bar";
 const getChunckQuote = (text: string) => {
   const chunckQuote: string[] = [];
@@ -14,8 +13,9 @@ const getChunckQuote = (text: string) => {
 type Props = {
   text: string;
   author: string;
+  id: string;
 };
-const QuoteItem: React.FC<Props> = ({ text, author }) => {
+const QuoteItem: React.FC<Props> = ({ text, author, id }) => {
   const quotesTexts = getChunckQuote(text);
 
   return (
@@ -35,7 +35,7 @@ const QuoteItem: React.FC<Props> = ({ text, author }) => {
         })}
       </Box>
       <Text> - {author} - </Text>
-      <Quotebar text={text} author={author}></Quotebar>
+      <Quotebar id={id} text={text} author={author}></Quotebar>
     </Box>
   );
 };
