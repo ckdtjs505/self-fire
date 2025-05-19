@@ -7,6 +7,7 @@ import { getQuote } from "@/data/quotes";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { Pressable } from "react-native";
+import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads";
 import Swiper from "react-native-swiper";
 
 export default function Index() {
@@ -78,6 +79,7 @@ export default function Index() {
           </Swiper>
         </Box>
       </Box>
+      <BannerAd size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER} unitId={TestIds.BANNER} />
       <ThemePicker ref={refThemePicker} />
     </SafeAreaView>
   );
