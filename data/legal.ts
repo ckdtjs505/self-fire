@@ -28,7 +28,7 @@ export const PRIVACY_POLICY = `
 개인정보와 관련하여 문의사항이 있으시면 아래 이메일로 연락해 주시기 바랍니다.
 - 이메일: ${CONTACT_EMAIL}
 
-시행일자: 2024년 4월 11일
+시행일자: 2026년 4월 11일
 `;
 
 export const TERMS_OF_SERVICE = `
@@ -60,5 +60,5 @@ export const TERMS_OF_SERVICE = `
 
 문의처: ${CONTACT_EMAIL}
 
-시행일자: 2024년 4월 11일
+시행일자: 2026년 4월 11일
 `;

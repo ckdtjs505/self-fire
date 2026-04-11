@@ -3,10 +3,11 @@ import HeaderLeft from "@/components/header-left";
 import FeatherIcon from "@/components/icon";
 import QuoteItem from "@/components/quote-items";
 import ThemePicker from "@/components/theme-picker";
-import { getQuote } from "@/data/quotes";
+import { getQuote, quotes as defaultQuotes } from "@/data/quotes";
 import { Quote } from "@/models";
+import { useFavoriteQuoteStore } from "@/store/quote";
 import { router } from "expo-router";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { Pressable, Dimensions, Alert, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as IntentLauncher from "expo-intent-launcher";
@@ -18,9 +19,27 @@ const { width } = Dimensions.get('window');
 
 export default function Index() {
   const { isAdFree } = useAdStore();
+  const { customQuotes } = useFavoriteQuoteStore();
   const refThemePicker = useRef<any>(null);
   const [isAdLoaded, setIsAdLoaded] = useState(false);
-  const [quotes, setQuotes] = useState<Quote[]>([getQuote(), getQuote()]);
+
+  // 모든 명언을 합친 리스트 (기본 + 사용자 커스텀)
+  // isCustom 플래그를 추가하여 전달
+  const getRandomQuote = () => {
+    const combined = [
+      ...defaultQuotes.map(q => ({ ...q, isCustom: false })),
+      ...customQuotes.map(q => ({ ...q, isCustom: true }))
+    ];
+    const randomIndex = Math.floor(Math.random() * combined.length);
+    return combined[randomIndex];
+  };
+
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+
+  useEffect(() => {
+    // 초기 명언 로드
+    setQuotes([getRandomQuote(), getRandomQuote()]);
+  }, []); // customQuotes가 변경되어도 현재 보이는 리스트는 유지하거나, 원하면 초기화 로직 추가 가능
 
   useEffect(() => {
     const requestOverlayPermission = async () => {
@@ -113,7 +132,7 @@ export default function Index() {
             loop={false}
             onIndexChanged={(index) => {
               if (index >= quotes.length - 2) {
-                setQuotes((prev) => [...prev, getQuote()]);
+                setQuotes((prev) => [...prev, getRandomQuote()]);
               }
             }}
           >

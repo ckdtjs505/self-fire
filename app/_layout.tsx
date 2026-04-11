@@ -48,6 +48,19 @@ export default function RootLayout() {
               headerShown: false,
             }}
           />
+          <Stack.Screen
+            name="MyQuotesScreen"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="AddQuoteScreen"
+            options={{
+              headerShown: false,
+              presentation: "modal",
+            }}
+          />
         </Stack>
       </ThemeProvider>
     </SafeAreaProvider>

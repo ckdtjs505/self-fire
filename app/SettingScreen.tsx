@@ -16,7 +16,7 @@ export default function SettingScreen() {
 
   useEffect(() => {
     setAppVersion(Application.nativeApplicationVersion || "1.0.0");
-    
+
     // 초기 설정값 로드 (안드로이드인 경우에만)
     if (Platform.OS === "android" && AutoLaunchModule) {
       AutoLaunchModule.isEnabled().then((enabled: boolean) => {
@@ -48,13 +48,13 @@ export default function SettingScreen() {
       "990원을 결제하여 광고를 영구적으로 제거하시겠습니까?",
       [
         { text: "취소", style: "cancel" },
-        { 
-          text: "결제하기", 
+        {
+          text: "결제하기",
           onPress: () => {
             // 실제 IAP 연동 시점을 위한 Mock 처리
             setAdFree(true);
             Alert.alert("완료", "광고 제거 기능이 활성화되었습니다.");
-          } 
+          }
         }
       ]
     );
@@ -93,6 +93,12 @@ export default function SettingScreen() {
               borderRadius={"md"}
               overflow="hidden"
             >
+              <SettingItem
+                icon={"edit-3"}
+                title="나만의 명언 관리"
+                handleClickItem={() => router.push("/MyQuotesScreen")}
+              />
+              <Box height={1} bg={"$background"} marginHorizontal="md" style={{ opacity: 0.1 }} />
               {Platform.OS === "android" && (
                 <>
                   <SettingItem
@@ -176,7 +182,7 @@ export default function SettingScreen() {
               <SettingItem
                 icon={"info"}
                 title="버전 정보"
-                handleClickItem={() => {}}
+                handleClickItem={() => { }}
                 rightElement={
                   <Text color={"$sidebarForeground"} style={{ opacity: 0.6 }}>
                     {appVersion}
@@ -188,7 +194,7 @@ export default function SettingScreen() {
 
           <Box paddingVertical="xl" alignItems="center">
             <Text fontSize={12} color={"$foreground"} style={{ opacity: 0.4 }}>
-              © 2024 Self-Fire. All rights reserved.
+              © 2026 Self-Fire. All rights reserved.
             </Text>
           </Box>
         </ScrollView>
