@@ -1,4 +1,4 @@
-const { withDangerousMod, withAndroidManifest, withMainActivity } = require('@expo/config-plugins');
+const { withDangerousMod, withAndroidManifest, withMainActivity, withAppBuildGradle } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
@@ -17,7 +17,6 @@ import android.os.Build;
 import android.os.IBinder;
 import android.provider.Settings;
 import android.util.Log;
-import androidx.core.app.NotificationCompat;
 
 public class AutoLaunchService extends Service {
     private static final String TAG = "AutoLaunchService";
@@ -32,7 +31,14 @@ public class AutoLaunchService extends Service {
         Intent notificationIntent = new Intent(this, MainActivity.class);
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE);
 
-        Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
+        Notification.Builder builder;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            builder = new Notification.Builder(this, CHANNEL_ID);
+        } else {
+            builder = new Notification.Builder(this);
+        }
+
+        Notification notification = builder
                 .setContentTitle("Self-Fire 실행 중")
                 .setContentText("잠금 해제 시 명언을 띄우기 위해 대기 중입니다.")
                 .setSmallIcon(getResources().getIdentifier("ic_launcher", "mipmap", getPackageName()))
@@ -157,19 +163,37 @@ const withAutoLaunchReceiver = (config) => {
     },
   ]);
 
-  // 2. Modify MainActivity.java to start the service on app launch
+  // 2. Modify MainActivity to start the service on app launch (supports Java and Kotlin)
   config = withMainActivity(config, async (config) => {
+      const isKotlin = config.modResults.language === 'kt';
       let mainActivityCode = config.modResults.contents;
       
-      const importIntent = 'import android.content.Intent;\nimport android.os.Build;';
-      if (!mainActivityCode.includes('import android.content.Intent;')) {
-          mainActivityCode = mainActivityCode.replace(
-              'import android.os.Bundle;',
-              `import android.os.Bundle;\n${importIntent}`
-          );
+      // Add imports to the top, ensuring no duplicates
+      const targetPackageLine = isKotlin ? 'package com.changsunoh.selfFire' : 'package com.changsunoh.selfFire;';
+      
+      const intentImport = isKotlin ? 'import android.content.Intent' : 'import android.content.Intent;';
+      const buildImport = isKotlin ? 'import android.os.Build' : 'import android.os.Build;';
+      const serviceImport = isKotlin ? 'import com.changsunoh.selfFire.AutoLaunchService' : 'import com.changsunoh.selfFire.AutoLaunchService;';
+
+      if (!mainActivityCode.includes('import android.content.Intent')) {
+          mainActivityCode = mainActivityCode.replace(targetPackageLine, `${targetPackageLine}\n${intentImport}`);
+      }
+      if (!mainActivityCode.includes('import android.os.Build')) {
+          mainActivityCode = mainActivityCode.replace(targetPackageLine, `${targetPackageLine}\n${buildImport}`);
+      }
+      if (!mainActivityCode.includes('import com.changsunoh.selfFire.AutoLaunchService')) {
+          mainActivityCode = mainActivityCode.replace(targetPackageLine, `${targetPackageLine}\n${serviceImport}`);
       }
       
-      const startServiceCode = `
+      const startServiceCode = isKotlin ? `
+    try {
+        val serviceIntent = Intent(this, AutoLaunchService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
+        }
+    } catch (e: Exception) {}` : `
     try {
         Intent serviceIntent = new Intent(this, AutoLaunchService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -177,12 +201,13 @@ const withAutoLaunchReceiver = (config) => {
         } else {
             startService(serviceIntent);
         }
-    } catch (Exception e) {}
-`;
-      if (!mainActivityCode.includes('startForegroundService(serviceIntent)')) {
+    } catch (Exception e) {}`;
+
+      if (!mainActivityCode.includes('AutoLaunchService::class.java') && !mainActivityCode.includes('AutoLaunchService.class')) {
+          const onCreatePattern = isKotlin ? /super\.onCreate\(.*?\)/ : /super\.onCreate\(.*?\);/;
           mainActivityCode = mainActivityCode.replace(
-              /super\.onCreate\((.*?)\);/,
-              `super.onCreate($1);\n${startServiceCode}`
+              onCreatePattern,
+              (match) => `${match}\n${startServiceCode}`
           );
       }
       
@@ -229,11 +254,6 @@ const withAutoLaunchReceiver = (config) => {
     }
 
     if (!mainApplication.receiver) mainApplication.receiver = [];
-    
-    mainApplication.receiver = mainApplication.receiver.filter(
-        r => r.$['android:name'] !== '.AutoLaunchReceiver'
-    );
-    
     if (!mainApplication.receiver.some((r) => r.$['android:name'] === '.BootReceiver')) {
         mainApplication.receiver.push({
             $: {
@@ -251,6 +271,11 @@ const withAutoLaunchReceiver = (config) => {
         });
     }
 
+    return config;
+  });
+
+  // 4. Ensure dependencies in build.gradle (None needed now, but keeping the block if needed later)
+  config = withAppBuildGradle(config, (config) => {
     return config;
   });
 
