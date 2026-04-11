@@ -6,12 +6,15 @@ import ThemePicker from "@/components/theme-picker";
 import { getQuote } from "@/data/quotes";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
-import { Pressable } from "react-native";
+import { Pressable, Dimensions } from "react-native";
 import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads";
 import Swiper from "react-native-swiper";
 
+const { width } = Dimensions.get('window');
+
 export default function Index() {
-  const refThemePicker = useRef(null);
+  const refThemePicker = useRef<any>(null);
+  const [isAdLoaded, setIsAdLoaded] = useState(false);
 
   return (
     <SafeAreaView flex={1}>
@@ -72,14 +75,37 @@ export default function Index() {
             horizontal={false}
             showsButtons={false}
             showsPagination={false}
-            onIndexChanged={() => {}}
+            onIndexChanged={() => { }}
           >
             <QuoteItem {...getQuote()}></QuoteItem>
             <QuoteItem {...getQuote()}></QuoteItem>
           </Swiper>
         </Box>
       </Box>
-      <BannerAd size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER} unitId={TestIds.BANNER} />
+      <Box
+        alignItems="center"
+        justifyContent="center"
+        width={width}
+        position={isAdLoaded ? "relative" : "absolute"}
+        opacity={isAdLoaded ? 1 : 0}
+        pointerEvents={isAdLoaded ? "auto" : "none"}
+      >
+        <BannerAd
+          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+          unitId={TestIds.BANNER}
+          requestOptions={{
+            requestNonPersonalizedAdsOnly: true,
+          }}
+          onAdLoaded={() => {
+            console.log('Ad loaded successfully');
+            setIsAdLoaded(true);
+          }}
+          onAdFailedToLoad={(error) => {
+            console.log('Ad failed to load: ', error);
+            setIsAdLoaded(false);
+          }}
+        />
+      </Box>
       <ThemePicker ref={refThemePicker} />
     </SafeAreaView>
   );

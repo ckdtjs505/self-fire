@@ -3,6 +3,18 @@ import { useThemeStore } from "@/store/theme";
 import { ThemeProvider } from "@shopify/restyle";
 import { Stack } from "expo-router";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import mobileAds from "react-native-google-mobile-ads";
+
+mobileAds()
+  .setRequestConfiguration({
+    testDeviceIdentifiers: __DEV__ ? ['EMULATOR'] : [],
+  })
+  .then(() => {
+    return mobileAds().initialize();
+  })
+  .then((adapterStatuses) => {
+    console.log('AdMob initialization complete!');
+  });
 
 export default function RootLayout() {
   const { currentTheme } = useThemeStore();
