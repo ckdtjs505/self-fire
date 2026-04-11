@@ -39,11 +39,39 @@ export default function MyQuotesScreen() {
         <FlatList
           data={customQuotes}
           keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingBottom: 40 }}
           ListEmptyComponent={
             <Box flex={1} justifyContent="center" alignItems="center" padding="xl" marginTop="hg">
-              <FeatherIcon name="edit" size={48} style={{ opacity: 0.2 }} />
-              <Text marginTop="md" style={{ opacity: 0.5 }}>등록된 명언이 없습니다.</Text>
-              <Text style={{ opacity: 0.5 }}>새로운 명언을 만들어보세요!</Text>
+              <Box 
+                width={80} 
+                height={80} 
+                borderRadius="hg" 
+                bg="$sidebarBackground" 
+                justifyContent="center" 
+                alignItems="center"
+                style={{ opacity: 0.5 }}
+              >
+                <FeatherIcon name="edit-3" size={40} color="$foreground" />
+              </Box>
+              <Text marginTop="xl" fontSize={18} fontWeight="bold" color="$foreground" style={{ opacity: 0.7 }}>
+                명언이 아직 없습니다.
+              </Text>
+              <Text marginTop="s" color="$foreground" style={{ opacity: 0.5, textAlign: 'center' }}>
+                당신의 마음을 울리는 첫 번째{"\n"}명언을 직접 기록해 보세요.
+              </Text>
+              <Pressable 
+                onPress={() => router.push("/AddQuoteScreen")}
+                style={({ pressed }) => ({
+                  marginTop: 32,
+                  paddingHorizontal: 24,
+                  paddingVertical: 12,
+                  backgroundColor: '#2185d0',
+                  borderRadius: 24,
+                  opacity: pressed ? 0.8 : 1
+                })}
+              >
+                <Text color="white" fontWeight="bold" fontSize={16}>첫 명언 등록하기</Text>
+              </Pressable>
             </Box>
           }
           renderItem={({ item }) => (
@@ -51,32 +79,51 @@ export default function MyQuotesScreen() {
               bg="$sidebarBackground"
               marginHorizontal="md"
               marginVertical="xs"
-              borderRadius="md"
-              padding="md"
+              borderRadius="lg"
+              padding="lg"
               flexDirection="row"
               alignItems="center"
               justifyContent="space-between"
+              style={{
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
+              }}
             >
-              <Box flex={1} marginRight="s">
-                <Text color="$sidebarForeground" fontSize={16} fontWeight="bold" numberOfLines={2}>
-                  {item.text}
+              <Box flex={1} marginRight="md">
+                <Text color="$sidebarForeground" fontSize={17} fontWeight="600" lineHeight={24}>
+                  "{item.text}"
                 </Text>
-                <Text color="$sidebarForeground" fontSize={14} marginTop="xs" style={{ opacity: 0.7 }}>
-                  - {item.author}
+                <Text color="$sidebarForeground" fontSize={13} marginTop="s" style={{ opacity: 0.5 }}>
+                  — {item.author}
                 </Text>
               </Box>
-              <Box flexDirection="row">
+              <Box flexDirection="row" alignItems="center">
                 <Pressable 
                   onPress={() => router.push({
                     pathname: "/AddQuoteScreen",
                     params: { id: item.id, text: item.text, author: item.author }
                   })}
-                  style={{ marginRight: 16 }}
+                  style={({ pressed }) => ({
+                    padding: 8,
+                    borderRadius: 20,
+                    backgroundColor: pressed ? 'rgba(255,255,255,0.1)' : undefined,
+                    marginRight: 8
+                  })}
                 >
-                  <FeatherIcon name="edit-2" size={20} color="$sidebarForeground" />
+                  <FeatherIcon name="edit-2" size={18} color="$sidebarForeground" style={{ opacity: 0.7 }} />
                 </Pressable>
-                <Pressable onPress={() => handleDelete(item.id)}>
-                  <FeatherIcon name="trash-2" size={20} color="red" />
+                <Pressable 
+                  onPress={() => handleDelete(item.id)}
+                  style={({ pressed }) => ({
+                    padding: 8,
+                    borderRadius: 20,
+                    backgroundColor: pressed ? 'rgba(255,0,0,0.1)' : undefined
+                  })}
+                >
+                  <FeatherIcon name="trash-2" size={18} color="red" style={{ opacity: 0.8 }} />
                 </Pressable>
               </Box>
             </Box>

@@ -19,27 +19,62 @@ const { width } = Dimensions.get('window');
 
 export default function Index() {
   const { isAdFree } = useAdStore();
-  const { customQuotes } = useFavoriteQuoteStore();
+  const { customQuotes, favorites } = useFavoriteQuoteStore();
   const refThemePicker = useRef<any>(null);
   const [isAdLoaded, setIsAdLoaded] = useState(false);
+  const [filterMode, setFilterMode] = useState<'all' | 'mine' | 'favorites'>('all');
 
-  // 모든 명언을 합친 리스트 (기본 + 사용자 커스텀)
-  // isCustom 플래그를 추가하여 전달
-  const getRandomQuote = () => {
-    const combined = [
-      ...defaultQuotes.map(q => ({ ...q, isCustom: false })),
-      ...customQuotes.map(q => ({ ...q, isCustom: true }))
-    ];
-    const randomIndex = Math.floor(Math.random() * combined.length);
-    return combined[randomIndex];
+  // 리스트를 무작위로 섞는 유틸리티 함수
+  const shuffle = <T,>(array: T[]): T[] => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
   };
 
   const [quotes, setQuotes] = useState<Quote[]>([]);
 
+  // 명언 풀 생성 및 관리
+  const getInitialPool = (mode: 'all' | 'mine' | 'favorites') => {
+    let pool: Quote[] = [
+      ...defaultQuotes,
+      ...customQuotes
+    ];
+
+    if (mode === 'mine') {
+      // 내가 쓴 명언만 필터링
+      pool = customQuotes;
+      return shuffle(pool);
+    } else if (mode === 'favorites') {
+      // 즐겨찾기만 필터링
+      pool = pool.filter(q => favorites.includes(q.id));
+      return shuffle(pool);
+    } else {
+      // 전체 명언: 무작위로 50개 샘플링하여 셔플
+      return shuffle(pool).slice(0, 50);
+    }
+  };
+
   useEffect(() => {
-    // 초기 명언 로드
-    setQuotes([getRandomQuote(), getRandomQuote()]);
-  }, []); // customQuotes가 변경되어도 현재 보이는 리스트는 유지하거나, 원하면 초기화 로직 추가 가능
+    // 필터 상태가 바뀌거나 데이터가 바뀌면 풀 초기화
+    setQuotes(getInitialPool(filterMode));
+  }, [filterMode, customQuotes, favorites]);
+
+  // '전체 명언' 모드에서 끝에 도달했을 때 추가로 불러올 수 있는 함수
+  const loadMoreQuotes = () => {
+    if (filterMode !== 'all') return; // 필터 모드에서는 더 불러오지 않음 (기존 데이터만 보여줌)
+
+    const fullPool = [...defaultQuotes, ...customQuotes];
+    const currentIds = new Set(quotes.map(q => q.id));
+    const unused = fullPool.filter(q => !currentIds.has(q.id));
+
+    if (unused.length > 0) {
+      const nextBatch = shuffle(unused).slice(0, 20);
+      setQuotes(prev => [...prev, ...nextBatch]);
+    }
+  };
 
   useEffect(() => {
     const requestOverlayPermission = async () => {
@@ -52,8 +87,8 @@ export default function Index() {
               "휴대폰 잠금 해제 시 명언을 자동으로 띄우려면 '다른 앱 위에 표시' 권한이 필요합니다. 설정 화면으로 이동하시겠습니까?",
               [
                 { text: "나중에", style: "cancel", onPress: () => AsyncStorage.setItem('hasPromptedOverlay', 'true') },
-                { 
-                  text: "설정하러 가기", 
+                {
+                  text: "설정하러 가기",
                   onPress: async () => {
                     await AsyncStorage.setItem('hasPromptedOverlay', 'true');
                     IntentLauncher.startActivityAsync(IntentLauncher.ActivityAction.MANAGE_OVERLAY_PERMISSION);
@@ -86,12 +121,72 @@ export default function Index() {
           m="s"
           p="xs"
           minHeight={44}
-          width={100}
-          justifyContent={"space-between"}
+          width={140}
+          justifyContent={"space-around"}
           alignItems={"center"}
           flexDirection={"row"}
           zIndex={10}
         >
+          {/* 내가 작성한 명언 필터 */}
+          <Pressable
+            onPress={() => {
+              if (filterMode !== 'mine' && customQuotes.length === 0) {
+                Alert.alert("알림", "아직 직접 작성한 명언이 없습니다. 명언을 먼저 등록해 보세요!");
+                return;
+              }
+              setFilterMode(filterMode === 'mine' ? 'all' : 'mine');
+            }}
+          >
+            <Box
+              borderRadius={"hg"}
+              borderWidth={1}
+              borderColor={filterMode === 'mine' ? "$primary" : "$foreground"}
+              width={40}
+              height={40}
+              justifyContent={"center"}
+              flexDirection={"column"}
+              alignContent={"center"}
+              alignItems={"center"}
+              backgroundColor={filterMode === 'mine' ? "$sidebarBackground" : undefined}
+            >
+              <FeatherIcon
+                name={filterMode === 'mine' ? "user-check" : "user"}
+                size={22}
+                color={filterMode === 'mine' ? "$primary" : "$foreground"}
+              />
+            </Box>
+          </Pressable>
+
+          {/* 즐겨찾기 명언 필터 */}
+          <Pressable
+            onPress={() => {
+              if (filterMode !== 'favorites' && favorites.length === 0) {
+                Alert.alert("알림", "아직 즐겨찾기한 명언이 없습니다. 먼저 명언에 하트를 눌러보세요!");
+                return;
+              }
+              setFilterMode(filterMode === 'favorites' ? 'all' : 'favorites');
+            }}
+          >
+            <Box
+              borderRadius={"hg"}
+              borderWidth={1}
+              borderColor={filterMode === 'favorites' ? "red" : "$foreground"}
+              width={40}
+              height={40}
+              justifyContent={"center"}
+              flexDirection={"column"}
+              alignContent={"center"}
+              alignItems={"center"}
+              backgroundColor={filterMode === 'favorites' ? "$sidebarBackground" : undefined}
+            >
+              <FeatherIcon
+                name={filterMode === 'favorites' ? "heart" : "heart"}
+                size={22}
+                color={filterMode === 'favorites' ? "red" : "$foreground"}
+              />
+            </Box>
+          </Pressable>
+
           <Pressable onPress={() => refThemePicker.current?.open()}>
             <Box
               borderRadius={"hg"}
@@ -107,21 +202,6 @@ export default function Index() {
               <FeatherIcon name="image" size={22}></FeatherIcon>
             </Box>
           </Pressable>
-          <Pressable onPress={() => router.push("/SettingScreen")}>
-            <Box
-              borderRadius={"hg"}
-              borderWidth={1}
-              borderColor={"$foreground"}
-              width={40}
-              height={40}
-              justifyContent={"center"}
-              flexDirection={"column"}
-              alignContent={"center"}
-              alignItems={"center"}
-            >
-              <FeatherIcon name="settings" size={22}></FeatherIcon>
-            </Box>
-          </Pressable>
         </Box>
 
         <Box flex={1} justifyContent={"center"} alignItems={"center"}>
@@ -132,12 +212,16 @@ export default function Index() {
             loop={false}
             onIndexChanged={(index) => {
               if (index >= quotes.length - 2) {
-                setQuotes((prev) => [...prev, getRandomQuote()]);
+                loadMoreQuotes();
               }
             }}
           >
             {quotes.map((quote, idx) => (
-              <QuoteItem key={`${quote.id}-${idx}`} {...quote} />
+              <QuoteItem 
+                key={`${quote.id}-${idx}`} 
+                {...quote} 
+                isCustom={customQuotes.some(cq => cq.id === quote.id)}
+              />
             ))}
           </Swiper>
         </Box>
