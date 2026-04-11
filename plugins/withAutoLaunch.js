@@ -1,4 +1,4 @@
-const { withDangerousMod, withAndroidManifest, withMainActivity, withAppBuildGradle } = require('@expo/config-plugins');
+const { withDangerousMod, withAndroidManifest, withMainActivity, withAppBuildGradle, withMainApplication } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
@@ -114,6 +114,7 @@ const javaBootCode = `package com.changsunoh.selfFire;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.util.Log;
 
@@ -123,6 +124,14 @@ public class BootReceiver extends BroadcastReceiver {
         if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction()) ||
             "android.intent.action.MY_PACKAGE_REPLACED".equals(intent.getAction())) {
             
+            SharedPreferences prefs = context.getSharedPreferences("AutoLaunchPrefs", Context.MODE_PRIVATE);
+            boolean enabled = prefs.getBoolean("enabled", true);
+            
+            if (!enabled) {
+                Log.d("BootReceiver", "AutoLaunch is disabled in settings. Skipping service start.");
+                return;
+            }
+
             Log.d("BootReceiver", "Boot or package replaced. Starting AutoLaunchService...");
             Intent serviceIntent = new Intent(context, AutoLaunchService.class);
             
@@ -140,6 +149,78 @@ public class BootReceiver extends BroadcastReceiver {
 }
 `;
 
+const javaModuleCode = `package com.changsunoh.selfFire;
+
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Build;
+import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.bridge.ReactContextBaseJavaModule;
+import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.Promise;
+
+public class AutoLaunchModule extends ReactContextBaseJavaModule {
+    public AutoLaunchModule(ReactApplicationContext reactContext) {
+        super(reactContext);
+    }
+
+    @Override
+    public String getName() {
+        return "AutoLaunchModule";
+    }
+
+    @ReactMethod
+    public void setEnabled(boolean enabled, Promise promise) {
+        SharedPreferences prefs = getReactApplicationContext().getSharedPreferences("AutoLaunchPrefs", Context.MODE_PRIVATE);
+        prefs.edit().putBoolean("enabled", enabled).apply();
+
+        Intent serviceIntent = new Intent(getReactApplicationContext(), AutoLaunchService.class);
+        if (enabled) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                getReactApplicationContext().startForegroundService(serviceIntent);
+            } else {
+                getReactApplicationContext().startService(serviceIntent);
+            }
+        } else {
+            getReactApplicationContext().stopService(serviceIntent);
+        }
+        promise.resolve(enabled);
+    }
+
+    @ReactMethod
+    public void isEnabled(Promise promise) {
+        SharedPreferences prefs = getReactApplicationContext().getSharedPreferences("AutoLaunchPrefs", Context.MODE_PRIVATE);
+        promise.resolve(prefs.getBoolean("enabled", true));
+    }
+}
+`;
+
+const javaPackageCode = `package com.changsunoh.selfFire;
+
+import com.facebook.react.ReactPackage;
+import com.facebook.react.bridge.NativeModule;
+import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.uimanager.ViewManager;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public class AutoLaunchPackage implements ReactPackage {
+    @Override
+    public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
+        List<NativeModule> modules = new ArrayList<>();
+        modules.add(new AutoLaunchModule(reactContext));
+        return modules;
+    }
+}
+`;
+
 const withAutoLaunchReceiver = (config) => {
   // 1. Inject Java Codes
   config = withDangerousMod(config, [
@@ -153,11 +234,8 @@ const withAutoLaunchReceiver = (config) => {
       }
       fs.writeFileSync(path.join(packagePath, 'AutoLaunchService.java'), javaServiceCode);
       fs.writeFileSync(path.join(packagePath, 'BootReceiver.java'), javaBootCode);
-      
-      const oldReceiver = path.join(packagePath, 'AutoLaunchReceiver.java');
-      if (fs.existsSync(oldReceiver)) {
-          fs.unlinkSync(oldReceiver);
-      }
+      fs.writeFileSync(path.join(packagePath, 'AutoLaunchModule.java'), javaModuleCode);
+      fs.writeFileSync(path.join(packagePath, 'AutoLaunchPackage.java'), javaPackageCode);
       
       return config;
     },
@@ -168,42 +246,58 @@ const withAutoLaunchReceiver = (config) => {
       const isKotlin = config.modResults.language === 'kt';
       let mainActivityCode = config.modResults.contents;
       
-      // Add imports to the top, ensuring no duplicates
+      // Add imports
       const targetPackageLine = isKotlin ? 'package com.changsunoh.selfFire' : 'package com.changsunoh.selfFire;';
-      
-      const intentImport = isKotlin ? 'import android.content.Intent' : 'import android.content.Intent;';
-      const buildImport = isKotlin ? 'import android.os.Build' : 'import android.os.Build;';
-      const serviceImport = isKotlin ? 'import com.changsunoh.selfFire.AutoLaunchService' : 'import com.changsunoh.selfFire.AutoLaunchService;';
+      const importBlock = isKotlin ? `
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import com.changsunoh.selfFire.AutoLaunchService` : `
+import android.content.Context;
+import android.content.Intent;
+import android.os.Build;
+import com.changsunoh.selfFire.AutoLaunchService;`;
 
-      if (!mainActivityCode.includes('import android.content.Intent')) {
-          mainActivityCode = mainActivityCode.replace(targetPackageLine, `${targetPackageLine}\n${intentImport}`);
-      }
-      if (!mainActivityCode.includes('import android.os.Build')) {
-          mainActivityCode = mainActivityCode.replace(targetPackageLine, `${targetPackageLine}\n${buildImport}`);
-      }
       if (!mainActivityCode.includes('import com.changsunoh.selfFire.AutoLaunchService')) {
-          mainActivityCode = mainActivityCode.replace(targetPackageLine, `${targetPackageLine}\n${serviceImport}`);
+          mainActivityCode = mainActivityCode.replace(targetPackageLine, `${targetPackageLine}\n${importBlock}`);
       }
       
       const startServiceCode = isKotlin ? `
-    try {
-        val serviceIntent = Intent(this, AutoLaunchService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent)
-        } else {
-            startService(serviceIntent)
-        }
-    } catch (e: Exception) {}` : `
-    try {
-        Intent serviceIntent = new Intent(this, AutoLaunchService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent);
-        } else {
-            startService(serviceIntent);
-        }
-    } catch (Exception e) {}`;
+    val prefs = getSharedPreferences("AutoLaunchPrefs", Context.MODE_PRIVATE)
+    if (prefs.getBoolean("enabled", true)) {
+        try {
+            val serviceIntent = Intent(this, AutoLaunchService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
+        } catch (e: Exception) {}
+    }` : `
+    android.content.SharedPreferences prefs = getSharedPreferences("AutoLaunchPrefs", android.content.Context.MODE_PRIVATE);
+    if (prefs.getBoolean("enabled", true)) {
+        try {
+            Intent serviceIntent = new Intent(this, AutoLaunchService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent);
+            } else {
+                startService(serviceIntent);
+            }
+        } catch (Exception e) {}
+    }`;
 
-      if (!mainActivityCode.includes('AutoLaunchService::class.java') && !mainActivityCode.includes('AutoLaunchService.class')) {
+      // Check if we already have the service start code and replace it
+      if (mainActivityCode.includes('AutoLaunchService::class.java') || mainActivityCode.includes('AutoLaunchService.class')) {
+          // Replace the existing try-catch block that starts the service
+          const oldPattern = /try\s*{\s+(val|Intent)\s+serviceIntent\s+=\s+Intent\(this,\s+AutoLaunchService(?:.*?)} catch\s*\(e:\s*Exception\)\s*{\s*}/s;
+          if (oldPattern.test(mainActivityCode)) {
+              mainActivityCode = mainActivityCode.replace(oldPattern, startServiceCode);
+          } else {
+              // fallback if regex fails
+              const onCreatePattern = isKotlin ? /super\.onCreate\(.*?\)/ : /super\.onCreate\(.*?\);/;
+              mainActivityCode = mainActivityCode.replace(onCreatePattern, (match) => `${match}\n${startServiceCode}`);
+          }
+      } else {
           const onCreatePattern = isKotlin ? /super\.onCreate\(.*?\)/ : /super\.onCreate\(.*?\);/;
           mainActivityCode = mainActivityCode.replace(
               onCreatePattern,
@@ -215,7 +309,36 @@ const withAutoLaunchReceiver = (config) => {
       return config;
   });
 
-  // 3. Inject Manifest Elements
+  // 3. Register Package in MainApplication (supports Kotlin)
+  config = withMainApplication(config, (config) => {
+    let contents = config.modResults.contents;
+    if (!contents.includes('import com.changsunoh.selfFire.AutoLaunchPackage')) {
+      const packageImport = config.modResults.language === 'kt' 
+        ? 'import com.changsunoh.selfFire.AutoLaunchPackage'
+        : 'import com.changsunoh.selfFire.AutoLaunchPackage;';
+      contents = contents.replace(/(package\s+.*?\n)/, (match) => `${match}${packageImport}\n`);
+    }
+
+    if (!contents.includes('AutoLaunchPackage()')) {
+      // For Kotlin Expo 51+ MainApplication structure
+      if (contents.includes('PackageList(this).packages')) {
+          contents = contents.replace(
+              /PackageList\(this\)\.packages\.apply\s*{/,
+              (match) => `${match}\n          add(AutoLaunchPackage())`
+          );
+      } else {
+          // Fallback for older structures
+          contents = contents.replace(
+              /Package\(\),?/,
+              (match) => `${match}\n          AutoLaunchPackage(),`
+          );
+      }
+    }
+    config.modResults.contents = contents;
+    return config;
+  });
+
+  // 4. Inject Manifest Elements
   config = withAndroidManifest(config, (config) => {
     const manifest = config.modResults.manifest;
     const mainApplication = manifest.application[0];
@@ -271,11 +394,6 @@ const withAutoLaunchReceiver = (config) => {
         });
     }
 
-    return config;
-  });
-
-  // 4. Ensure dependencies in build.gradle (None needed now, but keeping the block if needed later)
-  config = withAppBuildGradle(config, (config) => {
     return config;
   });
 
