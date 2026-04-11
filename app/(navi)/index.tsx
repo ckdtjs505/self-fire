@@ -4,9 +4,12 @@ import FeatherIcon from "@/components/icon";
 import QuoteItem from "@/components/quote-items";
 import ThemePicker from "@/components/theme-picker";
 import { getQuote } from "@/data/quotes";
+import { Quote } from "@/models";
 import { router } from "expo-router";
-import { useRef, useState } from "react";
-import { Pressable, Dimensions } from "react-native";
+import { useRef, useState, useEffect } from "react";
+import { Pressable, Dimensions, Alert, Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as IntentLauncher from "expo-intent-launcher";
 import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads";
 import Swiper from "react-native-swiper";
 
@@ -15,6 +18,36 @@ const { width } = Dimensions.get('window');
 export default function Index() {
   const refThemePicker = useRef<any>(null);
   const [isAdLoaded, setIsAdLoaded] = useState(false);
+  const [quotes, setQuotes] = useState<Quote[]>([getQuote(), getQuote()]);
+
+  useEffect(() => {
+    const requestOverlayPermission = async () => {
+      if (Platform.OS === 'android') {
+        try {
+          const hasPrompted = await AsyncStorage.getItem('hasPromptedOverlay');
+          if (!hasPrompted) {
+            Alert.alert(
+              "화면 자동 켜짐 설정",
+              "휴대폰 잠금 해제 시 명언을 자동으로 띄우려면 '다른 앱 위에 표시' 권한이 필요합니다. 설정 화면으로 이동하시겠습니까?",
+              [
+                { text: "나중에", style: "cancel", onPress: () => AsyncStorage.setItem('hasPromptedOverlay', 'true') },
+                { 
+                  text: "설정하러 가기", 
+                  onPress: async () => {
+                    await AsyncStorage.setItem('hasPromptedOverlay', 'true');
+                    IntentLauncher.startActivityAsync(IntentLauncher.ActivityAction.MANAGE_OVERLAY_PERMISSION);
+                  }
+                }
+              ]
+            );
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    };
+    setTimeout(requestOverlayPermission, 1000); // 1초 뒤에 띄움 (로딩 안정화)
+  }, []);
 
   return (
     <SafeAreaView flex={1}>
@@ -75,10 +108,16 @@ export default function Index() {
             horizontal={false}
             showsButtons={false}
             showsPagination={false}
-            onIndexChanged={() => { }}
+            loop={false}
+            onIndexChanged={(index) => {
+              if (index >= quotes.length - 2) {
+                setQuotes((prev) => [...prev, getQuote()]);
+              }
+            }}
           >
-            <QuoteItem {...getQuote()}></QuoteItem>
-            <QuoteItem {...getQuote()}></QuoteItem>
+            {quotes.map((quote, idx) => (
+              <QuoteItem key={`${quote.id}-${idx}`} {...quote} />
+            ))}
           </Swiper>
         </Box>
       </Box>
