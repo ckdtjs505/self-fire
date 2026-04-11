@@ -2,8 +2,9 @@ import { Box, SafeAreaView, Text } from "@/atom";
 import { useEffect, useState } from "react";
 import * as Application from "expo-application";
 import SettingItem from "@/components/setting-item";
-import { Linking, ScrollView, Switch, NativeModules, Platform } from "react-native";
+import { Linking, ScrollView, Switch, NativeModules, Platform, Alert } from "react-native";
 import { useRouter } from "expo-router";
+import { useAdStore } from "@/store/ad-store";
 
 const { AutoLaunchModule } = NativeModules;
 
@@ -11,6 +12,7 @@ export default function SettingScreen() {
   const router = useRouter();
   const [appVersion, setAppVersion] = useState("");
   const [isAutoLaunchEnabled, setIsAutoLaunchEnabled] = useState(true);
+  const { isAdFree, setAdFree } = useAdStore();
 
   useEffect(() => {
     setAppVersion(Application.nativeApplicationVersion || "1.0.0");
@@ -33,6 +35,29 @@ export default function SettingScreen() {
         console.error("Failed to toggle auto launch", e);
       }
     }
+  };
+
+  const handleRemoveAds = () => {
+    if (isAdFree) {
+      Alert.alert("알림", "이미 광고 제거 기능이 활성화되어 있습니다.");
+      return;
+    }
+
+    Alert.alert(
+      "광고 제거",
+      "990원을 결제하여 광고를 영구적으로 제거하시겠습니까?",
+      [
+        { text: "취소", style: "cancel" },
+        { 
+          text: "결제하기", 
+          onPress: () => {
+            // 실제 IAP 연동 시점을 위한 Mock 처리
+            setAdFree(true);
+            Alert.alert("완료", "광고 제거 기능이 활성화되었습니다.");
+          } 
+        }
+      ]
+    );
   };
 
   const openLink = (url: string) => {
@@ -97,7 +122,18 @@ export default function SettingScreen() {
               <SettingItem
                 icon={"shopping-cart"}
                 title="광고 제거"
-                handleClickItem={() => console.log("click")}
+                handleClickItem={handleRemoveAds}
+                rightElement={
+                  isAdFree ? (
+                    <Text fontSize={14} color={"$primary"} fontWeight="bold">
+                      활성화됨
+                    </Text>
+                  ) : (
+                    <Text fontSize={14} style={{ opacity: 0.6 }}>
+                      ₩990
+                    </Text>
+                  )
+                }
               />
               <Box height={1} bg={"$background"} marginHorizontal="md" style={{ opacity: 0.1 }} />
               <SettingItem

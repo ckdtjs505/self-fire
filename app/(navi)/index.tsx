@@ -12,10 +12,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as IntentLauncher from "expo-intent-launcher";
 import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads";
 import Swiper from "react-native-swiper";
+import { useAdStore } from "@/store/ad-store";
 
 const { width } = Dimensions.get('window');
 
 export default function Index() {
+  const { isAdFree } = useAdStore();
   const refThemePicker = useRef<any>(null);
   const [isAdLoaded, setIsAdLoaded] = useState(false);
   const [quotes, setQuotes] = useState<Quote[]>([getQuote(), getQuote()]);
@@ -121,30 +123,32 @@ export default function Index() {
           </Swiper>
         </Box>
       </Box>
-      <Box
-        alignItems="center"
-        justifyContent="center"
-        width={width}
-        position={isAdLoaded ? "relative" : "absolute"}
-        opacity={isAdLoaded ? 1 : 0}
-        pointerEvents={isAdLoaded ? "auto" : "none"}
-      >
-        <BannerAd
-          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-          unitId={TestIds.BANNER}
-          requestOptions={{
-            requestNonPersonalizedAdsOnly: true,
-          }}
-          onAdLoaded={() => {
-            console.log('Ad loaded successfully');
-            setIsAdLoaded(true);
-          }}
-          onAdFailedToLoad={(error) => {
-            console.log('Ad failed to load: ', error);
-            setIsAdLoaded(false);
-          }}
-        />
-      </Box>
+      {!isAdFree && (
+        <Box
+          alignItems="center"
+          justifyContent="center"
+          width={width}
+          position={isAdLoaded ? "relative" : "absolute"}
+          opacity={isAdLoaded ? 1 : 0}
+          pointerEvents={isAdLoaded ? "auto" : "none"}
+        >
+          <BannerAd
+            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+            unitId={TestIds.BANNER}
+            requestOptions={{
+              requestNonPersonalizedAdsOnly: true,
+            }}
+            onAdLoaded={() => {
+              console.log('Ad loaded successfully');
+              setIsAdLoaded(true);
+            }}
+            onAdFailedToLoad={(error) => {
+              console.log('Ad failed to load: ', error);
+              setIsAdLoaded(false);
+            }}
+          />
+        </Box>
+      )}
       <ThemePicker ref={refThemePicker} />
     </SafeAreaView>
   );
