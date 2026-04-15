@@ -1,9 +1,9 @@
 import { Box, SafeAreaView, Text } from "@/atom";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as Application from "expo-application";
 import SettingItem from "@/components/setting-item";
-import { Linking, ScrollView, Switch, NativeModules, Platform, Alert } from "react-native";
-import { useRouter } from "expo-router";
+import { AppState, AppStateStatus, Linking, ScrollView, Switch, NativeModules, Platform, Alert, ToastAndroid } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useAdStore } from "@/store/ad-store";
 
 const { AutoLaunchModule } = NativeModules;
@@ -11,29 +11,99 @@ const { AutoLaunchModule } = NativeModules;
 export default function SettingScreen() {
   const router = useRouter();
   const [appVersion, setAppVersion] = useState("");
-  const [isAutoLaunchEnabled, setIsAutoLaunchEnabled] = useState(true);
+  const [isAutoLaunchEnabled, setIsAutoLaunchEnabled] = useState(false);
   const { isAdFree, setAdFree } = useAdStore();
+  const pendingPermissionCheck = useRef(false);
 
   useEffect(() => {
     setAppVersion(Application.nativeApplicationVersion || "1.0.0");
+  }, []);
 
-    // 초기 설정값 로드 (안드로이드인 경우에만)
-    if (Platform.OS === "android" && AutoLaunchModule) {
-      AutoLaunchModule.isEnabled().then((enabled: boolean) => {
-        setIsAutoLaunchEnabled(enabled);
-      });
+  /**
+   * 권한 상태와 토글 상태를 동기화하는 공통 함수.
+   * - pendingPermissionCheck: true  → 우리가 설정 화면으로 보낸 경우 (토글 ON 시도)
+   * - pendingPermissionCheck: false → 일반 복귀 or 화면 진입 (권한 해지 감지)
+   */
+  const syncPermissionState = useCallback(async (fromPending = false) => {
+    if (Platform.OS !== "android" || !AutoLaunchModule) return;
+
+    const hasPermission: boolean = await AutoLaunchModule.hasOverlayPermission();
+
+    if (fromPending) {
+      // 사용자가 토글 ON을 위해 설정 화면으로 이동했다가 돌아온 경우
+      if (hasPermission) {
+        await AutoLaunchModule.setEnabled(true);
+        setIsAutoLaunchEnabled(true);
+      } else {
+        setIsAutoLaunchEnabled(false);
+        ToastAndroid.show(
+          "기능을 쓰려면 '다른 앱 위에 표시' 권한이 필요해요",
+          ToastAndroid.LONG
+        );
+      }
+    } else {
+      // 일반 진입/복귀: 저장된 값과 실제 권한 상태를 비교해 불일치 수정
+      const savedEnabled: boolean = await AutoLaunchModule.isEnabled();
+      if (savedEnabled && !hasPermission) {
+        // 활성화되어 있지만 권한이 없음 → 강제 비활성화
+        await AutoLaunchModule.setEnabled(false);
+        setIsAutoLaunchEnabled(false);
+        ToastAndroid.show(
+          "'다른 앱 위에 표시' 권한이 해제되어 자동 실행이 꺼졌어요",
+          ToastAndroid.LONG
+        );
+      } else {
+        setIsAutoLaunchEnabled(savedEnabled);
+      }
     }
   }, []);
 
-  const toggleAutoLaunch = async () => {
-    if (Platform.OS === "android" && AutoLaunchModule) {
-      const newValue = !isAutoLaunchEnabled;
-      try {
-        await AutoLaunchModule.setEnabled(newValue);
-        setIsAutoLaunchEnabled(newValue);
-      } catch (e) {
-        console.error("Failed to toggle auto launch", e);
+  // ① 화면이 포커스를 받을 때마다 체크 (네비게이션 진입 & 시스템 설정 복귀 포함)
+  useFocusEffect(
+    useCallback(() => {
+      syncPermissionState(false);
+    }, [syncPermissionState])
+  );
+
+  // ② 앱 자체가 포그라운드로 돌아올 때 체크 (pendingPermissionCheck 케이스 포함)
+  useEffect(() => {
+    if (Platform.OS !== "android" || !AutoLaunchModule) return;
+
+    const handleAppStateChange = async (nextState: AppStateStatus) => {
+      if (nextState !== "active") return;
+
+      if (pendingPermissionCheck.current) {
+        pendingPermissionCheck.current = false;
+        await syncPermissionState(true);
       }
+      // 일반 복귀는 useFocusEffect가 처리하므로 여기서는 pending 케이스만 담당
+    };
+
+    const subscription = AppState.addEventListener("change", handleAppStateChange);
+    return () => subscription.remove();
+  }, [syncPermissionState]);
+
+  const toggleAutoLaunch = async () => {
+    if (Platform.OS !== "android" || !AutoLaunchModule) return;
+
+    const newValue = !isAutoLaunchEnabled;
+
+    if (newValue) {
+      // ON으로 켜려는 경우 → 권한 먼저 확인
+      const hasPermission: boolean = await AutoLaunchModule.hasOverlayPermission();
+      if (!hasPermission) {
+        // 권한 없음 → 설정 화면으로 이동, 복귀 후 체크 대기
+        pendingPermissionCheck.current = true;
+        await AutoLaunchModule.openOverlaySettings();
+        return; // 토글 상태 변경 없이 종료
+      }
+    }
+
+    try {
+      await AutoLaunchModule.setEnabled(newValue);
+      setIsAutoLaunchEnabled(newValue);
+    } catch (e) {
+      console.error("Failed to toggle auto launch", e);
     }
   };
 
