@@ -1,8 +1,10 @@
 import StatusBar from "@/components/status-bar";
 import { useThemeStore } from "@/store/theme";
 import { ThemeProvider } from "@shopify/restyle";
-import { Stack } from "expo-router";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { router, Stack } from "expo-router";
+import { useEffect, useRef } from "react";
+import { AppState, AppStateStatus } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import mobileAds from "react-native-google-mobile-ads";
 
 mobileAds()
@@ -18,12 +20,28 @@ mobileAds()
 
 export default function RootLayout() {
   const { currentTheme } = useThemeStore();
+  const appState = useRef<AppStateStatus>(AppState.currentState);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      // 백그라운드 → 포그라운드로 전환될 때 메인으로 이동
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
+        router.replace("/(navi)");
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => subscription.remove();
+  }, []);
+
   return (
     <SafeAreaProvider>
-
       <ThemeProvider theme={currentTheme}>
         <StatusBar></StatusBar>
-        <Stack>
+        <Stack initialRouteName="(navi)">
           <Stack.Screen
             name="(navi)"
             options={{
