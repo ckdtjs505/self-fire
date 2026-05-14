@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>selfFire - 나를 깨우는 한 마디</title>
+  <meta name="description" content="매일 새로운 명언으로 하루를 시작하세요. selfFire와 함께 나만의 동기부여를 만들어가세요.">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .bg-glow {
+      position: fixed;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.15;
+      pointer-events: none;
+    }
+
+    .glow-1 {
+      top: -200px;
+      left: -100px;
+      background: #ff6b35;
+    }
+
+    .glow-2 {
+      bottom: -200px;
+      right: -100px;
+      background: #ff4444;
+    }
+
+    .container {
+      text-align: center;
+      padding: 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .icon {
+      font-size: 4rem;
+      margin-bottom: 1.5rem;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #ff6b35, #ff4444);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: #888;
+      margin-bottom: 2.5rem;
+    }
+
+    .store-badge {
+      display: inline-block;
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #ff6b35, #e63946);
+      color: white;
+      text-decoration: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .store-badge:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(255, 107, 53, 0.3);
+    }
+
+    .footer {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #555;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-glow glow-1"></div>
+  <div class="bg-glow glow-2"></div>
+
+  <div class="container">
+    <div class="icon">🔥</div>
+    <h1>selfFire</h1>
+    <p class="subtitle">나를 깨우는 한 마디</p>
+    <a href="https://play.google.com/store/apps/details?id=com.changsunoh.selfFire" class="store-badge">
+      Google Play에서 다운로드
+    </a>
+  </div>
+
+  <div class="footer">
+    &copy; 2026 changsunoh. All rights reserved.
+  </div>
+</body>
+</html>
