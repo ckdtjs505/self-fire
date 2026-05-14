@@ -217,9 +217,9 @@ export default function Index() {
             }}
           >
             {quotes.map((quote, idx) => (
-              <QuoteItem 
-                key={`${quote.id}-${idx}`} 
-                {...quote} 
+              <QuoteItem
+                key={`${quote.id}-${idx}`}
+                {...quote}
                 isCustom={customQuotes.some(cq => cq.id === quote.id)}
               />
             ))}
@@ -237,7 +237,7 @@ export default function Index() {
         >
           <BannerAd
             size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-            unitId={TestIds.BANNER}
+            unitId={__DEV__ ? TestIds.BANNER : "ca-app-pub-3739053005473702/6746942544"}
             requestOptions={{
               requestNonPersonalizedAdsOnly: true,
             }}
