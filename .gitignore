@@ -36,3 +36,6 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+
+# GitHub Pages (separate repo)
+github-pages/
