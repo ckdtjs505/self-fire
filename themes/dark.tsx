@@ -1,26 +1,26 @@
 import { createTheme } from "@shopify/restyle";
 import light from "./light";
 const palette = {
-  slate00: "#1b1c1d",
-  slate10: "#202225",
-  slate20: "#292c2f",
-  slate30: "#2e3235",
-  slate40: "#35393d",
-  slate100: "#767577",
-  slate900: "#dddddd",
-  blue70: "#2185d0",
+  slate00: "#020617", // Very deep background
+  slate10: "#0F172A", // Deep Navy background
+  slate20: "#1E293B", // Elevated background
+  slate30: "#334155", // Borders/secondary elevated
+  slate40: "#475569", 
+  slate100: "#94A3B8", // Subtle text
+  slate900: "#F8FAFC", // Main bright text
+  primary: "#818CF8", // Vibrant Indigo for contrast
 };
 const theme = createTheme({
   ...light,
   colors: {
     ...light.colors,
 
-    $primary: palette.blue70,
+    $primary: palette.primary,
     $background: palette.slate10,
     $foreground: palette.slate900,
-    $sidebarBackground: palette.slate30,
-    $sidebarForeground: palette.slate900,
-    $headerBackground: palette.slate40,
+    $sidebarBackground: palette.slate20,
+    $sidebarForeground: palette.slate100,
+    $headerBackground: palette.slate10,
   },
   textVariants: {
     defaults: {

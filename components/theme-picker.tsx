@@ -27,13 +27,20 @@ const ThemePicker = forwardRef((props, ref) => {
   }));
 
   const renderBackdrop = useCallback(
-    (props: any) => <BottomSheetBackdrop {...props} pressBehavior={"close"} />,
-    [],
+    (props: any) => (
+      <BottomSheetBackdrop 
+        {...props} 
+        pressBehavior={"close"} 
+        appearsOnIndex={0} 
+        disappearsOnIndex={-1} 
+      />
+    ),
+    []
   );
 
   return (
     <BottomSheetModal
-      index={1}
+      index={0}
       ref={bottomSheetModalRef}
       snapPoints={snapPoints}
       backdropComponent={renderBackdrop}

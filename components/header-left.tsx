@@ -27,8 +27,17 @@ const HeaderLeft: React.FC<Props> = ({ children }) => {
         <Pressable
           onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
         >
-          <Box m="md" p="xs">
-            <FeatherIcon name="menu" size={22}></FeatherIcon>
+          <Box 
+            m="md" 
+            width={40} 
+            height={40} 
+            borderRadius="hg" 
+            justifyContent="center" 
+            alignItems="center"
+            backgroundColor="$sidebarBackground"
+            style={{ shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }}
+          >
+            <FeatherIcon name="menu" size={20}></FeatherIcon>
           </Box>
         </Pressable>
         {children}

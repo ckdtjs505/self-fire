@@ -3,18 +3,18 @@ import { createTheme } from "@shopify/restyle";
 const palette = {
   white: "white",
   black: "black",
-  red: "red",
-  blue: "blue",
-  yellow: "yellow",
+  red: "#EF4444",
+  blue: "#3B82F6",
+  yellow: "#F59E0B",
   paper00: "#ffffff",
-  paper10: "#f5f5f5",
-  paper20: "#e6e6e6",
-  paper100: "#aeaeae",
-  paper300: "#767577",
-  paper900: "#202020",
-  blue70: "#2185d0",
-  navy20: "#171a21",
-  navy900: "#b9babc",
+  paper10: "#F8FAFC",
+  paper20: "#F1F5F9",
+  paper100: "#CBD5E1",
+  paper300: "#94A3B8",
+  paper900: "#1E293B",
+  primary: "#4F46E5", // Indigo 600
+  sidebarBg: "#FFFFFF",
+  sidebarFg: "#475569",
 };
 const theme = createTheme({
   spacing: {
@@ -38,12 +38,12 @@ const theme = createTheme({
     yellow: palette.yellow,
     blue: palette.blue,
 
-    $primary: palette.blue70,
+    $primary: palette.primary,
     $background: palette.paper10,
     $foreground: palette.paper900,
-    $sidebarBackground: palette.navy20,
-    $sidebarForeground: palette.navy900,
-    $headerBackground: palette.paper20,
+    $sidebarBackground: palette.sidebarBg,
+    $sidebarForeground: palette.sidebarFg,
+    $headerBackground: palette.paper00,
   },
   borderRadii: {
     xs: 4,

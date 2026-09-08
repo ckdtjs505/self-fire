@@ -37,13 +37,14 @@ const StreakBadge: React.FC<Props> = ({ streak }) => {
         alignItems="center"
         bg="$sidebarBackground"
         borderRadius="hg"
-        px="s"
-        py="xs"
         borderWidth={1}
         borderColor="$primary"
-        style={{ gap: 4 }}
+        height={32}
+        minWidth={60}
+        justifyContent="center"
+        style={{ gap: 4, paddingHorizontal: 8 }}
       >
-        <Text fontSize={16}>🔥</Text>
+        <Text fontSize={16} style={{ lineHeight: 18 }}>🔥</Text>
         <Text fontSize={13} fontWeight="bold" color="$primary">
           {streak}일
         </Text>

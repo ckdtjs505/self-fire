@@ -40,25 +40,38 @@ const QuoteItem: React.FC<Props> = ({ text, author, id, isCustom }) => {
         ref={viewShotRef}
         options={{ format: "png", quality: 1.0 }}
         style={{
-          backgroundColor: currentTheme.colors.$background,
-          padding: 32,
-          borderRadius: 16,
+          backgroundColor: currentTheme.colors.$sidebarBackground,
+          padding: 40,
+          borderRadius: 24,
           alignItems: "center",
           justifyContent: "center",
-          minWidth: 300,
+          minWidth: 320,
+          borderColor: currentTheme.colors.$foreground + '15', // Subtle border
+          borderWidth: 1,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 12 },
+          shadowOpacity: 0.08,
+          shadowRadius: 24,
+          elevation: 8, // For Android
         }}
       >
+        {/* 데코레이션 큰 따옴표 */}
+        <Text style={{ position: 'absolute', top: 16, left: 24, fontSize: 80, opacity: 0.08, color: currentTheme.colors.$primary, fontWeight: '900' }}>
+          "
+        </Text>
+        
         <Text
-          fontSize={28}
+          fontSize={26}
           fontWeight={"heavy"}
           textAlign={"center"}
-          lineHeight={40}
+          lineHeight={42}
+          style={{ letterSpacing: -0.5, zIndex: 2 }}
         >
           {text}
         </Text>
-        <Text style={{ marginTop: 16, opacity: 0.6 }}>- {author} -</Text>
-        <Text style={{ marginTop: 12, fontSize: 12, opacity: 0.4 }}>
-          🔥 Self-Fire
+        <Text style={{ marginTop: 24, opacity: 0.7, fontWeight: '600', fontSize: 15 }}>{author}</Text>
+        <Text style={{ marginTop: 16, fontSize: 11, opacity: 0.4, letterSpacing: 2, fontWeight: 'bold' }}>
+          SELF-FIRE
         </Text>
       </ViewShot>
 

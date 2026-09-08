@@ -30,9 +30,27 @@ Notifications.setNotificationHandler({
   }),
 });
 
+import { useFonts, NotoSansKR_400Regular, NotoSansKR_700Bold, NotoSansKR_900Black } from "@expo-google-fonts/noto-sans-kr";
+import { NanumMyeongjo_400Regular, NanumMyeongjo_700Bold, NanumMyeongjo_800ExtraBold } from "@expo-google-fonts/nanum-myeongjo";
+import { GowunDodum_400Regular } from "@expo-google-fonts/gowun-dodum";
+import { Jua_400Regular } from "@expo-google-fonts/jua";
+import { NanumPenScript_400Regular } from "@expo-google-fonts/nanum-pen-script";
+
 export default function RootLayout() {
   const { currentTheme } = useThemeStore();
   const appState = useRef<AppStateStatus>(AppState.currentState);
+
+  const [fontsLoaded] = useFonts({
+    NotoSansKR_400Regular,
+    NotoSansKR_700Bold,
+    NotoSansKR_900Black,
+    NanumMyeongjo_400Regular,
+    NanumMyeongjo_700Bold,
+    NanumMyeongjo_800ExtraBold,
+    GowunDodum_400Regular,
+    Jua_400Regular,
+    NanumPenScript_400Regular,
+  });
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextAppState) => {
@@ -48,6 +66,10 @@ export default function RootLayout() {
 
     return () => subscription.remove();
   }, []);
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <SafeAreaProvider>

@@ -16,7 +16,7 @@ const SettingItem = ({ title, handleClickItem, icon, rightElement }: Props) => {
       style={({ pressed }) => ({
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: 14,
+        minHeight: 56,
         paddingHorizontal: 16,
         opacity: pressed ? 0.6 : 1,
       })}

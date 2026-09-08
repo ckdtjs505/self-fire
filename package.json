@@ -15,6 +15,11 @@
     "preset": "jest-expo"
   },
   "dependencies": {
+    "@expo-google-fonts/gowun-dodum": "^0.4.1",
+    "@expo-google-fonts/jua": "^0.4.1",
+    "@expo-google-fonts/nanum-myeongjo": "^0.4.1",
+    "@expo-google-fonts/nanum-pen-script": "^0.4.0",
+    "@expo-google-fonts/noto-sans-kr": "^0.4.3",
     "@expo/vector-icons": "^15.0.2",
     "@gorhom/bottom-sheet": "^5.2.9",
     "@react-native-async-storage/async-storage": "2.2.0",

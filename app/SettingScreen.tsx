@@ -188,7 +188,7 @@ export default function SettingScreen() {
                     alignItems="center"
                     justifyContent="space-between"
                     px="md"
-                    py="s"
+                    minHeight={56}
                   >
                     <Box flexDirection="row" alignItems="center" style={{ gap: 8 }}>
                       <Text fontSize={14}>⏰</Text>
