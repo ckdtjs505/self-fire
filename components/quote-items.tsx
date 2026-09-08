@@ -4,6 +4,7 @@ import FeatherIcon from "./icon";
 import { useRef } from "react";
 import ViewShot from "react-native-view-shot";
 import { useThemeStore } from "@/store/theme";
+import { useFontStore } from "@/store/font-store";
 
 type Props = {
   text: string;
@@ -15,6 +16,7 @@ type Props = {
 const QuoteItem: React.FC<Props> = ({ text, author, id, isCustom }) => {
   const viewShotRef = useRef<ViewShot>(null);
   const { currentTheme } = useThemeStore();
+  const { currentFontId, currentFontSize } = useFontStore();
 
   return (
     <Box flex={1} justifyContent={"center"} alignItems={"center"} margin={"lg"}>
@@ -61,15 +63,27 @@ const QuoteItem: React.FC<Props> = ({ text, author, id, isCustom }) => {
         </Text>
         
         <Text
-          fontSize={26}
+          fontSize={currentFontSize}
           fontWeight={"heavy"}
           textAlign={"center"}
-          lineHeight={42}
-          style={{ letterSpacing: -0.5, zIndex: 2 }}
+          lineHeight={currentFontSize * 1.6}
+          style={{ 
+            letterSpacing: -0.5, 
+            zIndex: 2, 
+            fontFamily: currentFontId !== "system" ? currentFontId : undefined 
+          }}
         >
           {text}
         </Text>
-        <Text style={{ marginTop: 24, opacity: 0.7, fontWeight: '600', fontSize: 15 }}>{author}</Text>
+        <Text style={{ 
+          marginTop: 24, 
+          opacity: 0.7, 
+          fontWeight: '600', 
+          fontSize: 15,
+          fontFamily: currentFontId !== "system" ? currentFontId : undefined 
+        }}>
+          {author}
+        </Text>
         <Text style={{ marginTop: 16, fontSize: 11, opacity: 0.4, letterSpacing: 2, fontWeight: 'bold' }}>
           SELF-FIRE
         </Text>

@@ -27,8 +27,8 @@ const fontList: { id: FontId; name: string }[] = [
 
 const FontPicker = forwardRef((props, ref) => {
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-  const snapPoints = useMemo(() => ["45%"], []);
-  const { currentFontId, updateFontId } = useFontStore();
+  const snapPoints = useMemo(() => ["50%"], []);
+  const { currentFontId, updateFontId, currentFontSize, updateFontSize } = useFontStore();
   const { currentTheme } = useThemeStore();
 
   useImperativeHandle(ref, () => ({
@@ -58,6 +58,23 @@ const FontPicker = forwardRef((props, ref) => {
       handleIndicatorStyle={{ backgroundColor: currentTheme.colors.$foreground }}
     >
       <BottomSheetView style={{ paddingBottom: 24 }}>
+        <Box flexDirection="row" alignItems="center" justifyContent="space-between" px="xl" py="md" mt="md" mb="s">
+          <Text fontSize={16} fontWeight="bold">글자 크기</Text>
+          <Box flexDirection="row" alignItems="center" style={{ gap: 16 }}>
+            <Pressable onPress={() => updateFontSize(Math.max(16, currentFontSize - 2))}>
+              <Box bg="$background" p="xs" px="md" borderRadius="md" style={{ elevation: 1, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } }}>
+                <Text fontSize={20} fontWeight="bold">-</Text>
+              </Box>
+            </Pressable>
+            <Text fontSize={16} fontWeight="bold" style={{ minWidth: 24, textAlign: 'center' }}>{currentFontSize}</Text>
+            <Pressable onPress={() => updateFontSize(Math.min(48, currentFontSize + 2))}>
+              <Box bg="$background" p="xs" px="md" borderRadius="md" style={{ elevation: 1, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } }}>
+                <Text fontSize={20} fontWeight="bold">+</Text>
+              </Box>
+            </Pressable>
+          </Box>
+        </Box>
+
         <BottomSheetFlatList
           data={fontList}
           keyExtractor={(item) => item.id}
