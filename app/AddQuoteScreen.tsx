@@ -4,33 +4,31 @@ import { useFavoriteQuoteStore } from "@/store/quote";
 import { TextInput, Pressable, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from "react-native";
 import FeatherIcon from "@/components/icon";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import Toast from 'react-native-toast-message';
 
 export default function AddQuoteScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string; text?: string; author?: string }>();
   const isEditing = !!params.id;
-
   const { addCustomQuote, updateCustomQuote } = useFavoriteQuoteStore();
-  
   const [text, setText] = useState(params.text || "");
   const [author, setAuthor] = useState(params.author || "");
-
   const handleSave = () => {
     if (!text.trim()) {
-      Alert.alert("알림", "명언 내용을 입력해주세요.");
+      Toast.show({ type: 'error', text1: '알림', text2: '명언 내용을 입력해주세요.' });
       return;
     }
     if (!author.trim()) {
-      Alert.alert("알림", "작성자(또는 출처)를 입력해주세요.");
+      Toast.show({ type: 'error', text1: '알림', text2: '작성자(또는 출처)를 입력해주세요.' });
       return;
     }
 
     if (isEditing && params.id) {
       updateCustomQuote(params.id, text, author);
-      Alert.alert("성공", "명언이 수정되었습니다.");
+      Toast.show({ type: 'success', text1: '성공', text2: '명언이 수정되었습니다.' });
     } else {
       addCustomQuote(text, author);
-      Alert.alert("성공", "새로운 명언이 등록되었습니다.");
+      Toast.show({ type: 'success', text1: '성공', text2: '새로운 명언이 등록되었습니다.' });
     }
     router.back();
   };

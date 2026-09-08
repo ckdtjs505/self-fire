@@ -6,6 +6,7 @@ import { useFavoriteQuoteStore } from "@/store/quote";
 import { Quote } from "@/models";
 import * as MediaLibrary from "expo-media-library";
 import ViewShot from "react-native-view-shot";
+import Toast from 'react-native-toast-message';
 
 type Props = Quote & {
   viewShotRef?: React.RefObject<ViewShot>;
@@ -17,20 +18,20 @@ const Quotebar: React.FC<Props> = (props) => {
 
   const handleSaveImage = async () => {
     if (!viewShotRef?.current) {
-      Alert.alert("오류", "이미지를 캡처할 수 없습니다.");
+      Toast.show({ type: 'error', text1: '오류', text2: '이미지를 캡처할 수 없습니다.' });
       return;
     }
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("권한 필요", "갤러리 저장을 위해 사진 접근 권한이 필요합니다.");
+        Toast.show({ type: 'error', text1: '권한 필요', text2: '갤러리 저장을 위해 사진 접근 권한이 필요합니다.' });
         return;
       }
       const uri = await (viewShotRef.current as any).capture();
       await MediaLibrary.saveToLibraryAsync(uri);
-      Alert.alert("저장 완료 ✅", "명언 이미지가 갤러리에 저장되었습니다!");
+      Toast.show({ type: 'success', text1: '저장 완료 ✅', text2: '명언 이미지가 갤러리에 저장되었습니다!' });
     } catch (e) {
-      Alert.alert("오류", "이미지 저장에 실패했습니다.");
+      Toast.show({ type: 'error', text1: '오류', text2: '이미지 저장에 실패했습니다.' });
       console.error(e);
     }
   };
@@ -58,7 +59,7 @@ const Quotebar: React.FC<Props> = (props) => {
         <Pressable
           onPress={() => {
             addFavorite(id);
-            Alert.alert("저장되었습니다");
+            Toast.show({ type: 'success', text1: '저장되었습니다' });
           }}
         >
           <FeatherIcon name="heart" size={24} />
@@ -67,7 +68,7 @@ const Quotebar: React.FC<Props> = (props) => {
         <Pressable
           onPress={() => {
             removeFavorite(id);
-            Alert.alert("삭제되었습니다");
+            Toast.show({ type: 'info', text1: '삭제되었습니다' });
           }}
         >
           <FeatherIcon color={"red"} name="heart" size={24} />

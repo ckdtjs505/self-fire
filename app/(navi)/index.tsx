@@ -12,6 +12,7 @@ import { useStreak } from "@/hooks/useStreak";
 import { router } from "expo-router";
 import { useRef, useState, useEffect, useMemo } from "react";
 import { Pressable, Dimensions, Alert, Platform, Animated } from "react-native";
+import Toast from 'react-native-toast-message';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as IntentLauncher from "expo-intent-launcher";
 import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads";
@@ -66,12 +67,13 @@ export default function Index() {
   };
 
   useEffect(() => {
-    // 필터 상태가 바뀌거나 데이터가 바뀌면 풀 초기화
+    // 필터 상태가 바뀔 때만 풀 초기화 (즐겨찾기 클릭 시 목록이 초기화되는 버그 방지)
     setQuotes(getInitialPool(filterMode));
     setCurrentIndex(0);
     setMaxIndex(0);
     fadeAnim.setValue(1);
-  }, [filterMode, customQuotes, favorites]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterMode]);
 
   // '전체 명언' 모드에서 끝에 도달했을 때 추가로 불러올 수 있는 함수
   const loadMoreQuotes = () => {
@@ -199,7 +201,11 @@ export default function Index() {
           <Pressable
             onPress={() => {
               if (filterMode !== 'mine' && customQuotes.length === 0) {
-                Alert.alert("알림", "아직 직접 작성한 명언이 없습니다. 명언을 먼저 등록해 보세요!");
+                Toast.show({
+                  type: 'info',
+                  text1: '알림',
+                  text2: '아직 직접 작성한 명언이 없습니다. 명언을 먼저 등록해 보세요!',
+                });
                 return;
               }
               setFilterMode(filterMode === 'mine' ? 'all' : 'mine');
@@ -231,7 +237,11 @@ export default function Index() {
           <Pressable
             onPress={() => {
               if (filterMode !== 'favorites' && favorites.length === 0) {
-                Alert.alert("알림", "아직 즐겨찾기한 명언이 없습니다. 먼저 명언에 하트를 눌러보세요!");
+                Toast.show({
+                  type: 'info',
+                  text1: '알림',
+                  text2: '아직 즐겨찾기한 명언이 없습니다. 먼저 명언에 하트를 눌러보세요!',
+                });
                 return;
               }
               setFilterMode(filterMode === 'favorites' ? 'all' : 'favorites');

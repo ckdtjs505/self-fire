@@ -36,6 +36,40 @@ import { GowunDodum_400Regular } from "@expo-google-fonts/gowun-dodum";
 import { Jua_400Regular } from "@expo-google-fonts/jua";
 import { NanumPenScript_400Regular } from "@expo-google-fonts/nanum-pen-script";
 
+import Toast from 'react-native-toast-message';
+import { View, Text } from 'react-native';
+
+const SimpleToast = ({ text1, text2 }: any) => {
+  const message = text2 || text1;
+  if (!message) return null;
+  return (
+    <View style={{
+      backgroundColor: '#333333',
+      borderRadius: 100,
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      marginHorizontal: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+      elevation: 4,
+    }}>
+      <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600', textAlign: 'center' }}>
+        {message}
+      </Text>
+    </View>
+  );
+};
+
+const toastConfig = {
+  success: SimpleToast,
+  error: SimpleToast,
+  info: SimpleToast,
+};
+
 export default function RootLayout() {
   const { currentTheme } = useThemeStore();
   const appState = useRef<AppStateStatus>(AppState.currentState);
@@ -114,6 +148,7 @@ export default function RootLayout() {
             }}
           />
         </Stack>
+        <Toast position="bottom" bottomOffset={60} config={toastConfig} />
       </ThemeProvider>
     </SafeAreaProvider>
   );

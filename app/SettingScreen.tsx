@@ -4,6 +4,7 @@ import * as Application from "expo-application";
 import SettingItem from "@/components/setting-item";
 import { AppState, AppStateStatus, Linking, ScrollView, Switch, NativeModules, Platform, Alert, ToastAndroid } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
+import Toast from 'react-native-toast-message';
 import { useAdStore } from "@/store/ad-store";
 import { useNotificationStore } from "@/store/notification";
 
@@ -113,7 +114,7 @@ export default function SettingScreen() {
 
   const handleRemoveAds = () => {
     if (isAdFree) {
-      Alert.alert("알림", "이미 광고 제거 기능이 활성화되어 있습니다.");
+      Toast.show({ type: 'info', text1: '알림', text2: '이미 광고 제거 기능이 활성화되어 있습니다.' });
       return;
     }
 
@@ -127,7 +128,7 @@ export default function SettingScreen() {
           onPress: () => {
             // 실제 IAP 연동 시점을 위한 Mock 처리
             setAdFree(true);
-            Alert.alert("완료", "광고 제거 기능이 활성화되었습니다.");
+            Toast.show({ type: 'success', text1: '완료', text2: '광고 제거 기능이 활성화되었습니다.' });
           }
         }
       ]
