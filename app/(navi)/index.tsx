@@ -1,3 +1,16 @@
+// ─────────────────────────────────────────────────────────────
+// app/(navi)/index.tsx
+// 앱 메인 화면 (홈 화면).
+// 핵심 기능:
+//   - 명언 카드 표시 (페이드 인/아웃 애니메이션)
+//   - 좌/우 탭으로 이전/다음 명언 전환
+//   - 필터 모드: 전체 / 내가 쓴 명언 / 즐겨찾기
+//   - 명언 풀(pool) 관리: 초기 50개 샘플링, 끝에 도달 시 추가 로드
+//   - 테마/폰트 변경 바텀시트
+//   - AdMob 배너 광고 (광고 제거 미구매 시)
+//   - Android 오버레이 권한 최초 요청 (잠금 해제 자동 실행용)
+// ─────────────────────────────────────────────────────────────
+
 import { Box, SafeAreaView, Text } from "@/atom";
 import HeaderLeft from "@/components/header-left";
 import FeatherIcon from "@/components/icon";
@@ -19,18 +32,29 @@ import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads"
 import { useAdStore } from "@/store/ad-store";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 
+// 화면 너비: 좌/우 터치 영역 분기 계산에 사용
 const { width } = Dimensions.get('window');
 
 export default function Index() {
+  // 광고 제거 여부 확인
   const { isAdFree } = useAdStore();
+  // 사용자가 작성한 커스텀 명언 목록과 즐겨찾기 ID 목록
   const { customQuotes, favorites } = useFavoriteQuoteStore();
+  // 연속 방문 스트릭 카운트
   const { currentStreak } = useStreak();
+
+  // 테마 / 폰트 선택 바텀시트 모달 참조
   const refThemePicker = useRef<BottomSheetModal>(null);
   const refFontPicker = useRef<BottomSheetModal>(null);
+
+  // 배너 광고 로드 완료 여부 (로드 전까지 광고 영역을 숨긴다)
   const [isAdLoaded, setIsAdLoaded] = useState(false);
+
+  // 현재 필터 모드: 'all'(전체) | 'mine'(내가 쓴 명언) | 'favorites'(즐겨찾기)
   const [filterMode, setFilterMode] = useState<'all' | 'mine' | 'favorites'>('all');
 
-  // 리스트를 무작위로 섞는 유틸리티 함수
+  // ── shuffle ────────────────────────────────────────────────
+  // Fisher-Yates 알고리즘으로 배열을 무작위로 섞는 유틸리티 함수
   const shuffle = <T,>(array: T[]): T[] => {
     const newArray = [...array];
     for (let i = newArray.length - 1; i > 0; i--) {
@@ -40,12 +64,20 @@ export default function Index() {
     return newArray;
   };
 
+  // 현재 표시 중인 명언 목록
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  // 현재 보고 있는 명언의 인덱스
   const [currentIndex, setCurrentIndex] = useState(0);
+  // 현재 세션에서 가장 멀리 진행한 인덱스 (이전 명언 뱃지 표시용)
   const [maxIndex, setMaxIndex] = useState(0);
+  // 페이드 애니메이션 값 (0: 투명, 1: 불투명)
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
-  // 명언 풀 생성 및 관리
+  // ── getInitialPool ────────────────────────────────────────
+  // 필터 모드에 따라 명언 풀을 생성하여 반환한다.
+  //   - 'all': 기본 + 커스텀 명언 전체에서 무작위 50개 샘플링
+  //   - 'mine': 커스텀 명언만 셔플
+  //   - 'favorites': 즐겨찾기에 포함된 명언만 셔플
   const getInitialPool = (mode: 'all' | 'mine' | 'favorites') => {
     let pool: Quote[] = [
       ...defaultQuotes,
@@ -66,6 +98,8 @@ export default function Index() {
     }
   };
 
+  // 필터 모드가 변경될 때마다 명언 풀을 초기화한다.
+  // (즐겨찾기 추가/제거 시 목록이 갱신되는 버그를 방지하기 위해 filterMode만 의존성으로 설정)
   useEffect(() => {
     // 필터 상태가 바뀔 때만 풀 초기화 (즐겨찾기 클릭 시 목록이 초기화되는 버그 방지)
     setQuotes(getInitialPool(filterMode));
@@ -75,13 +109,16 @@ export default function Index() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterMode]);
 
-  // '전체 명언' 모드에서 끝에 도달했을 때 추가로 불러올 수 있는 함수
+  // ── loadMoreQuotes ────────────────────────────────────────
+  // '전체' 모드에서 목록 끝에 가까워질 때 아직 보지 않은 명언을 20개씩 추가 로드한다.
+  // 필터 모드에서는 기존 데이터만 보여주므로 추가 로드하지 않는다.
   const loadMoreQuotes = () => {
     if (filterMode !== 'all') return; // 필터 모드에서는 더 불러오지 않음 (기존 데이터만 보여줌)
 
     setQuotes(prevQuotes => {
       const fullPool = [...defaultQuotes, ...customQuotes];
       const currentIds = new Set(prevQuotes.map(q => q.id));
+      // 이미 풀에 포함되지 않은 명언만 추가 후보로 선택
       const unused = fullPool.filter(q => !currentIds.has(q.id));
 
       if (unused.length > 0) {
@@ -92,6 +129,10 @@ export default function Index() {
     });
   };
 
+  // ── goToNextQuote ─────────────────────────────────────────
+  // 다음 명언으로 전환한다.
+  // 페이드 아웃 → 인덱스 변경 → 페이드 인 순서로 애니메이션 처리.
+  // 목록 끝에 가까워지면 loadMoreQuotes를 호출해 명언을 추가 로드한다.
   const goToNextQuote = () => {
     if (quotes.length === 0) return;
 
@@ -104,6 +145,7 @@ export default function Index() {
       setCurrentIndex((prev) => {
         let nextIndex = prev + 1;
         
+        // 목록 끝에 2개 이내로 남으면 추가 로드 트리거
         if (nextIndex >= quotes.length - 2) {
           loadMoreQuotes();
         }
@@ -111,6 +153,7 @@ export default function Index() {
         if (nextIndex >= quotes.length) {
           nextIndex = 0; // 맨 끝이면 처음으로 (즐겨찾기/내가 쓴 명언 등에서)
         }
+        // 최대 진행 인덱스 갱신 (이전 명언 뱃지 표시에 사용)
         setMaxIndex(prevMax => Math.max(prevMax, nextIndex));
         return nextIndex;
       });
@@ -124,6 +167,9 @@ export default function Index() {
     });
   };
 
+  // ── goToPrevQuote ─────────────────────────────────────────
+  // 이전 명언으로 전환한다.
+  // 첫 번째 명언(index 0)에서는 동작하지 않는다.
   const goToPrevQuote = () => {
     if (quotes.length === 0 || currentIndex === 0) return;
 
@@ -144,6 +190,9 @@ export default function Index() {
     });
   };
 
+  // ── 오버레이 권한 최초 요청 (Android) ────────────────────
+  // 앱 최초 실행 시(hasPromptedOverlay 키 없을 때) 1초 뒤에 다이얼로그를 표시한다.
+  // 잠금 해제 시 명언을 자동으로 띄우는 '다른 앱 위에 표시' 권한 요청용.
   useEffect(() => {
     const requestOverlayPermission = async () => {
       if (Platform.OS === 'android') {
@@ -181,9 +230,12 @@ export default function Index() {
         justifyContent={"center"}
         alignItems={"center"}
       >
+        {/* 좌측 상단: 연속 방문 스트릭 뱃지 */}
         <HeaderLeft>
           <StreakBadge streak={currentStreak} />
         </HeaderLeft>
+
+        {/* 우측 상단: 필터 버튼 / 테마 버튼 / 폰트 버튼 */}
         <Box
           position={"absolute"}
           top={0}
@@ -197,7 +249,9 @@ export default function Index() {
           flexDirection={"row"}
           zIndex={10}
         >
-          {/* 내가 작성한 명언 필터 */}
+          {/* 내가 작성한 명언 필터 버튼
+              - 커스텀 명언이 없으면 안내 토스트를 표시하고 전환 불가
+              - 활성화 시 파란색 배경으로 강조 */}
           <Pressable
             onPress={() => {
               if (filterMode !== 'mine' && customQuotes.length === 0) {
@@ -208,6 +262,7 @@ export default function Index() {
                 });
                 return;
               }
+              // 이미 활성화된 경우 전체 모드로 복귀, 아니면 mine 모드 진입
               setFilterMode(filterMode === 'mine' ? 'all' : 'mine');
             }}
           >
@@ -233,7 +288,9 @@ export default function Index() {
             </Box>
           </Pressable>
 
-          {/* 즐겨찾기 명언 필터 */}
+          {/* 즐겨찾기 명언 필터 버튼
+              - 즐겨찾기가 없으면 안내 토스트를 표시하고 전환 불가
+              - 활성화 시 빨간색 배경으로 강조 */}
           <Pressable
             onPress={() => {
               if (filterMode !== 'favorites' && favorites.length === 0) {
@@ -244,6 +301,7 @@ export default function Index() {
                 });
                 return;
               }
+              // 이미 활성화된 경우 전체 모드로 복귀, 아니면 favorites 모드 진입
               setFilterMode(filterMode === 'favorites' ? 'all' : 'favorites');
             }}
           >
@@ -269,6 +327,7 @@ export default function Index() {
             </Box>
           </Pressable>
 
+          {/* 테마(배경색/이미지) 변경 버튼 */}
           <Pressable onPress={() => refThemePicker.current?.open()}>
             <Box
               borderRadius="hg"
@@ -309,18 +368,21 @@ export default function Index() {
           </Pressable>
         </Box>
 
+        {/* ── 명언 카드 영역 ──────────────────────────────────
+            화면 좌측 절반 탭 → 이전 명언 / 우측 절반 탭 → 다음 명언 */}
         <Pressable 
           style={{ flex: 1, width: '100%' }} 
           onPress={(e) => {
             const { pageX } = e.nativeEvent;
             if (pageX < width / 2) {
-              goToPrevQuote();
+              goToPrevQuote(); // 왼쪽 탭: 이전 명언
             } else {
-              goToNextQuote();
+              goToNextQuote(); // 오른쪽 탭: 다음 명언
             }
           }}
         >
-          {/* 이전 명언 표시 뱃지 */}
+          {/* 이전 명언 표시 뱃지
+              현재 인덱스가 최대 진행 인덱스보다 작을 때(뒤로 돌아온 상태) 표시 */}
           {currentIndex < maxIndex && (
             <Box
               position="absolute"
@@ -342,11 +404,13 @@ export default function Index() {
             </Box>
           )}
 
+          {/* 현재 명언 카드 (페이드 + 스케일 애니메이션 적용) */}
           <Box flex={1} width="100%" justifyContent="center" alignItems="center">
             {quotes.length > 0 && quotes[currentIndex] && (
               <Animated.View style={{ 
                 opacity: fadeAnim, 
                 transform: [{
+                  // 페이드 시 살짝 축소되는 효과 (0.96 → 1.0)
                   scale: fadeAnim.interpolate({
                     inputRange: [0, 1],
                     outputRange: [0.96, 1]
@@ -358,6 +422,7 @@ export default function Index() {
                 <QuoteItem
                   key={`${quotes[currentIndex].id}-${currentIndex}`}
                   {...quotes[currentIndex]}
+                  // 커스텀 명언 여부를 판별하여 QuoteItem에 전달 (편집 버튼 표시 등에 활용)
                   isCustom={customQuotes.some(cq => cq.id === quotes[currentIndex].id)}
                 />
               </Animated.View>
@@ -365,6 +430,10 @@ export default function Index() {
           </Box>
         </Pressable>
       </Box>
+
+      {/* ── 배너 광고 영역 ────────────────────────────────────
+          광고 제거를 구매하지 않은 경우에만 표시한다.
+          광고 로드 완료 전까지는 opacity 0으로 숨겨 레이아웃 깜빡임을 방지한다. */}
       {!isAdFree && (
         <Box
           alignItems="center"
@@ -376,9 +445,10 @@ export default function Index() {
         >
           <BannerAd
             size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+            // 개발 환경에서는 테스트 광고 ID를 사용한다.
             unitId={__DEV__ ? TestIds.BANNER : "ca-app-pub-3739053005473702/4339756170"}
             requestOptions={{
-              requestNonPersonalizedAdsOnly: true,
+              requestNonPersonalizedAdsOnly: true, // 비개인화 광고 요청
             }}
             onAdLoaded={() => {
               console.log('Ad loaded successfully');
@@ -391,7 +461,10 @@ export default function Index() {
           />
         </Box>
       )}
+
+      {/* 테마 선택 바텀시트 */}
       <ThemePicker ref={refThemePicker} />
+      {/* 폰트 선택 바텀시트 */}
       <FontPicker ref={refFontPicker} />
     </SafeAreaView>
   );
