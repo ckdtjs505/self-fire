@@ -2,7 +2,7 @@
   "expo": {
     "name": "selfFire",
     "slug": "selfFire",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/fire-icon.png",
     "scheme": "myapp",
@@ -19,7 +19,9 @@
       },
       "package": "com.changsunoh.selfFire",
       "permissions": [
-        "SYSTEM_ALERT_WINDOW"
+        "SYSTEM_ALERT_WINDOW",
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM"
       ]
     },
     "web": {
@@ -36,6 +38,14 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#1A1A1A"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/fire-icon.png",
+          "color": "#FF6B35",
+          "defaultChannel": "default"
         }
       ],
       [

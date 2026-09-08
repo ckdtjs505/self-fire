@@ -3,9 +3,11 @@ import HeaderLeft from "@/components/header-left";
 import FeatherIcon from "@/components/icon";
 import QuoteItem from "@/components/quote-items";
 import ThemePicker from "@/components/theme-picker";
+import StreakBadge from "@/components/streak-badge";
 import { getQuote, quotes as defaultQuotes } from "@/data/quotes";
 import { Quote } from "@/models";
 import { useFavoriteQuoteStore } from "@/store/quote";
+import { useStreak } from "@/hooks/useStreak";
 import { router } from "expo-router";
 import { useRef, useState, useEffect, useMemo } from "react";
 import { Pressable, Dimensions, Alert, Platform } from "react-native";
@@ -20,6 +22,7 @@ const { width } = Dimensions.get('window');
 export default function Index() {
   const { isAdFree } = useAdStore();
   const { customQuotes, favorites } = useFavoriteQuoteStore();
+  const { currentStreak } = useStreak();
   const refThemePicker = useRef<any>(null);
   const [isAdLoaded, setIsAdLoaded] = useState(false);
   const [filterMode, setFilterMode] = useState<'all' | 'mine' | 'favorites'>('all');
@@ -113,7 +116,9 @@ export default function Index() {
         justifyContent={"center"}
         alignItems={"center"}
       >
-        <HeaderLeft></HeaderLeft>
+        <HeaderLeft>
+          <StreakBadge streak={currentStreak} />
+        </HeaderLeft>
         <Box
           position={"absolute"}
           top={0}
@@ -237,7 +242,7 @@ export default function Index() {
         >
           <BannerAd
             size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-            unitId={__DEV__ ? TestIds.BANNER : "ca-app-pub-3739053005473702/6746942544"}
+            unitId={__DEV__ ? TestIds.BANNER : "ca-app-pub-3739053005473702/4339756170"}
             requestOptions={{
               requestNonPersonalizedAdsOnly: true,
             }}

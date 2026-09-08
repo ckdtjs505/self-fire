@@ -5,6 +5,7 @@ import SettingItem from "@/components/setting-item";
 import { AppState, AppStateStatus, Linking, ScrollView, Switch, NativeModules, Platform, Alert, ToastAndroid } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAdStore } from "@/store/ad-store";
+import { useNotificationStore } from "@/store/notification";
 
 const { AutoLaunchModule } = NativeModules;
 
@@ -13,6 +14,9 @@ export default function SettingScreen() {
   const [appVersion, setAppVersion] = useState("");
   const [isAutoLaunchEnabled, setIsAutoLaunchEnabled] = useState(false);
   const { isAdFree, setAdFree } = useAdStore();
+  const { isEnabled: isNotificationEnabled, notificationHour, notificationMinute, setEnabled: setNotificationEnabled, setTime } = useNotificationStore();
+  const [hourInput, setHourInput] = useState(notificationHour);
+  const [minuteInput, setMinuteInput] = useState(notificationMinute);
   const pendingPermissionCheck = useRef(false);
 
   useEffect(() => {
@@ -145,6 +149,123 @@ export default function SettingScreen() {
           <Text fontSize={24} fontWeight="bold" marginBottom="xl" marginTop="s">
             설정
           </Text>
+
+          {/* 알림 설정 섹션 */}
+          <Box marginBottom="lg">
+            <Text
+              fontSize={14}
+              fontWeight="600"
+              color={"$foreground"}
+              marginBottom="s"
+              marginLeft="s"
+              style={{ opacity: 0.6 }}
+            >
+              알림
+            </Text>
+            <Box
+              bg={"$sidebarBackground"}
+              borderRadius={"md"}
+              overflow="hidden"
+            >
+              <SettingItem
+                icon={"bell"}
+                title="오늘의 명언 알림"
+                handleClickItem={() => setNotificationEnabled(!isNotificationEnabled)}
+                rightElement={
+                  <Switch
+                    value={isNotificationEnabled}
+                    onValueChange={(v) => setNotificationEnabled(v)}
+                    trackColor={{ false: "#767577", true: "#2185d0" }}
+                    thumbColor={isNotificationEnabled ? "#ffffff" : "#f4f3f4"}
+                  />
+                }
+              />
+              {isNotificationEnabled && (
+                <>
+                  <Box height={1} bg={"$background"} marginHorizontal="md" style={{ opacity: 0.1 }} />
+                  <Box
+                    flexDirection="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    px="md"
+                    py="s"
+                  >
+                    <Box flexDirection="row" alignItems="center" style={{ gap: 8 }}>
+                      <Text fontSize={14}>⏰</Text>
+                      <Text fontSize={14}>알림 시간</Text>
+                    </Box>
+                    <Box flexDirection="row" alignItems="center" style={{ gap: 4 }}>
+                      {/* 시간 - / + */}
+                      <Box flexDirection="row" alignItems="center" style={{ gap: 6 }}>
+                        <Box
+                          bg="$background"
+                          borderRadius="md"
+                          px="s"
+                          py="xs"
+                          onTouchEnd={() => {
+                            const next = hourInput <= 0 ? 23 : hourInput - 1;
+                            setHourInput(next);
+                            setTime(next, minuteInput);
+                          }}
+                        >
+                          <Text fontSize={16}>‹</Text>
+                        </Box>
+                        <Text fontSize={15} fontWeight="bold" style={{ minWidth: 24, textAlign: 'center' }}>
+                          {String(hourInput).padStart(2, '0')}
+                        </Text>
+                        <Box
+                          bg="$background"
+                          borderRadius="md"
+                          px="s"
+                          py="xs"
+                          onTouchEnd={() => {
+                            const next = hourInput >= 23 ? 0 : hourInput + 1;
+                            setHourInput(next);
+                            setTime(next, minuteInput);
+                          }}
+                        >
+                          <Text fontSize={16}>›</Text>
+                        </Box>
+                      </Box>
+                      <Text fontSize={15} fontWeight="bold">:</Text>
+                      {/* 분 - / + */}
+                      <Box flexDirection="row" alignItems="center" style={{ gap: 6 }}>
+                        <Box
+                          bg="$background"
+                          borderRadius="md"
+                          px="s"
+                          py="xs"
+                          onTouchEnd={() => {
+                            const next = minuteInput <= 0 ? 55 : minuteInput - 5;
+                            setMinuteInput(next);
+                            setTime(hourInput, next);
+                          }}
+                        >
+                          <Text fontSize={16}>‹</Text>
+                        </Box>
+                        <Text fontSize={15} fontWeight="bold" style={{ minWidth: 24, textAlign: 'center' }}>
+                          {String(minuteInput).padStart(2, '0')}
+                        </Text>
+                        <Box
+                          bg="$background"
+                          borderRadius="md"
+                          px="s"
+                          py="xs"
+                          onTouchEnd={() => {
+                            const next = minuteInput >= 55 ? 0 : minuteInput + 5;
+                            setMinuteInput(next);
+                            setTime(hourInput, next);
+                          }}
+                        >
+                          <Text fontSize={16}>›</Text>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </Box>
+                </>
+              )}
+            </Box>
+          </Box>
 
           {/* 일반 섹션 */}
           <Box marginBottom="lg">

@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import mobileAds from "react-native-google-mobile-ads";
+import * as Notifications from "expo-notifications";
 
 mobileAds()
   .setRequestConfiguration({
@@ -17,6 +18,17 @@ mobileAds()
   .then((adapterStatuses) => {
     console.log('AdMob initialization complete!');
   });
+
+// 포그라운드에서 알림을 받을 때 배너로 표시
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 export default function RootLayout() {
   const { currentTheme } = useThemeStore();

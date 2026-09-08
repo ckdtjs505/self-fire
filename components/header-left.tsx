@@ -3,9 +3,13 @@ import { DrawerActions } from "@react-navigation/native";
 import { useNavigation } from "expo-router";
 import { Pressable } from "react-native";
 import FeatherIcon from "./icon";
+import React from "react";
 
-type Props = {};
-const HeaderLeft: React.FC<Props> = () => {
+type Props = {
+  children?: React.ReactNode;
+};
+
+const HeaderLeft: React.FC<Props> = ({ children }) => {
   const navigation = useNavigation();
   return (
     <Box
@@ -19,13 +23,16 @@ const HeaderLeft: React.FC<Props> = () => {
       flexDirection={"row"}
       zIndex={10}
     >
-      <Pressable
-        onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
-      >
-        <Box m="md" p="xs">
-          <FeatherIcon name="menu" size={22}></FeatherIcon>
-        </Box>
-      </Pressable>
+      <Box flexDirection="row" alignItems="center" style={{ gap: 8 }}>
+        <Pressable
+          onPress={() => navigation.dispatch(DrawerActions.toggleDrawer())}
+        >
+          <Box m="md" p="xs">
+            <FeatherIcon name="menu" size={22}></FeatherIcon>
+          </Box>
+        </Pressable>
+        {children}
+      </Box>
     </Box>
   );
 };
