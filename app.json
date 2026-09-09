@@ -2,7 +2,7 @@
   "expo": {
     "name": "selfFire",
     "slug": "selfFire",
-    "version": "1.0.2",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/fire-icon.png",
     "scheme": "myapp",

@@ -53,7 +53,12 @@ import { Jua_400Regular } from "@expo-google-fonts/jua";
 import { NanumPenScript_400Regular } from "@expo-google-fonts/nanum-pen-script";
 
 import Toast from 'react-native-toast-message';
-import { View, Text } from 'react-native';
+import { View, Text, Platform } from 'react-native';
+import SpInAppUpdates, {
+  NeedsUpdateResponse,
+  IAUUpdateKind,
+  StartUpdateOptions,
+} from 'sp-react-native-in-app-updates';
 
 // ── SimpleToast 컴포넌트 ──────────────────────────────────────
 // react-native-toast-message의 커스텀 토스트 UI.
@@ -128,6 +133,24 @@ export default function RootLayout() {
       }
       appState.current = nextAppState;
     });
+
+    // 앱 시작 시 강제 업데이트 체크
+    try {
+      const inAppUpdates = new SpInAppUpdates(false);
+      inAppUpdates.checkNeedsUpdate().then((result) => {
+        if (result.shouldUpdate) {
+          let updateOptions = {};
+          if (Platform.OS === 'android') {
+            updateOptions = {
+              updateType: IAUUpdateKind.IMMEDIATE,
+            };
+          }
+          inAppUpdates.startUpdate(updateOptions);
+        }
+      }).catch(err => console.log('Update check failed:', err));
+    } catch (e) {
+      console.log('InAppUpdates Initialization failed:', e);
+    }
 
     // 컴포넌트 언마운트 시 이벤트 구독 해제
     return () => subscription.remove();
