@@ -18,7 +18,8 @@ import QuoteItem from "@/components/quote-items";
 import ThemePicker from "@/components/theme-picker";
 import FontPicker from "@/components/font-picker";
 import StreakBadge from "@/components/streak-badge";
-import { getQuote, quotes as defaultQuotes } from "@/data/quotes";
+import { getQuote, quotes as fallbackQuotes } from "@/data/quotes";
+import { ActivityIndicator } from "react-native";
 import { Quote } from "@/models";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { useStreak } from "@/hooks/useStreak";
@@ -36,6 +37,8 @@ import { BottomSheetModal } from "@gorhom/bottom-sheet";
 const { width } = Dimensions.get('window');
 
 export default function Index() {
+  const [defaultQuotesState, setDefaultQuotesState] = useState<Quote[]>([]);
+  const [isGlobalLoading, setIsGlobalLoading] = useState(true);
   // 광고 제거 여부 확인
   const { isAdFree } = useAdStore();
   // 사용자가 작성한 커스텀 명언 목록과 즐겨찾기 ID 목록
@@ -52,6 +55,58 @@ export default function Index() {
 
   // 현재 필터 모드: 'all'(전체) | 'mine'(내가 쓴 명언) | 'favorites'(즐겨찾기)
   const [filterMode, setFilterMode] = useState<'all' | 'mine' | 'favorites'>('all');
+
+  // ── initQuotes (Bulk Fetch & Cache) ────────────────────────
+  useEffect(() => {
+    const initQuotes = async () => {
+      try {
+        // 1. AsyncStorage에서 캐시 확인
+        const cachedStr = await AsyncStorage.getItem('cached_all_quotes');
+        if (cachedStr) {
+          const cachedQuotes = JSON.parse(cachedStr);
+          setDefaultQuotesState(cachedQuotes);
+          setIsGlobalLoading(false);
+          // TODO: 백그라운드에서 버전 체크 로직 추가 가능 (API가 지원한다면)
+          return;
+        }
+
+        // 2. 캐시가 없으면 API에서 1만 개 데이터 한 번에 Fetch
+        const response = await fetch('https://ckdtjst505.mycafe24.com/api/quote/get_all.php');
+        const json = await response.json();
+        
+        if (json && json.status === 'success' && Array.isArray(json.data)) {
+          // ID를 string으로 변환
+          const fetchedQuotes = json.data.map((item: any) => ({
+            id: String(item.id),
+            text: item.text,
+            author: item.author
+          }));
+          
+          // 3. AsyncStorage에 캐싱
+          await AsyncStorage.setItem('cached_all_quotes', JSON.stringify(fetchedQuotes));
+          setDefaultQuotesState(fetchedQuotes);
+        } else {
+          // 실패 시 fallback 데이터 사용
+          setDefaultQuotesState(fallbackQuotes);
+        }
+      } catch (error) {
+        console.error('Failed to fetch/cache quotes:', error);
+        // 에러 발생 시 fallback 데이터 사용
+        setDefaultQuotesState(fallbackQuotes);
+      } finally {
+        setIsGlobalLoading(false);
+      }
+    };
+
+    initQuotes();
+  }, []);
+
+  // 데이터가 페치/캐시된 후 pool을 다시 세팅한다.
+  useEffect(() => {
+    if (defaultQuotesState.length > 0 && quotes.length === 0) {
+      setQuotes(getInitialPool(filterMode));
+    }
+  }, [defaultQuotesState]);
 
   // ── shuffle ────────────────────────────────────────────────
   // Fisher-Yates 알고리즘으로 배열을 무작위로 섞는 유틸리티 함수
@@ -80,7 +135,7 @@ export default function Index() {
   //   - 'favorites': 즐겨찾기에 포함된 명언만 셔플
   const getInitialPool = (mode: 'all' | 'mine' | 'favorites') => {
     let pool: Quote[] = [
-      ...defaultQuotes,
+      ...defaultQuotesState,
       ...customQuotes
     ];
 
@@ -98,14 +153,61 @@ export default function Index() {
     }
   };
 
-  // 필터 모드가 변경될 때마다 명언 풀을 초기화한다.
-  // (즐겨찾기 추가/제거 시 목록이 갱신되는 버그를 방지하기 위해 filterMode만 의존성으로 설정)
+  // 각 필터 모드별로 보던 명언 상태를 유지하기 위한 저장소
+  const savedStates = useRef<Record<string, { quotes: Quote[], currentIndex: number, maxIndex: number }>>({
+    all: { quotes: [], currentIndex: 0, maxIndex: 0 },
+    mine: { quotes: [], currentIndex: 0, maxIndex: 0 },
+    favorites: { quotes: [], currentIndex: 0, maxIndex: 0 },
+  });
+  const currentStateRef = useRef({ quotes, currentIndex, maxIndex });
+  const prevFilterMode = useRef(filterMode);
+
+  // 현재 상태 최신화
   useEffect(() => {
-    // 필터 상태가 바뀔 때만 풀 초기화 (즐겨찾기 클릭 시 목록이 초기화되는 버그 방지)
-    setQuotes(getInitialPool(filterMode));
-    setCurrentIndex(0);
-    setMaxIndex(0);
-    fadeAnim.setValue(1);
+    currentStateRef.current = { quotes, currentIndex, maxIndex };
+  }, [quotes, currentIndex, maxIndex]);
+
+  // 필터 모드가 변경될 때 이전 모드의 상태를 저장하고, 새 모드의 상태를 복원한다.
+  useEffect(() => {
+    if (prevFilterMode.current !== filterMode) {
+      // 1. 이전 상태 저장
+      savedStates.current[prevFilterMode.current] = currentStateRef.current;
+      
+      // 2. 새 상태 복원 (이전에 본 적이 있으면 복원, 없으면 새로 풀을 가져옴)
+      const saved = savedStates.current[filterMode];
+      if (saved && saved.quotes.length > 0) {
+        if (filterMode === 'favorites') {
+          // 즐겨찾기 해제된 항목을 걸러냄
+          const validQuotes = saved.quotes.filter(q => favorites.includes(q.id));
+          if (validQuotes.length > 0) {
+            setQuotes(validQuotes);
+            setCurrentIndex(Math.min(saved.currentIndex, validQuotes.length - 1));
+            setMaxIndex(Math.min(saved.maxIndex, validQuotes.length - 1));
+          } else {
+            setQuotes(getInitialPool(filterMode));
+            setCurrentIndex(0);
+            setMaxIndex(0);
+          }
+        } else {
+          setQuotes(saved.quotes);
+          setCurrentIndex(saved.currentIndex);
+          setMaxIndex(saved.maxIndex);
+        }
+      } else {
+        setQuotes(getInitialPool(filterMode));
+        setCurrentIndex(0);
+        setMaxIndex(0);
+      }
+      fadeAnim.setValue(1);
+      prevFilterMode.current = filterMode;
+    } else {
+      // 초기 렌더링 시
+      if (quotes.length === 0) {
+        setQuotes(getInitialPool(filterMode));
+        setCurrentIndex(0);
+        setMaxIndex(0);
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterMode]);
 
@@ -116,7 +218,7 @@ export default function Index() {
     if (filterMode !== 'all') return; // 필터 모드에서는 더 불러오지 않음 (기존 데이터만 보여줌)
 
     setQuotes(prevQuotes => {
-      const fullPool = [...defaultQuotes, ...customQuotes];
+      const fullPool = [...defaultQuotesState, ...customQuotes];
       const currentIds = new Set(prevQuotes.map(q => q.id));
       // 이미 풀에 포함되지 않은 명언만 추가 후보로 선택
       const unused = fullPool.filter(q => !currentIds.has(q.id));
@@ -221,6 +323,17 @@ export default function Index() {
     };
     setTimeout(requestOverlayPermission, 1000); // 1초 뒤에 띄움 (로딩 안정화)
   }, []);
+
+  if (isGlobalLoading) {
+    return (
+      <SafeAreaView flex={1}>
+        <Box bg="$background" flex={1} justifyContent="center" alignItems="center">
+          <ActivityIndicator size="large" color="#4F46E5" />
+          <Text mt="md" color="$foreground">명언 데이터를 불러오는 중...</Text>
+        </Box>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView flex={1}>
