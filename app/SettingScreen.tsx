@@ -17,6 +17,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import Toast from 'react-native-toast-message';
 import { useAdStore } from "@/store/ad-store";
 import { useNotificationStore } from "@/store/notification";
+import { useIAP } from "react-native-iap";
 
 // Android 네이티브 모듈: 잠금 해제 자동 실행 기능을 위한 오버레이 권한 처리
 const { AutoLaunchModule } = NativeModules;
@@ -48,6 +49,35 @@ export default function SettingScreen() {
   useEffect(() => {
     setAppVersion(Application.nativeApplicationVersion || "1.0.0");
   }, []);
+
+  const SKU_REMOVE_ADS = "remove_ads_990";
+
+  const {
+    connected,
+    finishTransaction,
+    fetchProducts,
+    requestPurchase,
+  } = useIAP({
+    onPurchaseSuccess: async (purchase) => {
+      try {
+        await finishTransaction({ purchase, isConsumable: false });
+        setAdFree(true);
+        Toast.show({ type: 'success', text1: '완료', text2: '광고 제거 기능이 활성화되었습니다.' });
+      } catch (error) {
+        console.error("Failed to finish transaction", error);
+      }
+    },
+    onPurchaseError: (error) => {
+      console.error("Purchase error", error);
+      Toast.show({ type: 'error', text1: '오류', text2: '결제를 진행하는 중 문제가 발생했습니다.' });
+    }
+  });
+
+  useEffect(() => {
+    if (connected) {
+      fetchProducts({ skus: [SKU_REMOVE_ADS], type: 'in-app' }).catch(console.error);
+    }
+  }, [connected, fetchProducts]);
 
   /**
    * 권한 상태와 토글 상태를 동기화하는 공통 함수.
@@ -144,32 +174,24 @@ export default function SettingScreen() {
     }
   };
 
-  // ── handleRemoveAds ───────────────────────────────────────
-  // 광고 제거 구매 처리 핸들러.
-  // 이미 광고 제거가 활성화된 경우 안내 메시지를 표시하고 종료.
-  // 그렇지 않으면 결제 확인 다이얼로그를 표시한다.
-  // (실제 IAP 연동 전까지는 Mock으로 처리)
-  const handleRemoveAds = () => {
+  const handleRemoveAds = async () => {
     if (isAdFree) {
       Toast.show({ type: 'info', text1: '알림', text2: '이미 광고 제거 기능이 활성화되어 있습니다.' });
       return;
     }
 
-    Alert.alert(
-      "광고 제거",
-      "990원을 결제하여 광고를 영구적으로 제거하시겠습니까?",
-      [
-        { text: "취소", style: "cancel" },
-        {
-          text: "결제하기",
-          onPress: () => {
-            // 실제 IAP 연동 시점을 위한 Mock 처리
-            setAdFree(true);
-            Toast.show({ type: 'success', text1: '완료', text2: '광고 제거 기능이 활성화되었습니다.' });
-          }
+    try {
+      await requestPurchase({
+        type: 'in-app',
+        request: {
+          apple: { sku: SKU_REMOVE_ADS },
+          google: { skus: [SKU_REMOVE_ADS] }
         }
-      ]
-    );
+      });
+    } catch (err: any) {
+      console.error(err.code, err.message);
+      Toast.show({ type: 'error', text1: '오류', text2: '결제를 진행하는 중 문제가 발생했습니다.' });
+    }
   };
 
   // 외부 URL을 기기 브라우저로 열기
