@@ -5,8 +5,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface FavoritesQuoteStore {
   favorites: string[];
+  favoritesData: Quote[];
   customQuotes: Quote[];
-  addFavorite: (id: string) => void;
+  addFavorite: (id: string, quote?: Quote) => void;
   removeFavorite: (id: string) => void;
   addCustomQuote: (text: string, author: string) => void;
   removeCustomQuote: (id: string) => void;
@@ -18,16 +19,21 @@ export const useFavoriteQuoteStore = create<FavoritesQuoteStore>()(
   persist(
     (set) => ({
       favorites: [], // 즐겨찾기 리스트
+      favoritesData: [], // 즐겨찾기 명언 객체 데이터
       customQuotes: [], // 사용자가 만든 명언 리스트
-      addFavorite: (id: string) =>
+      addFavorite: (id: string, quote?: Quote) =>
         set((state) =>
           state.favorites.some((_id) => _id === id)
             ? state
-            : { favorites: [...state.favorites, id] },
+            : { 
+                favorites: [...state.favorites, id],
+                favoritesData: quote ? [...(state.favoritesData || []), quote] : (state.favoritesData || [])
+              },
         ),
       removeFavorite: (id: string) =>
         set((state) => ({
           favorites: state.favorites.filter((_id) => _id !== id),
+          favoritesData: (state.favoritesData || []).filter((q) => q.id !== id),
         })),
       addCustomQuote: (text: string, author: string) =>
         set((state) => ({

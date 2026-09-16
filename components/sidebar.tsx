@@ -6,7 +6,9 @@ import { Pressable } from "react-native-gesture-handler";
 import { useStore } from "zustand";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import FeatherIcon from "./icon";
+import FeatherIcon, { Ionicon } from "./icon";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Quote } from "@/models";
 
 import { DrawerContentComponentProps } from "@react-navigation/drawer";
 
@@ -20,8 +22,12 @@ const Sidebar: React.FC<Props> = ({ navigation }) => {
   );
   const insets = useSafeAreaInsets();
 
+  const favoritesData = useStore(useFavoriteQuoteStore, (state) => state.favoritesData) || [];
+  const customQuotes = useStore(useFavoriteQuoteStore, (state) => state.customQuotes);
+
+  // favoriteQuote는 favoritesData와 customQuotes에서 렌더링
   const favoriteQuote = favorites.map((quoteId) =>
-    quotes.find((quote) => quote.id === quoteId),
+    favoritesData.find((quote) => quote.id === quoteId) || customQuotes.find(q => q.id === quoteId),
   );
 
   return (
@@ -87,18 +93,18 @@ const Sidebar: React.FC<Props> = ({ navigation }) => {
           </Box>
         </Box>
 
-        {/* 즐겨찾기 섹션 */}
+        {/* 불씨 보관함 섹션 */}
         <Box marginBottom="s">
           <Text fontSize={12} fontWeight="bold" color="$sidebarForeground" opacity={0.4} marginBottom="s" marginLeft="s">
-            FAVORITES
+            SPARK ARCHIVE
           </Text>
         </Box>
 
         {favoriteQuote.length === 0 ? (
           <Box alignItems="center" marginTop="md" padding="xl" style={{ borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', borderRadius: 12 }}>
-            <FeatherIcon name="heart" size={24} color="$sidebarForeground" style={{ opacity: 0.2 }} />
+            <Ionicon name="flame" size={24} color="$sidebarForeground" style={{ opacity: 0.2 }} />
             <Text color={"$sidebarForeground"} opacity={0.5} marginTop="s" fontSize={13}>
-              저장된 명언이 없습니다.
+              보관된 불씨가 없습니다.
             </Text>
           </Box>
         ) : null}
@@ -111,7 +117,7 @@ const Sidebar: React.FC<Props> = ({ navigation }) => {
             <Pressable
               key={idx}
               onPress={() => {
-                Alert.alert("삭제하시겠습니까?", "즐겨찾기에서 제거됩니다.", [
+                Alert.alert("삭제하시겠습니까?", "불씨 보관함에서 제거됩니다.", [
                   {
                     text: "삭제",
                     style: "destructive",

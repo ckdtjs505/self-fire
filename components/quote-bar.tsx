@@ -84,7 +84,7 @@ const Quotebar: React.FC<Props> = (props) => {
       {!favorites.includes(id) ? (
         <Pressable
           onPress={() => {
-            addFavorite(id);
+            addFavorite(id, { id, text, author });
             Toast.show({ type: 'success', text1: '불씨 보관함에 저장되었습니다 🔥' });
           }}
         >

@@ -13,7 +13,7 @@
 
 import { Box, SafeAreaView, Text } from "@/atom";
 import HeaderLeft from "@/components/header-left";
-import FeatherIcon from "@/components/icon";
+import FeatherIcon, { Ionicon } from "@/components/icon";
 import QuoteItem from "@/components/quote-items";
 import ThemePicker from "@/components/theme-picker";
 import FontPicker from "@/components/font-picker";
@@ -60,38 +60,50 @@ export default function Index() {
   useEffect(() => {
     const initQuotes = async () => {
       try {
-        // 1. AsyncStorage에서 캐시 확인
-        const cachedStr = await AsyncStorage.getItem('cached_all_quotes');
-        if (cachedStr) {
-          const cachedQuotes = JSON.parse(cachedStr);
-          setDefaultQuotesState(cachedQuotes);
-          setIsGlobalLoading(false);
-          // TODO: 백그라운드에서 버전 체크 로직 추가 가능 (API가 지원한다면)
-          return;
+        const CACHE_KEY = 'cached_recent_quotes';
+        let cachedQuotes: Quote[] | null = null;
+
+        // 1. 오프라인 대비용 최근 캐시 확인
+        try {
+          const cachedStr = await AsyncStorage.getItem(CACHE_KEY);
+          if (cachedStr) {
+            cachedQuotes = JSON.parse(cachedStr);
+          }
+        } catch (e) {
+          console.warn('Failed to read recent cache:', e);
         }
 
-        // 2. 캐시가 없으면 API에서 1만 개 데이터 한 번에 Fetch
-        const response = await fetch('https://ckdtjst505.mycafe24.com/api/quote/get_all.php');
-        const json = await response.json();
-        
-        if (json && json.status === 'success' && Array.isArray(json.data)) {
-          // ID를 string으로 변환
-          const fetchedQuotes = json.data.map((item: any) => ({
-            id: String(item.id),
-            text: item.text,
-            author: item.author
-          }));
+        // 2. API에서 50개 랜덤 Fetch
+        try {
+          const response = await fetch('https://ckdtjst505.mycafe24.com/api/quote/get_all.php?random=true&limit=50');
+          const json = await response.json();
           
-          // 3. AsyncStorage에 캐싱
-          await AsyncStorage.setItem('cached_all_quotes', JSON.stringify(fetchedQuotes));
-          setDefaultQuotesState(fetchedQuotes);
+          if (json && json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
+            const fetchedQuotes = json.data.map((item: any) => ({
+              id: String(item.id),
+              text: item.text,
+              author: item.author
+            }));
+            
+            // 새 데이터로 캐시 갱신 (오프라인 대비)
+            await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(fetchedQuotes));
+            setDefaultQuotesState(fetchedQuotes);
+            setIsGlobalLoading(false);
+            return;
+          }
+        } catch (apiError) {
+          console.warn('API Fetch failed, using cache or fallback', apiError);
+        }
+
+        // 3. API 실패 시 캐시가 있으면 캐시 사용, 없으면 폴백 사용
+        if (cachedQuotes && cachedQuotes.length > 0) {
+          setDefaultQuotesState(cachedQuotes);
         } else {
-          // 실패 시 fallback 데이터 사용
           setDefaultQuotesState(fallbackQuotes);
         }
+
       } catch (error) {
         console.error('Failed to fetch/cache quotes:', error);
-        // 에러 발생 시 fallback 데이터 사용
         setDefaultQuotesState(fallbackQuotes);
       } finally {
         setIsGlobalLoading(false);
@@ -212,23 +224,31 @@ export default function Index() {
   }, [filterMode]);
 
   // ── loadMoreQuotes ────────────────────────────────────────
-  // '전체' 모드에서 목록 끝에 가까워질 때 아직 보지 않은 명언을 20개씩 추가 로드한다.
-  // 필터 모드에서는 기존 데이터만 보여주므로 추가 로드하지 않는다.
-  const loadMoreQuotes = () => {
-    if (filterMode !== 'all') return; // 필터 모드에서는 더 불러오지 않음 (기존 데이터만 보여줌)
+  // '전체' 모드에서 목록 끝에 가까워질 때 API에서 50개를 추가 로드한다.
+  const loadMoreQuotes = async () => {
+    if (filterMode !== 'all') return; // 필터 모드에서는 더 불러오지 않음
 
-    setQuotes(prevQuotes => {
-      const fullPool = [...defaultQuotesState, ...customQuotes];
-      const currentIds = new Set(prevQuotes.map(q => q.id));
-      // 이미 풀에 포함되지 않은 명언만 추가 후보로 선택
-      const unused = fullPool.filter(q => !currentIds.has(q.id));
-
-      if (unused.length > 0) {
-        const nextBatch = shuffle(unused).slice(0, 20);
-        return [...prevQuotes, ...nextBatch];
+    try {
+      const response = await fetch('https://ckdtjst505.mycafe24.com/api/quote/get_all.php?random=true&limit=50');
+      const json = await response.json();
+      
+      if (json && json.status === 'success' && Array.isArray(json.data)) {
+        const fetchedQuotes = json.data.map((item: any) => ({
+          id: String(item.id),
+          text: item.text,
+          author: item.author
+        }));
+        
+        setQuotes(prevQuotes => {
+          // 기존 목록에 중복되지 않는 명언만 추가
+          const currentIds = new Set(prevQuotes.map(q => q.id));
+          const newQuotes = fetchedQuotes.filter(q => !currentIds.has(q.id));
+          return [...prevQuotes, ...newQuotes];
+        });
       }
-      return prevQuotes;
-    });
+    } catch (e) {
+      console.warn('Failed to load more quotes:', e);
+    }
   };
 
   // ── goToNextQuote ─────────────────────────────────────────
