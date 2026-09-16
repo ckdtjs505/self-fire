@@ -33,6 +33,7 @@ import * as IntentLauncher from "expo-intent-launcher";
 import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads";
 import { useAdStore } from "@/store/ad-store";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { IgniteScreen } from "@/components/ignite-screen";
 
 // 화면 너비: 좌/우 터치 영역 분기 계산에 사용
 const { width } = Dimensions.get('window');
@@ -57,6 +58,26 @@ export default function Index() {
   // 현재 필터 모드: 'all'(전체) | 'mine'(내가 쓴 명언) | 'favorites'(즐겨찾기)
   const [filterMode, setFilterMode] = useState<'all' | 'mine' | 'favorites'>('all');
 
+  // ── Hold to Ignite ────────────────────────────────────────
+  // 하루 1번, 앱 첫 진입 시 불씨 화면을 보여준다.
+  // AsyncStorage에 오늘 날짜(YYYY-MM-DD)가 기록되어 있으면 스킵.
+  const [isIgnited, setIsIgnited] = useState(true); // 초기값 true: 로딩 중 플리커 방지
+  useEffect(() => {
+    const checkDailyIgnite = async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const lastDate = await AsyncStorage.getItem('last_ignited_date');
+      // 오늘 처음 켠 경우에만 불씨 화면 표시
+      setIsIgnited(lastDate === today);
+    };
+    checkDailyIgnite();
+  }, []);
+
+  const handleIgnited = async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    await AsyncStorage.setItem('last_ignited_date', today);
+    setIsIgnited(true);
+  };
+
   // ── initQuotes (Bulk Fetch & Cache) ────────────────────────
   useEffect(() => {
     const initQuotes = async () => {
@@ -78,14 +99,14 @@ export default function Index() {
         try {
           const response = await fetch('https://ckdtjst505.mycafe24.com/api/quote/get_all.php?random=true&limit=50');
           const json = await response.json();
-          
+
           if (json && json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
             const fetchedQuotes = json.data.map((item: any) => ({
               id: String(item.id),
               text: item.text,
               author: item.author
             }));
-            
+
             // 새 데이터로 캐시 갱신 (오프라인 대비)
             await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(fetchedQuotes));
             setDefaultQuotesState(fetchedQuotes);
@@ -186,7 +207,7 @@ export default function Index() {
     if (prevFilterMode.current !== filterMode) {
       // 1. 이전 상태 저장
       savedStates.current[prevFilterMode.current] = currentStateRef.current;
-      
+
       // 2. 새 상태 복원 (이전에 본 적이 있으면 복원, 없으면 새로 풀을 가져옴)
       const saved = savedStates.current[filterMode];
       if (saved && saved.quotes.length > 0) {
@@ -233,14 +254,14 @@ export default function Index() {
     try {
       const response = await fetch('https://ckdtjst505.mycafe24.com/api/quote/get_all.php?random=true&limit=50');
       const json = await response.json();
-      
+
       if (json && json.status === 'success' && Array.isArray(json.data)) {
         const fetchedQuotes = json.data.map((item: any) => ({
           id: String(item.id),
           text: item.text,
           author: item.author
         }));
-        
+
         setQuotes(prevQuotes => {
           // 기존 목록에 중복되지 않는 명언만 추가
           const currentIds = new Set(prevQuotes.map(q => q.id));
@@ -663,6 +684,11 @@ export default function Index() {
       <ThemePicker ref={refThemePicker} />
       {/* 폰트 선택 바텀시트 */}
       <FontPicker ref={refFontPicker} />
+
+      {/* ── Hold to Ignite 오버레이 ──────────────────────────
+          isIgnited가 false일 때만 표시.
+          하루 1번, 오늘 처음 앱을 열었을 때 불씨를 직접 켜는 인터랙션. */}
+      {!!isIgnited && <IgniteScreen onIgnited={handleIgnited} />}
     </SafeAreaView>
   );
 }
