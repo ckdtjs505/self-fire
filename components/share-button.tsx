@@ -1,5 +1,6 @@
 import FeatherIcon from "./icon";
-import { Pressable, Share } from "react-native";
+import { Share } from "react-native";
+import { Pressable } from "react-native-gesture-handler";
 import ViewShot from "react-native-view-shot";
 import * as MediaLibrary from "expo-media-library";
 import { Alert } from "react-native";
@@ -26,7 +27,7 @@ const ShareButton: React.FC<Props> = ({ text, viewShotRef }) => {
   };
 
   return (
-    <Pressable onPress={handleShare}>
+    <Pressable onPress={handleShare} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
       <FeatherIcon name="share" size={24} />
     </Pressable>
   );

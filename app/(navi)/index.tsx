@@ -24,8 +24,9 @@ import { Quote } from "@/models";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { useStreak } from "@/hooks/useStreak";
 import { router } from "expo-router";
-import { useRef, useState, useEffect, useMemo } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Pressable, Dimensions, Alert, Platform, Animated } from "react-native";
+import { PanGestureHandler, State, type PanGestureHandlerGestureEvent } from "react-native-gesture-handler";
 import Toast from 'react-native-toast-message';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as IntentLauncher from "expo-intent-launcher";
@@ -120,8 +121,7 @@ export default function Index() {
     }
   }, [defaultQuotesState]);
 
-  // ── shuffle ────────────────────────────────────────────────
-  // Fisher-Yates 알고리즘으로 배열을 무작위로 섞는 유틸리티 함수
+  // ── shuffle ──────────────────────────────────────────────
   const shuffle = <T,>(array: T[]): T[] => {
     const newArray = [...array];
     for (let i = newArray.length - 1; i > 0; i--) {
@@ -137,7 +137,9 @@ export default function Index() {
   const [currentIndex, setCurrentIndex] = useState(0);
   // 현재 세션에서 가장 멀리 진행한 인덱스 (이전 명언 뱃지 표시용)
   const [maxIndex, setMaxIndex] = useState(0);
-  // 페이드 애니메이션 값 (0: 투명, 1: 불투명)
+
+  // ── Animation Values ────────────────────────────────────
+  const slideX = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   // ── getInitialPool ────────────────────────────────────────
@@ -251,65 +253,129 @@ export default function Index() {
     }
   };
 
+  // ── animateTransition ─────────────────────────────────────
+  // 방향(dir: -1=다음, 1=이전)에 따라 카드를 슬라이드 아웃 → 인 애니메이션.
+  const animateTransition = (dir: -1 | 1, callback: () => void) => {
+    // 1. 현재 카드를 dir 방향으로 슬라이드 아웃
+    Animated.parallel([
+      Animated.timing(slideX, {
+        toValue: width * dir,   // -1: 왼쪽 밖으로, 1: 오른쪽 밖으로
+        duration: 280,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // 2. 인덱스 업데이트
+      callback();
+      // 3. 반대편에서 슬라이드 인
+      slideX.setValue(-width * dir);
+      Animated.parallel([
+        Animated.spring(slideX, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 65,
+          friction: 11,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
+
   // ── goToNextQuote ─────────────────────────────────────────
-  // 다음 명언으로 전환한다.
-  // 페이드 아웃 → 인덱스 변경 → 페이드 인 순서로 애니메이션 처리.
-  // 목록 끝에 가까워지면 loadMoreQuotes를 호출해 명언을 추가 로드한다.
   const goToNextQuote = () => {
     if (quotes.length === 0) return;
-
-    // Fade out
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 150,
-      useNativeDriver: true,
-    }).start(() => {
+    animateTransition(-1, () => {
       setCurrentIndex((prev) => {
         let nextIndex = prev + 1;
-        
-        // 목록 끝에 2개 이내로 남으면 추가 로드 트리거
         if (nextIndex >= quotes.length - 2) {
           loadMoreQuotes();
         }
-        
         if (nextIndex >= quotes.length) {
-          nextIndex = 0; // 맨 끝이면 처음으로 (즐겨찾기/내가 쓴 명언 등에서)
+          nextIndex = 0;
         }
-        // 최대 진행 인덱스 갱신 (이전 명언 뱃지 표시에 사용)
         setMaxIndex(prevMax => Math.max(prevMax, nextIndex));
         return nextIndex;
       });
-
-      // Fade in
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
     });
   };
 
   // ── goToPrevQuote ─────────────────────────────────────────
-  // 이전 명언으로 전환한다.
-  // 첫 번째 명언(index 0)에서는 동작하지 않는다.
   const goToPrevQuote = () => {
     if (quotes.length === 0 || currentIndex === 0) return;
-
-    // Fade out
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 150,
-      useNativeDriver: true,
-    }).start(() => {
+    animateTransition(1, () => {
       setCurrentIndex((prev) => (prev > 0 ? prev - 1 : 0));
-
-      // Fade in
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
     });
+  };
+
+  // ── PanGestureHandler (스와이프 제스처) ─────────────────────
+  // react-native-gesture-handler 기반: Drawer와 충돌 없이 작동
+  const lastDx = useRef(0);
+
+  const onGestureEvent = (event: PanGestureHandlerGestureEvent) => {
+    const dx = event.nativeEvent.translationX;
+    lastDx.current = dx;
+    // 카드가 손가락을 살짝 따라 이동 + 투명해짐
+    slideX.setValue(dx * 0.45);
+    fadeAnim.setValue(1 - Math.min(Math.abs(dx) / (width * 0.9), 0.25));
+  };
+
+  const onHandlerStateChange = (event: PanGestureHandlerGestureEvent) => {
+    if (event.nativeEvent.state === State.END || event.nativeEvent.state === State.CANCELLED) {
+      const dx = event.nativeEvent.translationX;
+      const vx = event.nativeEvent.velocityX;
+      const threshold = width * 0.20;
+      const velocityThreshold = 500;
+
+      // 이전 애니메이션이 진행 중이어도 즉시 멈추고 새 전환 시작
+      slideX.stopAnimation();
+      fadeAnim.stopAnimation();
+
+      if (dx < -threshold || vx < -velocityThreshold) {
+        // 왼쪽 스와이프 → 다음 명언
+        setCurrentIndex((prev) => {
+          const nextIndex = prev + 1 >= quotes.length ? 0 : prev + 1;
+          if (nextIndex >= quotes.length - 2) loadMoreQuotes();
+          setMaxIndex(prevMax => Math.max(prevMax, nextIndex));
+          slideX.setValue(width * 0.25);
+          fadeAnim.setValue(0);
+          Animated.parallel([
+            Animated.spring(slideX, { toValue: 0, useNativeDriver: true, tension: 70, friction: 12 }),
+            Animated.timing(fadeAnim, { toValue: 1, duration: 230, useNativeDriver: true }),
+          ]).start();
+          return nextIndex;
+        });
+      } else if (dx > threshold || vx > velocityThreshold) {
+        // 오른쪽 스와이프 → 이전 명언
+        setCurrentIndex((prev) => {
+          if (prev === 0) {
+            // 첫 명언이면 원위치 스프링
+            Animated.spring(slideX, { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }).start();
+            Animated.timing(fadeAnim, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+            return prev;
+          }
+          const nextIndex = prev - 1;
+          slideX.setValue(-width * 0.25);
+          fadeAnim.setValue(0);
+          Animated.parallel([
+            Animated.spring(slideX, { toValue: 0, useNativeDriver: true, tension: 70, friction: 12 }),
+            Animated.timing(fadeAnim, { toValue: 1, duration: 230, useNativeDriver: true }),
+          ]).start();
+          return nextIndex;
+        });
+      } else {
+        // 임계값 미달 → 스프링으로 원위치
+        Animated.spring(slideX, { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }).start();
+        Animated.timing(fadeAnim, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+      }
+    }
   };
 
   // ── 오버레이 권한 최초 요청 (Android) ────────────────────
@@ -501,67 +567,65 @@ export default function Index() {
           </Pressable>
         </Box>
 
-        {/* ── 명언 카드 영역 ──────────────────────────────────
-            화면 좌측 절반 탭 → 이전 명언 / 우측 절반 탭 → 다음 명언 */}
-        <Pressable 
-          style={{ flex: 1, width: '100%' }} 
-          onPress={(e) => {
-            const { pageX } = e.nativeEvent;
-            if (pageX < width / 2) {
-              goToPrevQuote(); // 왼쪽 탭: 이전 명언
-            } else {
-              goToNextQuote(); // 오른쪽 탭: 다음 명언
-            }
-          }}
+        {/* ── 명언 카드 영역 (스와이프 제스처)
+            PanGestureHandler: Drawer와 충돌 없이 좌우 스와이프 */}
+        <PanGestureHandler
+          onGestureEvent={onGestureEvent}
+          onHandlerStateChange={onHandlerStateChange}
+          activeOffsetX={[-12, 12]}
+          failOffsetY={[-8, 8]}
+          style={{ flex: 1, width: '100%' }}
         >
-          {/* 이전 명언 표시 뱃지
-              현재 인덱스가 최대 진행 인덱스보다 작을 때(뒤로 돌아온 상태) 표시 */}
-          {currentIndex < maxIndex && (
-            <Box
-              position="absolute"
-              top={70}
-              alignSelf="center"
-              bg="$sidebarBackground"
-              px="md"
-              py="xs"
-              borderRadius="hg"
-              zIndex={20}
-              pointerEvents="none"
-              borderWidth={1}
-              borderColor="$foreground"
-              opacity={0.6}
-            >
-              <Text fontSize={12} color="$foreground" fontWeight="bold">
-                이전에 본 명언
-              </Text>
-            </Box>
-          )}
-
-          {/* 현재 명언 카드 (페이드 + 스케일 애니메이션 적용) */}
-          <Box flex={1} width="100%" justifyContent="center" alignItems="center">
-            {quotes.length > 0 && quotes[currentIndex] && (
-              <Animated.View style={{ 
-                opacity: fadeAnim, 
-                transform: [{
-                  // 페이드 시 살짝 축소되는 효과 (0.96 → 1.0)
-                  scale: fadeAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.96, 1]
-                  })
-                }],
-                flex: 1, 
-                width: '100%' 
-              }}>
-                <QuoteItem
-                  key={`${quotes[currentIndex].id}-${currentIndex}`}
-                  {...quotes[currentIndex]}
-                  // 커스텀 명언 여부를 판별하여 QuoteItem에 전달 (편집 버튼 표시 등에 활용)
-                  isCustom={customQuotes.some(cq => cq.id === quotes[currentIndex].id)}
-                />
-              </Animated.View>
+          <Animated.View style={{ flex: 1, width: '100%' }}>
+            {/* 이전 명언 표시 뱃지 */}
+            {currentIndex < maxIndex && (
+              <Box
+                position="absolute"
+                top={70}
+                alignSelf="center"
+                bg="$sidebarBackground"
+                px="md"
+                py="xs"
+                borderRadius="hg"
+                zIndex={20}
+                pointerEvents="none"
+                borderWidth={1}
+                borderColor="$foreground"
+                opacity={0.6}
+              >
+                <Text fontSize={12} color="$foreground" fontWeight="bold">
+                  이전에 본 명언
+                </Text>
+              </Box>
             )}
-          </Box>
-        </Pressable>
+
+            {/* 현재 명언 카드 (슬라이드 + 페이드 + 스케일 애니메이션) */}
+            <Box flex={1} width="100%" justifyContent="center" alignItems="center">
+              {quotes.length > 0 && quotes[currentIndex] && (
+                <Animated.View style={{
+                  opacity: fadeAnim,
+                  transform: [
+                    { translateX: slideX },
+                    {
+                      scale: fadeAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.94, 1]
+                      })
+                    }
+                  ],
+                  flex: 1,
+                  width: '100%'
+                }}>
+                  <QuoteItem
+                    key={`${quotes[currentIndex].id}-${currentIndex}`}
+                    {...quotes[currentIndex]}
+                    isCustom={customQuotes.some(cq => cq.id === quotes[currentIndex].id)}
+                  />
+                </Animated.View>
+              )}
+            </Box>
+          </Animated.View>
+        </PanGestureHandler>
       </Box>
 
       {/* ── 배너 광고 영역 ────────────────────────────────────

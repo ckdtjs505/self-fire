@@ -1,3 +1,4 @@
+import React from "react";
 import { Box, Text } from "@/atom";
 import { quotes } from "@/data/quotes";
 import { useFavoriteQuoteStore } from "@/store/quote";
