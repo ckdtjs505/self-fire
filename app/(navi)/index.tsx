@@ -401,16 +401,16 @@ export default function Index() {
             </Box>
           </Pressable>
 
-          {/* 즐겨찾기 명언 필터 버튼
-              - 즐겨찾기가 없으면 안내 토스트를 표시하고 전환 불가
-              - 활성화 시 빨간색 배경으로 강조 */}
+          {/* 불씨 보관함 명언 필터 버튼
+              - 보관함이 비어있으면 안내 토스트를 표시하고 전환 불가
+              - 활성화 시 주황색 배경으로 강조 */}
           <Pressable
             onPress={() => {
               if (filterMode !== 'favorites' && favorites.length === 0) {
                 Toast.show({
                   type: 'info',
                   text1: '알림',
-                  text2: '아직 즐겨찾기한 명언이 없습니다. 먼저 명언에 하트를 눌러보세요!',
+                  text2: '아직 보관된 불씨가 없습니다. 마음에 와닿는 문장에 불씨를 지펴보세요! 🔥',
                 });
                 return;
               }
@@ -432,8 +432,8 @@ export default function Index() {
                 shadowOffset: { width: 0, height: 4 }
               }}
             >
-              <FeatherIcon
-                name={filterMode === 'favorites' ? "heart" : "heart"}
+              <Ionicon
+                name={filterMode === 'favorites' ? "flame" : "flame-outline"}
                 size={20}
                 color={filterMode === 'favorites' ? "white" : "$foreground"}
               />

@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { Box } from "@/atom";
-import FeatherIcon from "./icon";
+import FeatherIcon, { Ionicon } from "./icon";
 import ShareButton from "./share-button";
 import { Alert, Pressable } from "react-native";
 import { useFavoriteQuoteStore } from "@/store/quote";
@@ -78,26 +78,26 @@ const Quotebar: React.FC<Props> = (props) => {
         <FeatherIcon name="download" size={24} />
       </Pressable>
 
-      {/* 즐겨찾기 토글 버튼
-          - 즐겨찾기에 없으면: 빈 하트 → 클릭 시 추가
-          - 즐겨찾기에 있으면: 빨간 하트 → 클릭 시 제거 */}
+      {/* 불씨 보관함 (Spark Archive) 토글 버튼
+          - 보관함에 없으면: 빈 불씨 아이콘 → 클릭 시 추가
+          - 보관함에 있으면: 주황색 불씨 아이콘 → 클릭 시 제거 */}
       {!favorites.includes(id) ? (
         <Pressable
           onPress={() => {
             addFavorite(id);
-            Toast.show({ type: 'success', text1: '저장되었습니다' });
+            Toast.show({ type: 'success', text1: '불씨 보관함에 저장되었습니다 🔥' });
           }}
         >
-          <FeatherIcon name="heart" size={24} />
+          <Ionicon name="flame-outline" size={24} />
         </Pressable>
       ) : (
         <Pressable
           onPress={() => {
             removeFavorite(id);
-            Toast.show({ type: 'info', text1: '삭제되었습니다' });
+            Toast.show({ type: 'info', text1: '불씨가 꺼졌습니다' });
           }}
         >
-          <FeatherIcon color={"red"} name="heart" size={24} />
+          <Ionicon color={"red"} name="flame" size={24} />
         </Pressable>
       )}
     </Box>
