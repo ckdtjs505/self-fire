@@ -43,6 +43,9 @@ import Toast from "react-native-toast-message";
 // 예전 버전에서 쓰던 랜덤 50개 캐시 키 (정리용)
 const LEGACY_QUOTE_CACHE_KEY = "cached_recent_quotes";
 
+// 헤더 아래 카테고리 칩 영역의 높이 (헤더 높이 + 칩)
+const CATEGORY_AREA_HEIGHT = 100;
+
 type FilterMode = "all" | "mine" | "favorites";
 
 // 한 필터 모드에서 보고 있는 명언 목록과 위치
@@ -116,10 +119,14 @@ export default function Index() {
     return favorites.map((id) => byId.get(id)).filter((q): q is Quote => !!q);
   };
 
-  // '전체' 모드의 후보 명언: 기본 + 커스텀 중 고른 카테고리에 속하는 것
+  // '전체' 모드의 후보 명언: 기본 + 커스텀 중 고른 카테고리에 속하고, 불씨를 지피지(즐겨찾기) 않은 것
+  // 카테고리의 명언을 모두 즐겨찾기했다면 즐겨찾기한 명언도 그대로 보여준다.
   const getAllModeCandidates = (categoryId: CategoryId | null = currentCategoryId): Quote[] => {
     const all = [...defaultQuotes, ...customQuotes];
-    return categoryId ? all.filter((q) => matchesCategory(q, categoryId)) : all;
+    const inCategory = categoryId ? all.filter((q) => matchesCategory(q, categoryId)) : all;
+    const favoriteIds = new Set(favorites);
+    const notFavorited = inCategory.filter((q) => !favoriteIds.has(q.id));
+    return notFavorited.length > 0 ? notFavorited : inCategory;
   };
 
   // ── buildPool ─────────────────────────────────────────────
@@ -143,6 +150,7 @@ export default function Index() {
   //   - 수정된 나만의 명언은 새 내용으로, 삭제된 명언은 목록에서 뺀다.
   //   - 'favorites': 즐겨찾기 해제된 명언은 빼고, 새로 즐겨찾기한 명언은 뒤에 붙인다.
   //   - 'mine': 새로 작성한 명언을 뒤에 붙인다.
+  //   - 'all': 아직 보지 않은 명언 중 즐겨찾기된 것은 뺀다. (즐겨찾기를 늦게 불러온 경우 대비)
   const syncPager = (pager: QuotePager, mode: FilterMode): QuotePager => {
     const latestCustom = new Map(customQuotes.map((q) => [q.id, q]));
     const favoriteIds = new Set(favorites);
@@ -152,7 +160,10 @@ export default function Index() {
     let removedBeforeMax = 0;
     pager.quotes.forEach((quote, index) => {
       const latest = isCustomQuoteId(quote.id) ? latestCustom.get(quote.id) : quote;
-      const removed = !latest || (mode === "favorites" && !favoriteIds.has(quote.id));
+      const removed =
+        !latest ||
+        (mode === "favorites" && !favoriteIds.has(quote.id)) ||
+        (mode === "all" && index > pager.maxIndex && favoriteIds.has(quote.id));
       if (removed) {
         if (index < pager.currentIndex) removedBeforeCurrent++;
         if (index < pager.maxIndex) removedBeforeMax++;
@@ -300,7 +311,7 @@ export default function Index() {
 
   return (
     <SafeAreaView flex={1}>
-      <Box bg="$background" flex={1} justifyContent="center" alignItems="center">
+      <Box bg="$background" flex={1} alignItems="center">
         {/* 좌측 상단: 메뉴 + 연속 방문 스트릭 뱃지 */}
         <HeaderLeft>
           <StreakBadge streak={currentStreak} />
@@ -347,12 +358,13 @@ export default function Index() {
           </HeaderIconButton>
         </Box>
 
-        {/* 헤더 아래 가운데: 카테고리 선택 ('전체'·'내 명언' 모드에서만) */}
-        {!isFavoritesMode && (
-          <Box position="absolute" top={72} left={0} right={0} alignItems="center" zIndex={10}>
+        {/* 헤더 아래 가운데: 카테고리 선택 ('전체'·'내 명언' 모드에서만)
+            명언 카드와 겹치지 않도록 레이아웃 흐름 안에 두고, 모드가 바뀌어도 카드가 움직이지 않게 높이를 고정한다. */}
+        <Box width="100%" height={CATEGORY_AREA_HEIGHT} justifyContent="flex-end" alignItems="center" zIndex={10}>
+          {!isFavoritesMode && (
             <CategoryChip categoryId={isMineMode ? "mine" : currentCategoryId} onPress={() => categoryPickerRef.current?.open()} />
-          </Box>
-        )}
+          )}
+        </Box>
 
         {/* 명언 카드 (좌우 스와이프) */}
         <QuoteSwiper
