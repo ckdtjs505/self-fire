@@ -1,18 +1,16 @@
 // ─────────────────────────────────────────────────────────────
 // category-picker.tsx
-// 명언 카테고리를 고르는 바텀시트. 고르면 바로 닫힌다.
+// 명언 카테고리를 고르는 바텀시트. 고르면 바로 닫힌다. 높이는 내용에 맞춘다.
 // 카테고리 외에 '내 명언'(직접 작성한 명언)도 함께 고를 수 있다.
 // ─────────────────────────────────────────────────────────────
 
 import { Box, Text } from "@/atom";
 import { CATEGORIES, CategoryId } from "@/data/quote-categories";
 import { useThemeStore } from "@/store/theme";
-import { BottomSheetFlatList, BottomSheetView } from "@gorhom/bottom-sheet";
+import { BottomSheetView } from "@gorhom/bottom-sheet";
 import { forwardRef, useImperativeHandle, useRef } from "react";
 import { Pressable } from "react-native";
 import PickerSheet, { PickerSheetHandle } from "./picker-sheet";
-
-const SNAP_POINTS = ["60%"];
 
 // null: 전체, "mine": 내가 직접 작성한 명언
 export type CategorySelection = CategoryId | "mine" | null;
@@ -41,52 +39,46 @@ const CategoryPicker = forwardRef<PickerSheetHandle, Props>(function CategoryPic
   return (
     <PickerSheet
       ref={sheetRef}
-      snapPoints={SNAP_POINTS}
       backgroundStyle={{ backgroundColor: currentTheme.colors.$sidebarBackground }}
-      handleIndicatorStyle={{ backgroundColor: currentTheme.colors.$foreground }}
+      handleIndicatorStyle={{ backgroundColor: currentTheme.colors.$foreground, opacity: 0.2 }}
     >
-      <BottomSheetView style={{ paddingBottom: 24 }}>
-        <Box px="xl" pt="md">
-          <Text fontSize={16} fontWeight="bold">카테고리</Text>
-        </Box>
+      <BottomSheetView style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 40 }}>
+        <Text fontSize={18} fontWeight="bold">카테고리</Text>
+        <Text fontSize={13} mt="xs" style={{ opacity: 0.5 }}>
+          보고 싶은 명언의 주제를 골라 보세요
+        </Text>
 
-        <BottomSheetFlatList
-          data={ITEMS}
-          keyExtractor={(item) => item.id ?? "all"}
-          numColumns={3}
-          contentContainerStyle={{ paddingTop: 16, paddingHorizontal: 16, paddingBottom: 24 }}
-          columnWrapperStyle={{ marginBottom: 12, gap: 12 }}
-          renderItem={({ item }) => {
+        {/* 내용 길이에 맞춰 줄바꿈되는 칩 목록 */}
+        <Box flexDirection="row" flexWrap="wrap" mt="lg" style={{ gap: 8 }}>
+          {ITEMS.map((item) => {
             const isActive = selectedId === item.id;
             return (
               <Pressable
-                style={{ flex: 1 / 3 }}
+                key={item.id ?? "all"}
                 onPress={() => {
                   onSelect(item.id);
                   sheetRef.current?.close();
                 }}
               >
                 <Box
-                  borderRadius="lg"
+                  flexDirection="row"
+                  alignItems="center"
+                  borderRadius="hg"
                   backgroundColor={isActive ? "$primary" : "$background"}
                   style={{
-                    height: 72,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    shadowColor: isActive ? currentTheme.colors.$primary : "#000",
-                    shadowOpacity: 0.15,
-                    shadowRadius: 8,
-                    shadowOffset: { width: 0, height: 4 },
-                    elevation: 2,
+                    gap: 6,
+                    height: 40,
+                    paddingHorizontal: 14,
+                    borderWidth: 1,
+                    borderColor: isActive ? currentTheme.colors.$primary : currentTheme.colors.$foreground + "14",
                   }}
                 >
-                  <Text fontSize={20}>{item.emoji}</Text>
+                  <Text fontSize={15}>{item.emoji}</Text>
                   <Text
-                    mt="xs"
                     fontSize={14}
                     style={{
                       color: isActive ? "white" : currentTheme.colors.$foreground,
-                      fontWeight: isActive ? "bold" : "normal",
+                      fontWeight: isActive ? "bold" : "500",
                     }}
                   >
                     {item.label}
@@ -94,8 +86,8 @@ const CategoryPicker = forwardRef<PickerSheetHandle, Props>(function CategoryPic
                 </Box>
               </Pressable>
             );
-          }}
-        />
+          })}
+        </Box>
       </BottomSheetView>
     </PickerSheet>
   );
