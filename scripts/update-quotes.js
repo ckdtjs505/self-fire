@@ -3,6 +3,7 @@
 //   npm run update-quotes
 const fs = require("fs");
 const path = require("path");
+const { cleanQuotes } = require("../data/quote-cleaner");
 
 const API_URL = process.env.QUOTES_API_URL || "https://ckdtjst505.mycafe24.com/api/quote/get_all.php";
 const OUT = path.join(__dirname, "..", "data", "quotes.json");
@@ -15,7 +16,7 @@ const OUT = path.join(__dirname, "..", "data", "quotes.json");
   }
 
   const seen = new Set();
-  const quotes = json.data
+  const raw = json.data
     .map((item) => ({
       id: String(Number(item.id)),
       text: String(item.text ?? "").trim(),
@@ -23,9 +24,12 @@ const OUT = path.join(__dirname, "..", "data", "quotes.json");
     }))
     .filter((q) => q.text && !seen.has(q.id) && seen.add(q.id))
     .sort((a, b) => Number(a.id) - Number(b.id));
+  const quotes = cleanQuotes(raw);
 
   fs.writeFileSync(OUT, JSON.stringify(quotes));
-  console.log(`Wrote ${quotes.length} quotes to ${path.relative(process.cwd(), OUT)}`);
+  console.log(
+    `Wrote ${quotes.length} quotes (${raw.length - quotes.length} filtered) to ${path.relative(process.cwd(), OUT)}`
+  );
 })().catch((e) => {
   console.error(e);
   process.exit(1);

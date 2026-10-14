@@ -10,6 +10,7 @@
 import { Quote } from "@/models";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchQuotesSince } from "./quote-api";
+import { cleanQuotes } from "./quote-cleaner";
 import bundledQuotes from "./quotes.json";
 
 export const quotes: Quote[] = bundledQuotes as Quote[];
@@ -47,7 +48,7 @@ export const syncNewQuotes = async (): Promise<Quote[]> => {
     await AsyncStorage.setItem(LAST_SYNC_KEY, String(Date.now()));
     if (fetched.some((q) => Number(q.id) <= sinceId)) return [];
 
-    const fresh = fetched.filter((q) => q.text);
+    const fresh = cleanQuotes(fetched, [...quotes, ...synced].map((q) => q.text));
     if (fresh.length === 0) return [];
 
     await AsyncStorage.setItem(SYNCED_KEY, JSON.stringify([...synced, ...fresh]));
