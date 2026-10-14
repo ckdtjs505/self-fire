@@ -2,7 +2,9 @@ import { Box, Text } from "@/atom";
 import { Quote } from "@/models";
 import { toFontFamily, useFontStore } from "@/store/font-store";
 import { useThemeStore } from "@/store/theme";
+import { LINE_HEIGHT_RATIO, fitQuoteFontSize } from "@/utils/quote-font-size";
 import { useRef } from "react";
+import { useWindowDimensions } from "react-native";
 import ViewShot from "react-native-view-shot";
 import FeatherIcon from "./icon";
 import QuoteBar from "./quote-bar";
@@ -17,6 +19,9 @@ const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom }) => {
   const { colors } = useThemeStore().currentTheme;
   const { currentFontId, currentFontSize } = useFontStore();
   const fontFamily = toFontFamily(currentFontId);
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  // 긴 명언은 카드가 화면을 넘지 않도록 글자 크기를 줄인다.
+  const fontSize = fitQuoteFontSize(text.length, currentFontSize, screenWidth, screenHeight);
 
   return (
     <Box flex={1} justifyContent="center" alignItems="center" margin="lg">
@@ -65,10 +70,10 @@ const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom }) => {
         </Text>
 
         <Text
-          fontSize={currentFontSize}
+          fontSize={fontSize}
           fontWeight="heavy"
           textAlign="center"
-          lineHeight={currentFontSize * 1.6}
+          lineHeight={fontSize * LINE_HEIGHT_RATIO}
           style={{ letterSpacing: -0.5, zIndex: 2, fontFamily }}
         >
           {text}
