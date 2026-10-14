@@ -37,11 +37,19 @@ public class AutoLaunchService extends Service {
         Notification notification = builder
                 .setContentTitle("Self-Fire 실행 중")
                 .setContentText("잠금 해제 시 명언을 띄우기 위해 대기 중입니다.")
-                .setSmallIcon(getResources().getIdentifier("ic_launcher", "mipmap", getPackageName()))
+                .setSmallIcon(R.drawable.ic_stat_flame)
                 .setContentIntent(pendingIntent)
                 .build();
 
-        startForeground(1, notification);
+        // Android 12+는 백그라운드에서 포그라운드 서비스 시작을 막는다.
+        // (START_STICKY 재시작 등) 이 경우 크래시 대신 서비스를 종료하고, 다음에 앱을 열 때 다시 시작된다.
+        try {
+            startForeground(1, notification);
+        } catch (Exception e) {
+            Log.w(TAG, "startForeground not allowed, stopping service", e);
+            stopSelf();
+            return;
+        }
 
         unlockReceiver = new BroadcastReceiver() {
             @Override

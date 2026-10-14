@@ -1,15 +1,16 @@
 // ─────────────────────────────────────────────────────────────
 // _layout.tsx
 // 앱 전체의 루트 레이아웃.
-// - AdMob 초기화 / 포그라운드 알림 핸들러 설정
+// - AdMob 초기화 / 포그라운드 알림 핸들러 설정 / 오늘의 명언 알림 예약 갱신
 // - 구글 폰트 로드
 // - 강제 업데이트 체크
-// - 백그라운드 → 포그라운드 복귀 시 메인 화면으로 이동
+// - 백그라운드에 한동안 있다가 복귀 시 메인 화면으로 이동
 // - SafeAreaProvider / ThemeProvider / Toast 등 전역 래퍼 제공
 // ─────────────────────────────────────────────────────────────
 
 import StatusBar from "@/components/status-bar";
 import { toastConfig } from "@/components/simple-toast";
+import { refreshDailyNotifications } from "@/store/notification";
 import { useThemeStore } from "@/store/theme";
 import { GowunDodum_400Regular } from "@expo-google-fonts/gowun-dodum";
 import { Jua_400Regular } from "@expo-google-fonts/jua";
@@ -18,7 +19,7 @@ import { NanumPenScript_400Regular } from "@expo-google-fonts/nanum-pen-script";
 import { NotoSansKR_400Regular, NotoSansKR_700Bold, NotoSansKR_900Black, useFonts } from "@expo-google-fonts/noto-sans-kr";
 import { ThemeProvider } from "@shopify/restyle";
 import * as Notifications from "expo-notifications";
-import { router, Stack } from "expo-router";
+import { router, Stack, usePathname } from "expo-router";
 import { useEffect, useRef } from "react";
 import { AppState, Platform } from "react-native";
 import mobileAds from "react-native-google-mobile-ads";
@@ -63,9 +64,17 @@ const checkForcedUpdate = () => {
   }
 };
 
+// 이 시간 이상 백그라운드에 있다가 돌아오면 메인 화면으로 이동한다.
+const RETURN_TO_MAIN_AFTER_MS = 30 * 1000;
+// 작성 중인 내용이 사라지지 않도록 복귀 시에도 유지하는 화면
+const KEEP_SCREEN_PATHS = ["/AddQuoteScreen"];
+
 export default function RootLayout() {
   const { currentTheme } = useThemeStore();
-  const appState = useRef(AppState.currentState);
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
+  const backgroundedAt = useRef<number | null>(null);
 
   // 폰트 로드가 끝나기 전에는 아무것도 렌더링하지 않는다.
   const [fontsLoaded] = useFonts({
@@ -82,14 +91,21 @@ export default function RootLayout() {
 
   useEffect(() => {
     checkForcedUpdate();
+    refreshDailyNotifications();
 
-    // 다른 앱에서 돌아오면 항상 명언(메인) 화면을 보여준다.
+    // 한동안 다른 앱에 있다가 돌아오면 명언(메인) 화면을 보여준다.
+    // - iOS의 'inactive'(결제 시트, 권한 팝업 등)는 앱을 떠난 것으로 보지 않는다.
+    // - 권한 설정·링크 등 잠깐 다녀온 경우와 명언 작성 중에는 화면을 유지한다.
     const subscription = AppState.addEventListener("change", (nextAppState) => {
-      const wasInBackground = /inactive|background/.test(appState.current);
-      if (wasInBackground && nextAppState === "active") {
-        router.replace("/(navi)");
+      if (nextAppState === "background") {
+        backgroundedAt.current = Date.now();
+      } else if (nextAppState === "active" && backgroundedAt.current !== null) {
+        const awayMs = Date.now() - backgroundedAt.current;
+        backgroundedAt.current = null;
+        if (awayMs >= RETURN_TO_MAIN_AFTER_MS && !KEEP_SCREEN_PATHS.includes(pathnameRef.current)) {
+          router.replace("/(navi)");
+        }
       }
-      appState.current = nextAppState;
     });
 
     return () => subscription.remove();

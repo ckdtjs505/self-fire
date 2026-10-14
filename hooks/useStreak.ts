@@ -10,7 +10,7 @@ export const useStreak = () => {
 
   useEffect(() => {
     checkAndUpdateStreak();
-  }, []);
+  }, [checkAndUpdateStreak]);
 
   return { currentStreak, longestStreak };
 };

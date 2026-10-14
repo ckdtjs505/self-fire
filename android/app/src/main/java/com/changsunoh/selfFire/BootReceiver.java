@@ -14,7 +14,7 @@ public class BootReceiver extends BroadcastReceiver {
             "android.intent.action.MY_PACKAGE_REPLACED".equals(intent.getAction())) {
             
             SharedPreferences prefs = context.getSharedPreferences("AutoLaunchPrefs", Context.MODE_PRIVATE);
-            boolean enabled = prefs.getBoolean("enabled", true);
+            boolean enabled = prefs.getBoolean("enabled", false);
             
             if (!enabled) {
                 Log.d("BootReceiver", "AutoLaunch is disabled in settings. Skipping service start.");

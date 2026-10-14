@@ -22,7 +22,7 @@ const ThemeItem: React.FC<Props> = ({ item }) => {
     >
       <Pressable onPress={() => updateThemeId(item.id)}>
         <Text fontSize={20} textAlign="center" padding="xxl" style={{ color: colors.$foreground }}>
-          {item.id}
+          {item.name}
         </Text>
       </Pressable>
     </Box>

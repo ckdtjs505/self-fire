@@ -21,7 +21,7 @@ type Props = Pick<BottomSheetModalProps, "snapPoints" | "backgroundStyle" | "han
   children: React.ReactNode;
 };
 
-const PickerSheet = forwardRef<PickerSheetHandle, Props>(({ children, ...sheetProps }, ref) => {
+const PickerSheet = forwardRef<PickerSheetHandle, Props>(function PickerSheet({ children, ...sheetProps }, ref) {
   const modalRef = useRef<BottomSheetModal>(null);
 
   useImperativeHandle(ref, () => ({

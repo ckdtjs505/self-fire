@@ -3,7 +3,7 @@
 // 앱 설정 화면.
 //   - 알림: 오늘의 명언 알림 ON/OFF, 알림 시간(시/분) 조정
 //   - 서비스: 나만의 명언 관리, 잠금 해제 시 자동 실행(Android),
-//             자주 묻는 질문, 광고 제거, 응원의 리뷰
+//             자주 묻는 질문, 광고 제거·구매 복원, 응원의 리뷰
 //   - 앱 정보: 개인정보 처리방침, 서비스 이용약관, 버전 정보
 // ─────────────────────────────────────────────────────────────
 
@@ -14,9 +14,12 @@ import { useRemoveAdsPurchase } from "@/hooks/useRemoveAdsPurchase";
 import { useNotificationStore } from "@/store/notification";
 import * as Application from "expo-application";
 import { useRouter } from "expo-router";
-import { Linking, ScrollView } from "react-native";
+import { Linking, Pressable, ScrollView } from "react-native";
 
 const FAQ_URL = "https://workshop-code.tistory.com/107";
+const PACKAGE_NAME = Application.applicationId || "com.changsunoh.selfFire";
+const STORE_REVIEW_URL = `market://details?id=${PACKAGE_NAME}`;
+const STORE_WEB_URL = `https://play.google.com/store/apps/details?id=${PACKAGE_NAME}`;
 const MINUTE_STEP = 5;
 
 const APP_VERSION = Application.nativeApplicationVersion || "1.0.0";
@@ -31,6 +34,9 @@ const stepWithWrap = (value: number, step: number, max: number) => {
 
 const pad2 = (value: number) => String(value).padStart(2, "0");
 
+// Play 스토어 앱으로 리뷰 페이지를 열고, 실패하면 웹 페이지로 연다.
+const openStoreReview = () => Linking.openURL(STORE_REVIEW_URL).catch(() => Linking.openURL(STORE_WEB_URL));
+
 // ‹ 값 › 형태의 시간 조절 버튼
 const TimeStepper: React.FC<{ value: number; onDecrease: () => void; onIncrease: () => void }> = ({
   value,
@@ -38,22 +44,26 @@ const TimeStepper: React.FC<{ value: number; onDecrease: () => void; onIncrease:
   onIncrease,
 }) => (
   <Box flexDirection="row" alignItems="center" style={{ gap: 6 }}>
-    <Box bg="$background" borderRadius="md" px="s" py="xs" onTouchEnd={onDecrease}>
-      <Text fontSize={16}>‹</Text>
-    </Box>
+    <Pressable onPress={onDecrease} hitSlop={6}>
+      <Box bg="$background" borderRadius="md" px="s" py="xs">
+        <Text fontSize={16}>‹</Text>
+      </Box>
+    </Pressable>
     <Text fontSize={15} fontWeight="bold" style={{ minWidth: 24, textAlign: "center" }}>
       {pad2(value)}
     </Text>
-    <Box bg="$background" borderRadius="md" px="s" py="xs" onTouchEnd={onIncrease}>
-      <Text fontSize={16}>›</Text>
-    </Box>
+    <Pressable onPress={onIncrease} hitSlop={6}>
+      <Box bg="$background" borderRadius="md" px="s" py="xs">
+        <Text fontSize={16}>›</Text>
+      </Box>
+    </Pressable>
   </Box>
 );
 
 export default function SettingScreen() {
   const router = useRouter();
   const autoLaunch = useAutoLaunch();
-  const { isAdFree, purchaseRemoveAds } = useRemoveAdsPurchase();
+  const { isAdFree, price, purchaseRemoveAds, restorePurchases } = useRemoveAdsPurchase();
   const {
     isEnabled: isNotificationEnabled,
     notificationHour: hour,
@@ -135,15 +145,21 @@ export default function SettingScreen() {
                   </Text>
                 ) : (
                   <Text fontSize={14} style={{ opacity: 0.6 }}>
-                    ₩990
+                    {price}
                   </Text>
                 )
               }
             />
             <SettingDivider />
 
-            {/* TODO: 스토어 리뷰 페이지 연결 */}
-            <SettingItem icon="star" title="응원의 리뷰 쓰기" onPress={() => console.log("click")} />
+            {!isAdFree && (
+              <>
+                <SettingItem icon="refresh-cw" title="구매 복원" onPress={restorePurchases} />
+                <SettingDivider />
+              </>
+            )}
+
+            <SettingItem icon="star" title="응원의 리뷰 쓰기" onPress={openStoreReview} />
           </SettingSection>
 
           <SettingSection title="앱 정보">

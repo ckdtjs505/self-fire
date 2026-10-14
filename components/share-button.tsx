@@ -17,7 +17,7 @@ const ShareButton: React.FC<Props> = ({ text, viewShotRef }) => {
         await Share.share({ url: uri, message: text });
         return;
       }
-    } catch (e) {
+    } catch {
       // 아래에서 텍스트 공유로 대체
     }
     await Share.share({ message: text });

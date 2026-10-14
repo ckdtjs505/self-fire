@@ -76,11 +76,14 @@ export const IgniteScreen: React.FC<Props> = ({ onIgnited }) => {
     startIdlePulse();
     startFlicker();
     startParticles();
+    const particleAnims = particleRefs.current;
     return () => {
       idleLoopRef.current?.stop();
       flickerRef.current?.stop();
-      particleRefs.current.forEach(a => a.stop());
+      particleAnims.forEach(a => a.stop());
     };
+    // 마운트 시 한 번만 루프를 시작한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Idle Pulse: 은은한 숨쉬기 ──────────────────────────────
