@@ -38,6 +38,19 @@ SelfFire는 사용자의 동기부여를 돕는 명언 및 목표 달성(스트�
    - **Expo Go** 앱을 통한 실제 기기 테스트
    - **Android Emulator** 실행 (`a` 입력)
 
+## 🏗 아키텍처
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/architecture-dark.png">
+  <img src="docs/architecture.png" alt="SelfFire 앱 아키텍처: 명언 서버 → quotes.json 번들·명언 로더 → Expo Router 화면 ↔ Zustand 스토어 → AsyncStorage·푸시 알림, AutoLaunchService가 잠금 해제 시 앱 실행">
+</picture>
+
+* **명언 데이터**: 빌드 시 `npm run update-quotes`로 서버의 전체 명언을 `data/quotes.json`에 번들하고, 실행 중에는 `since_id` 이후의 새 명언만 동기화합니다.
+* **상태 관리**: 화면은 Zustand 스토어를 읽고 쓰며, 스토어는 `persist`로 AsyncStorage에 저장되고 알림 스토어가 푸시 알림을 예약합니다.
+* **잠금 해제 자동 실행 (Android)**: `plugins/withAutoLaunch.js`가 네이티브 `AutoLaunchService`를 생성해 잠금 해제 시 앱을 띄웁니다.
+
+> 다이어그램 원본은 [`docs/architecture.html`](docs/architecture.html)입니다.
+
 ## 📁 주요 프로젝트 구조
 
 ```text

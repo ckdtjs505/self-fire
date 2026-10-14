@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SelfFire Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Serif:ital@0;1&family=Noto+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:#f5f5f5; --ink:#2d3142; --muted:#4f5d75; --soft:#5a6580;
+    --accent:#bf4520; --accent-tint:rgba(191,69,32,0.08); --link:#2e5aa8;
+    --node:#ffffff; --store:rgba(45,49,66,0.05); --ext:rgba(45,49,66,0.03); --ext-stroke:rgba(45,49,66,0.30);
+    --zone:rgba(45,49,66,0.025); --zone-stroke:rgba(45,49,66,0.14); --rule:rgba(45,49,66,0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#2d3142; --ink:#f5f5f5; --muted:#bfc0c0; --soft:#949eb2;
+      --accent:#f08a59; --accent-tint:rgba(240,138,89,0.10); --link:#739fdf;
+      --node:#393e53; --store:rgba(245,245,245,0.05); --ext:rgba(245,245,245,0.03); --ext-stroke:rgba(245,245,245,0.30);
+      --zone:rgba(245,245,245,0.025); --zone-stroke:rgba(245,245,245,0.14); --rule:rgba(245,245,245,0.10);
+    }
+  }
+  html, body { margin:0; background:var(--paper); color:var(--ink); }
+  .frame { max-width:1200px; margin:0 auto; padding:32px 16px; }
+  .eyebrow { font-family:'Geist Mono',ui-monospace,monospace; font-size:0.66rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); margin:0 0 6px; }
+  h1 { font-family:'Instrument Serif','Noto Serif','Noto Serif KR',serif; font-weight:400; font-size:clamp(1.5rem, 2.4vw + 0.75rem, 2rem); letter-spacing:-0.02em; margin:0 0 20px; }
+  .diagram-container { width:100%; overflow-x:auto; }
+  svg { width:100%; min-width:960px; display:block; }
+  .nm { font-family:'Geist','Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif; font-size:12px; font-weight:600; fill:var(--ink); }
+  .sub { font-family:'Geist Mono',ui-monospace,monospace; font-size:9px; fill:var(--muted); }
+  .tag { font-family:'Geist Mono',ui-monospace,monospace; font-size:7px; letter-spacing:0.08em; }
+  .al { font-family:'Geist Mono',ui-monospace,monospace; font-size:8px; letter-spacing:0.06em; fill:var(--soft); }
+  .zl { font-family:'Geist Mono',ui-monospace,monospace; font-size:8px; font-weight:500; letter-spacing:0.18em; fill:var(--muted); }
+  .lg { font-family:'Geist','Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif; font-size:12px; font-weight:500; fill:var(--muted); }
+  @media print { .diagram-container { overflow-x:visible; } svg { min-width:0; } }
+</style>
+</head>
+<body>
+<div class="frame">
+  <p class="eyebrow">Architecture · Diagram</p>
+  <h1>SelfFire 앱 아키텍처</h1>
+  <div class="diagram-container">
+  <svg viewBox="0 48 960 492" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="selffire-arch-title selffire-arch-desc">
+    <title id="selffire-arch-title">SelfFire 앱 아키텍처</title>
+    <desc id="selffire-arch-desc">명언 서버에서 빌드 시 번들한 quotes.json과 런타임 동기화로 명언을 불러와 Expo Router 화면에 보여 주고, Zustand 스토어가 AsyncStorage에 상태를 저장하며 알림 예약, 잠금 해제 자동 실행, 광고·인앱결제와 연결되는 구조.</desc>
+    <defs>
+      <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--muted)"/></marker>
+      <marker id="arrow-both" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto-start-reverse"><polygon points="0 0, 8 3, 0 6" fill="var(--muted)"/></marker>
+      <marker id="arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--accent)"/></marker>
+      <marker id="arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="var(--link)"/></marker>
+    </defs>
+    <rect width="100%" height="100%" fill="var(--paper)"/>
+
+    <!-- zones -->
+    <rect x="24" y="64" width="192" height="400" rx="8" fill="var(--zone)" stroke="var(--zone-stroke)" stroke-width="1"/>
+    <text class="zl" x="36" y="82">EXTERNAL</text>
+    <rect x="248" y="64" width="440" height="400" rx="8" fill="var(--zone)" stroke="var(--zone-stroke)" stroke-width="1"/>
+    <text class="zl" x="260" y="82">APP · REACT NATIVE / EXPO</text>
+    <rect x="720" y="64" width="216" height="400" rx="8" fill="var(--zone)" stroke="var(--zone-stroke)" stroke-width="1"/>
+    <text class="zl" x="732" y="82">DEVICE · NATIVE</text>
+
+    <!-- arrows -->
+    <!-- API -> loader (runtime sync) -->
+    <path d="M200,128 H268" fill="none" stroke="var(--link)" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+    <rect x="216" y="108" width="36" height="12" rx="2" fill="var(--paper)"/>
+    <text class="al" x="234" y="117" text-anchor="middle">SYNC</text>
+    <!-- API -> quotes.json (build) -->
+    <path d="M120,160 V256 Q120,264 128,264 H268" fill="none" stroke="var(--link)" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-link)"/>
+    <rect x="178" y="244" width="40" height="12" rx="2" fill="var(--paper)"/>
+    <text class="al" x="198" y="253" text-anchor="middle">BUILD</text>
+    <!-- quotes.json -> loader -->
+    <path d="M356,232 V160" fill="none" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#arrow)"/>
+    <rect x="362" y="190" width="44" height="12" rx="2" fill="var(--paper)"/>
+    <text class="al" x="366" y="199">IMPORT</text>
+    <!-- loader -> screens (headline) -->
+    <path d="M444,128 H492" fill="none" stroke="var(--accent)" stroke-width="1.2" marker-end="url(#arrow-accent)"/>
+    <!-- screens <-> stores -->
+    <path d="M580,160 V232" fill="none" stroke="var(--muted)" stroke-width="1.2" marker-start="url(#arrow-both)" marker-end="url(#arrow-both)"/>
+    <rect x="588" y="190" width="72" height="12" rx="2" fill="var(--paper)"/>
+    <text class="al" x="592" y="199">READ · WRITE</text>
+    <!-- auto launch -> screens -->
+    <path d="M740,128 H668" fill="none" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#arrow)"/>
+    <rect x="672" y="108" width="64" height="12" rx="2" fill="var(--paper)"/>
+    <text class="al" x="704" y="117" text-anchor="middle">ON UNLOCK</text>
+    <!-- stores -> notifications -->
+    <path d="M668,264 H740" fill="none" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#arrow)"/>
+    <rect x="676" y="244" width="56" height="12" rx="2" fill="var(--paper)"/>
+    <text class="al" x="704" y="253" text-anchor="middle">SCHEDULE</text>
+    <!-- stores -> AsyncStorage -->
+    <path d="M612,296 V392 Q612,400 620,400 H740" fill="none" stroke="var(--muted)" stroke-width="1.2" marker-end="url(#arrow)"/>
+    <rect x="654" y="380" width="52" height="12" rx="2" fill="var(--paper)"/>
+    <text class="al" x="680" y="389" text-anchor="middle">PERSIST</text>
+    <!-- AdMob / IAP -> stores -->
+    <path d="M200,416 H540 Q548,416 548,408 V296" fill="none" stroke="var(--link)" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+    <rect x="338" y="396" width="64" height="12" rx="2" fill="var(--paper)"/>
+    <text class="al" x="370" y="405" text-anchor="middle">IAP · ADS</text>
+
+    <!-- nodes -->
+    <!-- Quote API -->
+    <rect x="40" y="96" width="160" height="64" rx="6" fill="var(--paper)"/>
+    <rect x="40" y="96" width="160" height="64" rx="6" fill="var(--ext)" stroke="var(--ext-stroke)" stroke-width="1"/>
+    <rect x="48" y="102" width="28" height="12" rx="2" fill="none" stroke="var(--ext-stroke)" stroke-width="0.8"/>
+    <text class="tag" x="62" y="111" text-anchor="middle" fill="var(--muted)">API</text>
+    <text class="nm" x="120" y="134" text-anchor="middle">명언 서버</text>
+    <text class="sub" x="120" y="150" text-anchor="middle">cafe24 · get_all.php</text>
+
+    <!-- AdMob / IAP -->
+    <rect x="40" y="384" width="160" height="64" rx="6" fill="var(--paper)"/>
+    <rect x="40" y="384" width="160" height="64" rx="6" fill="var(--ext)" stroke="var(--ext-stroke)" stroke-width="1"/>
+    <rect x="48" y="390" width="28" height="12" rx="2" fill="none" stroke="var(--ext-stroke)" stroke-width="0.8"/>
+    <text class="tag" x="62" y="399" text-anchor="middle" fill="var(--muted)">EXT</text>
+    <text class="nm" x="120" y="422" text-anchor="middle">AdMob · 인앱결제</text>
+    <text class="sub" x="120" y="438" text-anchor="middle">banner · remove_ads</text>
+
+    <!-- quote loader -->
+    <rect x="268" y="96" width="176" height="64" rx="6" fill="var(--paper)"/>
+    <rect x="268" y="96" width="176" height="64" rx="6" fill="var(--node)" stroke="var(--ink)" stroke-width="1"/>
+    <rect x="276" y="102" width="28" height="12" rx="2" fill="none" stroke="var(--ink)" stroke-opacity="0.4" stroke-width="0.8"/>
+    <text class="tag" x="290" y="111" text-anchor="middle" fill="var(--muted)">MOD</text>
+    <text class="nm" x="356" y="134" text-anchor="middle">명언 로더</text>
+    <text class="sub" x="356" y="150" text-anchor="middle">data/quotes.tsx · since_id</text>
+
+    <!-- quotes.json -->
+    <rect x="268" y="232" width="176" height="64" rx="6" fill="var(--paper)"/>
+    <rect x="268" y="232" width="176" height="64" rx="6" fill="var(--store)" stroke="var(--muted)" stroke-width="1"/>
+    <rect x="276" y="238" width="32" height="12" rx="2" fill="none" stroke="var(--muted)" stroke-opacity="0.4" stroke-width="0.8"/>
+    <text class="tag" x="292" y="247" text-anchor="middle" fill="var(--muted)">DATA</text>
+    <text class="nm" x="356" y="270" text-anchor="middle">quotes.json 번들</text>
+    <text class="sub" x="356" y="286" text-anchor="middle">npm run update-quotes</text>
+
+    <!-- screens (focal) -->
+    <rect x="492" y="96" width="176" height="64" rx="6" fill="var(--paper)"/>
+    <rect x="492" y="96" width="176" height="64" rx="6" fill="var(--accent-tint)" stroke="var(--accent)" stroke-width="1.2"/>
+    <rect x="500" y="102" width="28" height="12" rx="2" fill="none" stroke="var(--accent)" stroke-opacity="0.5" stroke-width="0.8"/>
+    <text class="tag" x="514" y="111" text-anchor="middle" fill="var(--accent)">UI</text>
+    <text class="nm" x="580" y="134" text-anchor="middle">화면 · Expo Router</text>
+    <text class="sub" x="580" y="150" text-anchor="middle">app/ · components/</text>
+
+    <!-- zustand -->
+    <rect x="492" y="232" width="176" height="64" rx="6" fill="var(--paper)"/>
+    <rect x="492" y="232" width="176" height="64" rx="6" fill="var(--node)" stroke="var(--ink)" stroke-width="1"/>
+    <rect x="500" y="238" width="36" height="12" rx="2" fill="none" stroke="var(--ink)" stroke-opacity="0.4" stroke-width="0.8"/>
+    <text class="tag" x="518" y="247" text-anchor="middle" fill="var(--muted)">STATE</text>
+    <text class="nm" x="580" y="270" text-anchor="middle">Zustand 스토어</text>
+    <text class="sub" x="580" y="286" text-anchor="middle">quote·streak·theme·ad…</text>
+
+    <!-- auto launch -->
+    <rect x="740" y="96" width="176" height="64" rx="6" fill="var(--paper)"/>
+    <rect x="740" y="96" width="176" height="64" rx="6" fill="var(--node)" stroke="var(--ink)" stroke-width="1"/>
+    <rect x="748" y="102" width="40" height="12" rx="2" fill="none" stroke="var(--ink)" stroke-opacity="0.4" stroke-width="0.8"/>
+    <text class="tag" x="768" y="111" text-anchor="middle" fill="var(--muted)">ANDROID</text>
+    <text class="nm" x="828" y="134" text-anchor="middle">AutoLaunchService</text>
+    <text class="sub" x="828" y="150" text-anchor="middle">plugins/withAutoLaunch</text>
+
+    <!-- notifications -->
+    <rect x="740" y="232" width="176" height="64" rx="6" fill="var(--paper)"/>
+    <rect x="740" y="232" width="176" height="64" rx="6" fill="var(--ext)" stroke="var(--ext-stroke)" stroke-width="1"/>
+    <rect x="748" y="238" width="28" height="12" rx="2" fill="none" stroke="var(--ext-stroke)" stroke-width="0.8"/>
+    <text class="tag" x="762" y="247" text-anchor="middle" fill="var(--muted)">OS</text>
+    <text class="nm" x="828" y="270" text-anchor="middle">푸시 알림</text>
+    <text class="sub" x="828" y="286" text-anchor="middle">expo-notifications</text>
+
+    <!-- async storage -->
+    <rect x="740" y="368" width="176" height="64" rx="6" fill="var(--paper)"/>
+    <rect x="740" y="368" width="176" height="64" rx="6" fill="var(--store)" stroke="var(--muted)" stroke-width="1"/>
+    <rect x="748" y="374" width="36" height="12" rx="2" fill="none" stroke="var(--muted)" stroke-opacity="0.4" stroke-width="0.8"/>
+    <text class="tag" x="766" y="383" text-anchor="middle" fill="var(--muted)">STORE</text>
+    <text class="nm" x="828" y="406" text-anchor="middle">AsyncStorage</text>
+    <text class="sub" x="828" y="422" text-anchor="middle">zustand persist</text>
+
+    <!-- legend -->
+    <line x1="30" y1="492" x2="930" y2="492" stroke="var(--rule)" stroke-width="0.8"/>
+    <text class="zl" x="30" y="512">LEGEND</text>
+    <rect x="104" y="502" width="20" height="14" rx="3" fill="var(--accent-tint)" stroke="var(--accent)" stroke-width="1"/>
+    <text class="lg" x="132" y="514">핵심 화면</text>
+    <rect x="236" y="502" width="20" height="14" rx="3" fill="var(--node)" stroke="var(--ink)" stroke-width="1"/>
+    <text class="lg" x="264" y="514">앱 모듈</text>
+    <rect x="356" y="502" width="20" height="14" rx="3" fill="var(--store)" stroke="var(--muted)" stroke-width="1"/>
+    <text class="lg" x="384" y="514">데이터 저장</text>
+    <rect x="488" y="502" width="20" height="14" rx="3" fill="var(--ext)" stroke="var(--ext-stroke)" stroke-width="1"/>
+    <text class="lg" x="516" y="514">외부·OS 서비스</text>
+    <line x1="640" y1="509" x2="668" y2="509" stroke="var(--link)" stroke-width="1.2" marker-end="url(#arrow-link)"/>
+    <text class="lg" x="676" y="514">네트워크</text>
+    <line x1="756" y1="509" x2="784" y2="509" stroke="var(--link)" stroke-width="1.2" stroke-dasharray="5,4"/>
+    <text class="lg" x="792" y="514">빌드 시점</text>
+  </svg>
+  </div>
+</div>
+</body>
+</html>
