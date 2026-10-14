@@ -7,7 +7,7 @@ import { Quote } from "@/models";
 
 const QUOTE_API_URL = "https://ckdtjst505.mycafe24.com/api/quote/get_all.php";
 
-// 한 번에 가져오는 명언 개수
+// 한 번에 화면 목록에 추가하는 명언 개수
 export const QUOTE_BATCH_SIZE = 50;
 
 type QuoteApiItem = {
@@ -22,11 +22,12 @@ type QuoteApiResponse = {
 };
 
 /**
- * 서버에서 무작위 명언을 limit개 가져온다.
+ * id가 sinceId보다 큰 명언을 id 순으로 최대 limit개 가져온다.
  * 응답 형식이 올바르지 않으면 에러를 던진다.
+ * 서버가 since_id를 지원하지 않으면 이전 id가 섞여 올 수 있으므로 호출부에서 확인한다.
  */
-export const fetchRandomQuotes = async (limit = QUOTE_BATCH_SIZE): Promise<Quote[]> => {
-  const response = await fetch(`${QUOTE_API_URL}?random=true&limit=${limit}`);
+export const fetchQuotesSince = async (sinceId: number, limit: number): Promise<Quote[]> => {
+  const response = await fetch(`${QUOTE_API_URL}?since_id=${sinceId}&limit=${limit}`);
   const json: QuoteApiResponse = await response.json();
 
   if (json?.status !== "success" || !Array.isArray(json.data)) {
@@ -35,7 +36,7 @@ export const fetchRandomQuotes = async (limit = QUOTE_BATCH_SIZE): Promise<Quote
 
   return json.data.map((item) => ({
     id: String(item.id),
-    text: item.text,
-    author: item.author,
+    text: String(item.text ?? "").trim(),
+    author: String(item.author ?? "").trim(),
   }));
 };
