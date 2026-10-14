@@ -1,26 +1,21 @@
 import { createTheme } from "@shopify/restyle";
-import light from "./light";
+import light, { makeColors } from "./light";
 
-const palette = {
-  bg00: "#083344", // cyan-950
-  bg10: "#164E63", // cyan-900
-  bg20: "#155E75", // cyan-800
-  fg100: "#CFFAFE", // cyan-100
-  fg900: "#ECFEFF", // cyan-50
-  primary: "#06B6D4", // cyan-500
-};
-
+// 바다 — 깊은 밤바다의 남색
 const theme = createTheme({
   ...light,
-  colors: {
-    ...light.colors,
-    $primary: palette.primary,
-    $background: palette.bg00,
-    $foreground: palette.fg900,
-    $sidebarBackground: palette.bg10,
-    $sidebarForeground: palette.fg100,
-    $headerBackground: palette.bg00,
-  },
+  colors: makeColors({
+    background: "#0B1822",
+    surface: "#12232F",
+    surfaceMuted: "#1A2F3D",
+    foreground: "#E7F1F6",
+    muted: "#8EA6B4",
+    border: "rgba(231,241,246,0.08)",
+    primary: "#4CB6DD",
+    primarySoft: "rgba(76,182,221,0.14)",
+    onPrimary: "#06141C",
+    flame: "#FF7A45",
+  }),
   barStyle: "light",
 });
 

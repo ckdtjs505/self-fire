@@ -8,11 +8,18 @@ import { Pressable } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FeatherIcon, { IconNames, Ionicon } from "./icon";
 
-// 섹션 제목 (MENU, SPARK ARCHIVE)
-const SectionTitle: React.FC<{ children: string }> = ({ children }) => (
-  <Text fontSize={12} fontWeight="bold" color="$sidebarForeground" opacity={0.4} marginBottom="s" marginLeft="s">
-    {children}
-  </Text>
+// 섹션 제목 (메뉴, 불씨 보관함)
+const SectionTitle: React.FC<{ children: string; count?: number }> = ({ children, count }) => (
+  <Box flexDirection="row" alignItems="center" marginBottom="s" marginLeft="xs" style={{ gap: 6 }}>
+    <Text variant="overline">{children}</Text>
+    {count !== undefined && count > 0 && (
+      <Box bg="$primarySoft" borderRadius="pill" px="s" style={{ paddingVertical: 1 }}>
+        <Text color="$primary" fontSize={11} fontWeight="800">
+          {count}
+        </Text>
+      </Box>
+    )}
+  </Box>
 );
 
 type MenuItemProps = {
@@ -22,20 +29,16 @@ type MenuItemProps = {
 };
 
 const MenuItem: React.FC<MenuItemProps> = ({ icon, title, onPress }) => (
-  <Pressable
-    onPress={onPress}
-    style={({ pressed }) => ({
-      flexDirection: "row",
-      alignItems: "center",
-      padding: 12,
-      borderRadius: 8,
-      backgroundColor: pressed ? "rgba(255,255,255,0.1)" : undefined,
-    })}
-  >
-    <FeatherIcon name={icon} size={20} color="$sidebarForeground" />
-    <Text marginLeft="md" color="$sidebarForeground" fontSize={16} fontWeight="600">
-      {title}
-    </Text>
+  <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+    <Box flexDirection="row" alignItems="center" paddingVertical="s" paddingHorizontal="md" style={{ gap: 12 }}>
+      <Box width={34} height={34} borderRadius="sm" bg="$surfaceMuted" justifyContent="center" alignItems="center">
+        <FeatherIcon name={icon} size={17} />
+      </Box>
+      <Text variant="body" style={{ flex: 1 }}>
+        {title}
+      </Text>
+      <FeatherIcon name="chevron-right" size={18} color="$muted" />
+    </Box>
   </Pressable>
 );
 
@@ -48,24 +51,29 @@ const FavoriteQuoteCard: React.FC<{ quote: Quote; onRemove: () => void }> = ({ q
         { text: "취소", style: "cancel" },
       ])
     }
+    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
   >
     <Box
+      bg="$surface"
       borderWidth={1}
-      borderColor="$sidebarForeground"
-      borderRadius="sm"
+      borderColor="$border"
+      borderRadius="md"
       padding="lg"
-      marginBottom="md"
-      backgroundColor="$sidebarBackground"
-      style={{ opacity: 0.9 }}
+      marginBottom="s"
+      flexDirection="row"
+      style={{ gap: 12 }}
     >
-      <Text fontSize={14} lineHeight={22} color="$sidebarForeground" fontWeight="500">
-        {`"${quote.text}"`}
-      </Text>
-      {!!quote.author && (
-        <Text fontSize={12} color="$sidebarForeground" opacity={0.6} marginTop="xs" textAlign="right">
-          - {quote.author}
+      <Box width={3} borderRadius="pill" bg="$flame" style={{ opacity: 0.8 }} />
+      <Box flex={1}>
+        <Text fontSize={14} lineHeight={22} fontWeight="500">
+          {quote.text}
         </Text>
-      )}
+        {!!quote.author && (
+          <Text variant="caption" fontSize={12} marginTop="s">
+            {quote.author}
+          </Text>
+        )}
+      </Box>
     </Box>
   </Pressable>
 );
@@ -89,46 +97,44 @@ const Sidebar = ({ navigation }: DrawerContentComponentProps) => {
   };
 
   return (
-    <Box flex={1} backgroundColor="$sidebarBackground" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+    <Box flex={1} backgroundColor="$background" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
       {/* ── 앱 로고 / 이름 ── */}
-      <Box alignItems="center" paddingTop="xl" paddingBottom="lg">
-        <Image
-          source={require("@/assets/images/fire-icon.png")}
-          style={{ width: 64, height: 64, borderRadius: 16, marginBottom: 12 }}
-        />
-        <Text fontSize={20} fontWeight="bold" color="$sidebarForeground">
-          SELF FIRE
-        </Text>
-        <Text fontSize={13} color="$sidebarForeground" opacity={0.6} marginTop="xs">
-          나를 타오르게 하는 문장들
-        </Text>
+      <Box flexDirection="row" alignItems="center" paddingHorizontal="xl" paddingTop="xl" paddingBottom="xl" style={{ gap: 14 }}>
+        <Image source={require("@/assets/images/fire-icon.png")} style={{ width: 52, height: 52, borderRadius: 16 }} />
+        <Box>
+          <Text fontSize={19} fontWeight="900" style={{ letterSpacing: 1.5 }}>
+            SELF FIRE
+          </Text>
+          <Text variant="caption" marginTop="xs">
+            나를 타오르게 하는 문장들
+          </Text>
+        </Box>
       </Box>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}>
         {/* ── 메뉴 ── */}
         <Box marginBottom="xl">
-          <SectionTitle>MENU</SectionTitle>
-          <Box bg="$sidebarBackground" borderRadius="md" overflow="hidden" style={{ gap: 4 }}>
+          <SectionTitle>메뉴</SectionTitle>
+          <Box bg="$surface" borderWidth={1} borderColor="$border" borderRadius="md" paddingVertical="xs">
             <MenuItem icon="edit-3" title="나만의 명언" onPress={() => navigateTo("/MyQuotesScreen")} />
             <MenuItem icon="settings" title="설정" onPress={() => navigateTo("/SettingScreen")} />
           </Box>
         </Box>
 
         {/* ── 불씨 보관함 ── */}
-        <Box marginBottom="s">
-          <SectionTitle>SPARK ARCHIVE</SectionTitle>
-        </Box>
+        <SectionTitle count={favoriteQuotes.length}>불씨 보관함</SectionTitle>
 
         {favoriteQuotes.length === 0 ? (
           <Box
             alignItems="center"
-            marginTop="md"
             padding="xl"
-            style={{ borderStyle: "dashed", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)", borderRadius: 12 }}
+            borderRadius="md"
+            borderColor="$border"
+            style={{ borderStyle: "dashed", borderWidth: 1.5 }}
           >
-            <Ionicon name="flame" size={24} color="$sidebarForeground" style={{ opacity: 0.2 }} />
-            <Text color="$sidebarForeground" opacity={0.5} marginTop="s" fontSize={13}>
-              보관된 불씨가 없습니다.
+            <Ionicon name="flame-outline" size={26} color="$muted" />
+            <Text variant="caption" marginTop="s" textAlign="center" lineHeight={19}>
+              마음에 닿은 문장에{"\n"}불씨를 지펴 보관해 보세요
             </Text>
           </Box>
         ) : (

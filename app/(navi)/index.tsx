@@ -12,15 +12,15 @@
 //   - Android 오버레이 권한 최초 요청 (잠금 해제 자동 실행용)
 // ─────────────────────────────────────────────────────────────
 
-import { Box, SafeAreaView } from "@/atom";
+import { Box, SafeAreaView, Text } from "@/atom";
 import BannerAd from "@/components/banner-ad";
 import CategoryChip from "@/components/category-chip";
 import CategoryPicker, { CategorySelection } from "@/components/category-picker";
 import FontPicker from "@/components/font-picker";
 import HeaderIconButton from "@/components/header-icon-button";
-import HeaderLeft from "@/components/header-left";
 import FeatherIcon, { Ionicon } from "@/components/icon";
 import { IgniteScreen } from "@/components/ignite-screen";
+import MenuButton from "@/components/menu-button";
 import { PickerSheetHandle } from "@/components/picker-sheet";
 import QuoteSwiper from "@/components/quote-swiper";
 import StreakBadge from "@/components/streak-badge";
@@ -43,8 +43,8 @@ import Toast from "react-native-toast-message";
 // 예전 버전에서 쓰던 랜덤 50개 캐시 키 (정리용)
 const LEGACY_QUOTE_CACHE_KEY = "cached_recent_quotes";
 
-// 헤더 아래 카테고리 칩 영역의 높이 (헤더 높이 + 칩)
-const CATEGORY_AREA_HEIGHT = 100;
+// 헤더 아래 카테고리 칩 영역의 높이. 모드가 바뀌어 칩이 사라져도 카드가 움직이지 않게 고정한다.
+const CATEGORY_ROW_HEIGHT = 48;
 
 type FilterMode = "all" | "mine" | "favorites";
 
@@ -310,65 +310,71 @@ export default function Index() {
   const isFavoritesMode = filterMode === "favorites";
 
   return (
-    <SafeAreaView flex={1}>
-      <Box bg="$background" flex={1} alignItems="center">
-        {/* 좌측 상단: 메뉴 + 연속 방문 스트릭 뱃지 */}
-        <HeaderLeft>
-          <StreakBadge streak={currentStreak} />
-        </HeaderLeft>
-
-        {/* 우측 상단: 불씨 보관함 필터 / 테마 / 폰트 (내 명언은 카테고리 시트에서 고른다) */}
-        <Box
-          position="absolute"
-          top={0}
-          right={0}
-          m="s"
-          p="xs"
-          minHeight={44}
-          width={135}
-          justifyContent="space-around"
-          alignItems="center"
-          flexDirection="row"
-          zIndex={10}
-        >
-          <HeaderIconButton
-            active={isFavoritesMode}
-            activeColor="red"
-            onPress={() =>
-              toggleFilterMode(
-                "favorites",
-                favorites.length === 0,
-                "아직 보관된 불씨가 없습니다. 마음에 와닿는 문장에 불씨를 지펴보세요! 🔥"
-              )
-            }
-          >
-            <Ionicon
-              name={isFavoritesMode ? "flame" : "flame-outline"}
-              size={20}
-              color={isFavoritesMode ? "white" : "$foreground"}
-            />
-          </HeaderIconButton>
-
-          <HeaderIconButton onPress={() => themePickerRef.current?.open()}>
-            <FeatherIcon name="image" size={20} />
-          </HeaderIconButton>
-
-          <HeaderIconButton onPress={() => fontPickerRef.current?.open()}>
-            <FeatherIcon name="type" size={20} />
-          </HeaderIconButton>
-        </Box>
-
-        {/* 헤더 아래 가운데: 카테고리 선택 ('전체'·'내 명언' 모드에서만)
-            명언 카드와 겹치지 않도록 레이아웃 흐름 안에 두고, 모드가 바뀌어도 카드가 움직이지 않게 높이를 고정한다.
-            이 영역이 헤더와 겹치므로 칩 바깥의 터치는 아래 헤더 버튼으로 넘긴다. */}
+    <SafeAreaView flex={1} bg="$background">
+      <Box flex={1} alignItems="center">
+        {/* ── 상단 바 ──
+            왼쪽: 메뉴 + 연속 방문 스트릭 / 오른쪽: 불씨 보관함 필터 · 테마 · 글꼴 (내 명언은 카테고리 시트에서 고른다) */}
         <Box
           width="100%"
-          height={CATEGORY_AREA_HEIGHT}
-          justifyContent="flex-end"
+          flexDirection="row"
           alignItems="center"
-          pointerEvents="box-none"
+          justifyContent="space-between"
+          px="lg"
+          pt="s"
         >
-          {!isFavoritesMode && (
+          <Box flexDirection="row" alignItems="center" style={{ gap: 8 }}>
+            <MenuButton />
+            <StreakBadge streak={currentStreak} />
+          </Box>
+
+          <Box
+            flexDirection="row"
+            alignItems="center"
+            bg="$surface"
+            borderWidth={1}
+            borderColor="$border"
+            borderRadius="pill"
+          >
+            <HeaderIconButton
+              bare
+              active={isFavoritesMode}
+              activeColor="$flame"
+              accessibilityLabel="불씨 보관함만 보기"
+              onPress={() =>
+                toggleFilterMode(
+                  "favorites",
+                  favorites.length === 0,
+                  "아직 보관된 불씨가 없습니다. 마음에 와닿는 문장에 불씨를 지펴보세요! 🔥"
+                )
+              }
+            >
+              <Ionicon
+                name={isFavoritesMode ? "flame" : "flame-outline"}
+                size={20}
+                color={isFavoritesMode ? "white" : "$foreground"}
+              />
+            </HeaderIconButton>
+
+            <HeaderIconButton bare accessibilityLabel="테마" onPress={() => themePickerRef.current?.open()}>
+              <FeatherIcon name="image" size={19} />
+            </HeaderIconButton>
+
+            <HeaderIconButton bare accessibilityLabel="글꼴" onPress={() => fontPickerRef.current?.open()}>
+              <FeatherIcon name="type" size={19} />
+            </HeaderIconButton>
+          </Box>
+        </Box>
+
+        {/* 카테고리 선택 ('전체'·'내 명언' 모드에서만). 불씨 보관함 모드에서는 안내 문구를 보여준다. */}
+        <Box width="100%" height={CATEGORY_ROW_HEIGHT} justifyContent="flex-end" alignItems="center">
+          {isFavoritesMode ? (
+            <Box flexDirection="row" alignItems="center" height={34} style={{ gap: 6 }}>
+              <Ionicon name="flame" size={14} color="$flame" />
+              <Text variant="caption" fontWeight="700">
+                불씨 보관함 · {favorites.length}
+              </Text>
+            </Box>
+          ) : (
             <CategoryChip categoryId={isMineMode ? "mine" : currentCategoryId} onPress={() => categoryPickerRef.current?.open()} />
           )}
         </Box>

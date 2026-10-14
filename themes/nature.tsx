@@ -1,26 +1,21 @@
 import { createTheme } from "@shopify/restyle";
-import light from "./light";
+import light, { makeColors } from "./light";
 
-const palette = {
-  bg00: "#F0FDF4", // green-50
-  bg10: "#DCFCE7", // green-100
-  bg20: "#BBF7D0", // green-200
-  fg100: "#166534", // green-800
-  fg900: "#14532D", // green-900
-  primary: "#10B981", // emerald-500
-};
-
+// 숲 — 이끼와 잎사귀의 차분한 초록
 const theme = createTheme({
   ...light,
-  colors: {
-    ...light.colors,
-    $primary: palette.primary,
-    $background: palette.bg00,
-    $foreground: palette.fg900,
-    $sidebarBackground: palette.bg10,
-    $sidebarForeground: palette.fg100,
-    $headerBackground: palette.bg00,
-  },
+  colors: makeColors({
+    background: "#EDF1E8",
+    surface: "#F9FBF6",
+    surfaceMuted: "#E2E8DA",
+    foreground: "#1D2A1E",
+    muted: "#66745F",
+    border: "rgba(29,42,30,0.09)",
+    primary: "#2F7A4B",
+    primarySoft: "rgba(47,122,75,0.11)",
+    onPrimary: "#FFFFFF",
+    flame: "#E0571F",
+  }),
   barStyle: "dark",
 });
 

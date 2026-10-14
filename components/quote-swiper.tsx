@@ -4,7 +4,7 @@
 //   - 드래그 중: 카드가 손가락을 살짝 따라오며 옅어짐
 //   - 임계값 이상 스와이프: 새 카드가 반대편에서 슬라이드 + 페이드 인
 //   - 임계값 미달: 스프링으로 원위치
-//   - 이전에 본 명언을 보는 중이면 아래에 '새 명언으로' 버튼을 띄워 마지막 위치로 바로 돌아간다
+//   - 이전에 본 명언을 보는 중이면 카드 아래에 '새 명언으로' 버튼을 띄워 마지막 위치로 바로 돌아간다
 // PanGestureHandler 기반이라 Drawer 제스처와 충돌하지 않는다.
 // ─────────────────────────────────────────────────────────────
 
@@ -29,6 +29,8 @@ const SWIPE_DISTANCE_THRESHOLD = SCREEN_WIDTH * 0.2;
 const SWIPE_VELOCITY_THRESHOLD = 500;
 // 새 카드가 들어올 때 시작 위치 (화면 너비 대비)
 const ENTER_OFFSET = SCREEN_WIDTH * 0.25;
+// 카드 아래 '새 명언으로' 버튼 자리의 높이
+const REVISIT_SLOT_HEIGHT = 58;
 
 type Props = {
   quote?: Quote;
@@ -116,9 +118,11 @@ const QuoteSwiper: React.FC<Props> = ({ quote, isCustom, isRevisit, canGoPrev, o
           )}
         </Box>
 
-        {isRevisit && (
-          // 부모 PanGestureHandler가 탭을 가로채지 않도록 감싼다 (quote-bar.tsx 참고)
-          <Box position="absolute" bottom={16} left={0} right={0} alignItems="center" zIndex={20}>
+        {/* 이전에 본 명언을 보는 중이면 '새 명언으로' 버튼을 띄운다.
+            버튼이 생겨도 카드가 움직이지 않도록 자리를 항상 비워 둔다. */}
+        <Box height={REVISIT_SLOT_HEIGHT} alignItems="center" justifyContent="center">
+          {isRevisit && (
+            // 부모 PanGestureHandler가 탭을 가로채지 않도록 감싼다 (quote-bar.tsx 참고)
             <NativeViewGestureHandler>
               <Pressable
                 hitSlop={8}
@@ -130,23 +134,20 @@ const QuoteSwiper: React.FC<Props> = ({ quote, isCustom, isRevisit, canGoPrev, o
                 <Box
                   flexDirection="row"
                   alignItems="center"
-                  bg="$sidebarBackground"
-                  px="md"
-                  py="s"
-                  borderRadius="hg"
-                  borderWidth={1}
-                  borderColor="$foreground"
-                  style={{ gap: 4, opacity: 0.8 }}
+                  bg="$primary"
+                  height={38}
+                  borderRadius="pill"
+                  style={{ gap: 4, paddingLeft: 16, paddingRight: 12 }}
                 >
-                  <Text fontSize={13} fontWeight="bold">
+                  <Text color="$onPrimary" fontSize={13} fontWeight="700">
                     새 명언으로
                   </Text>
-                  <FeatherIcon name="chevron-right" size={14} />
+                  <FeatherIcon name="chevron-right" size={15} color="$onPrimary" />
                 </Box>
               </Pressable>
             </NativeViewGestureHandler>
-          </Box>
-        )}
+          )}
+        </Box>
       </Animated.View>
     </PanGestureHandler>
   );

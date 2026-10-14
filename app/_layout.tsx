@@ -130,7 +130,7 @@ export default function RootLayout() {
           <Stack.Screen name="AddQuoteScreen" options={{ presentation: "modal" }} />
         </Stack>
 
-        <Toast position="bottom" bottomOffset={60} config={toastConfig} />
+        <Toast position="bottom" bottomOffset={76} config={toastConfig} />
       </ThemeProvider>
     </SafeAreaProvider>
   );

@@ -3,11 +3,11 @@
 export const LINE_HEIGHT_RATIO = 1.6;
 export const MIN_QUOTE_FONT_SIZE = 14;
 
-// 카드 바깥 margin(lg = 16)과 카드 안쪽 padding(40)
-const CARD_MARGIN = 16;
-const CARD_PADDING = 40;
+// 카드 바깥 좌우 margin(20)과 카드 안쪽 좌우 padding(36) — components/quote-items.tsx와 맞춘다.
+const CARD_MARGIN = 20;
+const CARD_PADDING = 36;
 // 명언 본문이 쓸 수 있는 화면 높이 비율 (헤더·광고·버튼 영역 제외)
-const TEXT_AREA_HEIGHT_RATIO = 0.4;
+const TEXT_AREA_HEIGHT_RATIO = 0.36;
 
 // 글자 하나 ≈ fontSize 너비로 보면, 필요한 높이 ≈ (len * fs / W) * fs * 1.6 이므로
 // 영역에 들어가는 최대 크기는 sqrt(W * H / (1.6 * len)). 사용자가 고른 크기를 넘지는 않는다.

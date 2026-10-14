@@ -1,26 +1,21 @@
 import { createTheme } from "@shopify/restyle";
-import light from "./light";
+import light, { makeColors } from "./light";
 
-const palette = {
-  bg00: "#FFFBEB", // amber-50 (Soft cream)
-  bg10: "#FEF3C7", // amber-100 (Warm paper)
-  bg20: "#FDE68A", // amber-200
-  fg100: "#B45309", // amber-700
-  fg900: "#451A03", // amber-950 (Espresso text)
-  primary: "#D97706", // amber-600
-};
-
+// 세피아 — 오래된 종이와 잉크
 const theme = createTheme({
   ...light,
-  colors: {
-    ...light.colors,
-    $primary: palette.primary,
-    $background: palette.bg00,
-    $foreground: palette.fg900,
-    $sidebarBackground: palette.bg10,
-    $sidebarForeground: palette.fg100,
-    $headerBackground: palette.bg00,
-  },
+  colors: makeColors({
+    background: "#F3EADB",
+    surface: "#FBF6EC",
+    surfaceMuted: "#E9DDC9",
+    foreground: "#3A2A1B",
+    muted: "#8A7259",
+    border: "rgba(58,42,27,0.10)",
+    primary: "#B05A1E",
+    primarySoft: "rgba(176,90,30,0.11)",
+    onPrimary: "#FFFFFF",
+    flame: "#D2541C",
+  }),
   barStyle: "dark",
 });
 
