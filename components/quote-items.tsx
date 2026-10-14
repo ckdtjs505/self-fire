@@ -2,8 +2,8 @@ import { Box, Text } from "@/atom";
 import { Quote } from "@/models";
 import { toFontFamily, useFontStore } from "@/store/font-store";
 import { useThemeStore } from "@/store/theme";
-import { LINE_HEIGHT_RATIO, fitQuoteFontSize } from "@/utils/quote-font-size";
-import { useRef } from "react";
+import { LINE_HEIGHT_RATIO, MIN_QUOTE_FONT_SIZE, fitQuoteFontSize, shrinkToFit } from "@/utils/quote-font-size";
+import { useEffect, useRef, useState } from "react";
 import { useWindowDimensions } from "react-native";
 import ViewShot from "react-native-view-shot";
 import FeatherIcon, { Ionicon } from "./icon";
@@ -24,82 +24,127 @@ const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom }) => {
   const isSystemFont = !fontFamily;
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   // 긴 명언은 카드가 화면을 넘지 않도록 글자 크기를 줄인다.
-  const fontSize = fitQuoteFontSize(text.length, currentFontSize, screenWidth, screenHeight);
+  // 먼저 글자 수로 어림하고, 그려진 뒤 실제 높이를 재서 카드 영역을 넘으면 한 번 더 줄인다.
+  const estimatedSize = fitQuoteFontSize(text.length, currentFontSize, screenWidth, screenHeight);
+  const [fontSize, setFontSize] = useState(estimatedSize);
+  const availableHeight = useRef(0);
+  const contentHeight = useRef(0);
+  const textHeight = useRef(0);
+
+  // 글자 크기 설정이나 화면이 바뀌면 어림값부터 다시 맞춘다.
+  useEffect(() => setFontSize(estimatedSize), [estimatedSize]);
+
+  const fitToArea = () => {
+    if (!availableHeight.current || !contentHeight.current || !textHeight.current) return;
+    if (contentHeight.current <= availableHeight.current || fontSize <= MIN_QUOTE_FONT_SIZE) return;
+    const overflow = contentHeight.current - availableHeight.current;
+    setFontSize(shrinkToFit(fontSize, textHeight.current, overflow));
+  };
 
   return (
-    <Box flex={1} justifyContent="center" alignItems="center" style={{ paddingHorizontal: 20 }}>
-      {/* ViewShot 영역: 공유/저장 시 이 카드만 이미지로 캡처된다. */}
-      <ViewShot
-        ref={viewShotRef}
-        options={{ format: "png", quality: 1.0 }}
-        style={{
-          width: "100%",
-          backgroundColor: colors.$surface,
-          paddingHorizontal: 36,
-          paddingTop: 28,
-          paddingBottom: 22,
-          borderRadius: 28,
-          alignItems: "center",
-          borderColor: colors.$border,
-          borderWidth: 1,
+    <Box
+      flex={1}
+      justifyContent="center"
+      alignItems="center"
+      style={{ paddingHorizontal: 20 }}
+      onLayout={(e) => {
+        const height = e.nativeEvent.layout.height;
+        // 영역이 넓어지면 (예: 광고가 사라짐) 어림값부터 다시 맞춘다.
+        if (height > availableHeight.current + 1 && availableHeight.current > 0) setFontSize(estimatedSize);
+        availableHeight.current = height;
+        fitToArea();
+      }}
+    >
+      <Box
+        width="100%"
+        alignItems="center"
+        onLayout={(e) => {
+          contentHeight.current = e.nativeEvent.layout.height;
+          fitToArea();
         }}
       >
-        {isCustom ? (
-          <Box
-            flexDirection="row"
-            alignItems="center"
-            bg="$primarySoft"
-            borderRadius="pill"
-            px="md"
-            style={{ gap: 5, paddingVertical: 5 }}
-          >
-            <FeatherIcon name="edit-2" size={12} color="$primary" />
-            <Text color="$primary" fontSize={12} fontWeight="700">
-              나만의 명언
+        {/* ViewShot 영역: 공유/저장 시 이 카드만 이미지로 캡처된다. */}
+        <ViewShot
+          ref={viewShotRef}
+          options={{ format: "png", quality: 1.0 }}
+          style={{
+            width: "100%",
+            backgroundColor: colors.$surface,
+            paddingHorizontal: 36,
+            paddingTop: 28,
+            paddingBottom: 22,
+            borderRadius: 28,
+            alignItems: "center",
+            borderColor: colors.$border,
+            borderWidth: 1,
+          }}
+        >
+          {isCustom ? (
+            <Box
+              flexDirection="row"
+              alignItems="center"
+              bg="$primarySoft"
+              borderRadius="pill"
+              px="md"
+              style={{ gap: 5, paddingVertical: 5 }}
+            >
+              <FeatherIcon name="edit-2" size={12} color="$primary" />
+              <Text color="$primary" fontSize={12} fontWeight="700">
+                나만의 명언
+              </Text>
+            </Box>
+          ) : (
+            // 장식용 여는 따옴표
+            <Text
+              style={{
+                color: colors.$primary,
+                fontSize: 52,
+                lineHeight: 52,
+                height: 30,
+                fontWeight: "900",
+                fontFamily: "NanumMyeongjo_800ExtraBold",
+              }}
+            >
+              {"“"}
             </Text>
-          </Box>
-        ) : (
-          // 장식용 여는 따옴표
+          )}
+
           <Text
-            style={{
-              color: colors.$primary,
-              fontSize: 52,
-              lineHeight: 52,
-              height: 30,
-              fontWeight: "900",
-              fontFamily: "NanumMyeongjo_800ExtraBold",
+            fontSize={fontSize}
+            fontWeight={isSystemFont ? "700" : undefined}
+            textAlign="center"
+            lineHeight={fontSize * LINE_HEIGHT_RATIO}
+            style={{ letterSpacing: -0.4, fontFamily, marginTop: 16 }}
+            onLayout={(e) => {
+              textHeight.current = e.nativeEvent.layout.height;
             }}
           >
-            {"“"}
+            {text}
           </Text>
-        )}
 
-        <Text
-          fontSize={fontSize}
-          fontWeight={isSystemFont ? "700" : undefined}
-          textAlign="center"
-          lineHeight={fontSize * LINE_HEIGHT_RATIO}
-          style={{ letterSpacing: -0.4, fontFamily, marginTop: 16 }}
-        >
-          {text}
-        </Text>
+          <Box width={24} height={2} borderRadius="pill" bg="$primary" style={{ marginTop: 20, opacity: 0.7 }} />
 
-        <Box width={24} height={2} borderRadius="pill" bg="$primary" style={{ marginTop: 20, opacity: 0.7 }} />
-
-        <Text variant="caption" fontSize={15} fontWeight={isSystemFont ? "600" : undefined} textAlign="center" style={{ marginTop: 14, fontFamily }}>
-          {author}
-        </Text>
-
-        {/* 저장·공유 이미지에 남는 워터마크 */}
-        <Box flexDirection="row" alignItems="center" style={{ marginTop: 22, gap: 4, opacity: 0.4 }}>
-          <Ionicon name="flame" size={11} color="$muted" />
-          <Text color="$muted" fontSize={10} fontWeight="800" style={{ letterSpacing: 2.5 }}>
-            SELF FIRE
+          <Text
+            variant="caption"
+            fontSize={15}
+            fontWeight={isSystemFont ? "600" : undefined}
+            textAlign="center"
+            style={{ marginTop: 14, fontFamily }}
+          >
+            {author}
           </Text>
-        </Box>
-      </ViewShot>
 
-      <QuoteBar id={id} text={text} author={author} viewShotRef={viewShotRef} />
+          {/* 저장·공유 이미지에 남는 워터마크 */}
+          <Box flexDirection="row" alignItems="center" style={{ marginTop: 22, gap: 4, opacity: 0.4 }}>
+            <Ionicon name="flame" size={11} color="$muted" />
+            <Text color="$muted" fontSize={10} fontWeight="800" style={{ letterSpacing: 2.5 }}>
+              SELF FIRE
+            </Text>
+          </Box>
+        </ViewShot>
+
+        <QuoteBar id={id} text={text} author={author} viewShotRef={viewShotRef} />
+      </Box>
     </Box>
   );
 };

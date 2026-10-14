@@ -12,13 +12,12 @@
 //   - Android 오버레이 권한 최초 요청 (잠금 해제 자동 실행용)
 // ─────────────────────────────────────────────────────────────
 
-import { Box, SafeAreaView, Text } from "@/atom";
+import { Box, SafeAreaView } from "@/atom";
 import BannerAd from "@/components/banner-ad";
-import CategoryChip from "@/components/category-chip";
-import CategoryPicker, { CategorySelection } from "@/components/category-picker";
+import CategoryTabs, { CategorySelection } from "@/components/category-tabs";
 import FontPicker from "@/components/font-picker";
 import HeaderIconButton from "@/components/header-icon-button";
-import FeatherIcon, { Ionicon } from "@/components/icon";
+import FeatherIcon from "@/components/icon";
 import { IgniteScreen } from "@/components/ignite-screen";
 import MenuButton from "@/components/menu-button";
 import { PickerSheetHandle } from "@/components/picker-sheet";
@@ -43,8 +42,8 @@ import Toast from "react-native-toast-message";
 // 예전 버전에서 쓰던 랜덤 50개 캐시 키 (정리용)
 const LEGACY_QUOTE_CACHE_KEY = "cached_recent_quotes";
 
-// 헤더 아래 카테고리 칩 영역의 높이. 모드가 바뀌어 칩이 사라져도 카드가 움직이지 않게 고정한다.
-const CATEGORY_ROW_HEIGHT = 48;
+// 헤더 아래 카테고리 탭 줄의 높이
+const CATEGORY_ROW_HEIGHT = 52;
 
 type FilterMode = "all" | "mine" | "favorites";
 
@@ -71,7 +70,6 @@ export default function Index() {
 
   const themePickerRef = useRef<PickerSheetHandle>(null);
   const fontPickerRef = useRef<PickerSheetHandle>(null);
-  const categoryPickerRef = useRef<PickerSheetHandle>(null);
 
   // 기본 명언: 앱에 번들된 전체 명언 + 동기화로 추가된 명언
   const [defaultQuotes, setDefaultQuotes] = useState<Quote[]>(bundledQuotes);
@@ -220,20 +218,6 @@ export default function Index() {
     setFilterMode(nextMode);
   };
 
-  // 필터 버튼: 이미 켜져 있으면 전체 모드로 돌아가고, 아니면 해당 모드로 전환한다.
-  // 해당 모드에 보여줄 명언이 없으면 안내 토스트만 띄운다.
-  const toggleFilterMode = (mode: Exclude<FilterMode, "all">, isEmpty: boolean, emptyMessage: string) => {
-    if (filterMode === mode) {
-      changeFilterMode("all");
-      return;
-    }
-    if (isEmpty) {
-      Toast.show({ type: "info", text1: "알림", text2: emptyMessage });
-      return;
-    }
-    changeFilterMode(mode);
-  };
-
   // 카테고리를 바꾸면 '전체' 모드 목록을 새로 만들고 '전체' 모드로 전환한다.
   const changeCategory = (categoryId: CategoryId | null) => {
     if (filterMode !== "all") savedPagers.current[filterMode] = pager;
@@ -255,17 +239,27 @@ export default function Index() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 카테고리 시트에서 고른 항목: '내 명언'이면 내 명언 모드로, 아니면 그 카테고리로 전환한다.
+  // 카테고리 탭에서 고른 항목: 불씨 보관함·내 명언이면 그 모드로, 아니면 그 카테고리의 전체 모드로 전환한다.
   const selectCategory = (selection: CategorySelection) => {
-    if (selection !== "mine") {
-      changeCategory(selection);
+    if (selection === "favorites" || selection === "mine") {
+      if (filterMode === selection) return;
+      const isEmpty = selection === "favorites" ? favorites.length === 0 : customQuotes.length === 0;
+      if (isEmpty) {
+        Toast.show({
+          type: "info",
+          text1: "알림",
+          text2:
+            selection === "favorites"
+              ? "아직 보관된 불씨가 없습니다. 마음에 와닿는 문장에 불씨를 지펴보세요! 🔥"
+              : "아직 직접 작성한 명언이 없습니다. 명언을 먼저 등록해 보세요!",
+        });
+        return;
+      }
+      changeFilterMode(selection);
       return;
     }
-    if (customQuotes.length === 0) {
-      Toast.show({ type: "info", text1: "알림", text2: "아직 직접 작성한 명언이 없습니다. 명언을 먼저 등록해 보세요!" });
-      return;
-    }
-    if (filterMode !== "mine") changeFilterMode("mine");
+    if (filterMode === "all" && selection === currentCategoryId) return;
+    changeCategory(selection);
   };
 
   // ── loadMoreQuotes ────────────────────────────────────────
@@ -285,7 +279,8 @@ export default function Index() {
     const { quotes, currentIndex } = pager;
     if (quotes.length === 0) return;
 
-    // 끝까지 보면 처음으로 돌아간다.
+    // 내 명언·불씨 보관함은 마지막 명언에서 멈춘다. 전체 모드는 끝까지 보면 처음으로 돌아간다.
+    if (filterMode !== "all" && currentIndex + 1 >= quotes.length) return;
     const nextIndex = currentIndex + 1 >= quotes.length ? 0 : currentIndex + 1;
     if (nextIndex >= quotes.length - 2) loadMoreQuotes();
 
@@ -305,15 +300,16 @@ export default function Index() {
   };
 
   const currentQuote = pager.quotes[pager.currentIndex];
-  const isAllMode = filterMode === "all";
   const isMineMode = filterMode === "mine";
+  // 내 명언·불씨 보관함은 정해진 목록이라 마지막 명언 다음으로는 넘기지 않는다.
+  const canGoNext = filterMode === "all" ? pager.quotes.length > 1 : pager.currentIndex < pager.quotes.length - 1;
   const isFavoritesMode = filterMode === "favorites";
 
   return (
     <SafeAreaView flex={1} bg="$background">
       <Box flex={1} alignItems="center">
         {/* ── 상단 바 ──
-            왼쪽: 메뉴 + 연속 방문 스트릭 / 오른쪽: 불씨 보관함 필터 · 테마 · 글꼴 (내 명언은 카테고리 시트에서 고른다) */}
+            왼쪽: 메뉴 + 연속 방문 스트릭 / 오른쪽: 테마 · 글꼴 */}
         <Box
           width="100%"
           flexDirection="row"
@@ -335,26 +331,6 @@ export default function Index() {
             borderColor="$border"
             borderRadius="pill"
           >
-            <HeaderIconButton
-              bare
-              active={isFavoritesMode}
-              activeColor="$flame"
-              accessibilityLabel="불씨 보관함만 보기"
-              onPress={() =>
-                toggleFilterMode(
-                  "favorites",
-                  favorites.length === 0,
-                  "아직 보관된 불씨가 없습니다. 마음에 와닿는 문장에 불씨를 지펴보세요! 🔥"
-                )
-              }
-            >
-              <Ionicon
-                name={isFavoritesMode ? "flame" : "flame-outline"}
-                size={20}
-                color={isFavoritesMode ? "white" : "$foreground"}
-              />
-            </HeaderIconButton>
-
             <HeaderIconButton bare accessibilityLabel="테마" onPress={() => themePickerRef.current?.open()}>
               <FeatherIcon name="image" size={19} />
             </HeaderIconButton>
@@ -365,26 +341,24 @@ export default function Index() {
           </Box>
         </Box>
 
-        {/* 카테고리 선택 ('전체'·'내 명언' 모드에서만). 불씨 보관함 모드에서는 안내 문구를 보여준다. */}
-        <Box width="100%" height={CATEGORY_ROW_HEIGHT} justifyContent="flex-end" alignItems="center">
-          {isFavoritesMode ? (
-            <Box flexDirection="row" alignItems="center" height={34} style={{ gap: 6 }}>
-              <Ionicon name="flame" size={14} color="$flame" />
-              <Text variant="caption" fontWeight="700">
-                불씨 보관함 · {favorites.length}
-              </Text>
-            </Box>
-          ) : (
-            <CategoryChip categoryId={isMineMode ? "mine" : currentCategoryId} onPress={() => categoryPickerRef.current?.open()} />
-          )}
+        {/* 무엇을 볼지 고르는 칩. 누르면 전체 · 불씨 보관함 · 내 명언 · 주제 탭으로 펼쳐진다. */}
+        <Box width="100%" height={CATEGORY_ROW_HEIGHT} justifyContent="center">
+          <CategoryTabs
+            selectedId={isFavoritesMode ? "favorites" : isMineMode ? "mine" : currentCategoryId}
+            onSelect={selectCategory}
+            favoritesCount={favorites.length}
+            collapseKey={currentQuote?.id}
+          />
         </Box>
 
         {/* 명언 카드 (좌우 스와이프) */}
         <QuoteSwiper
           quote={currentQuote}
           isCustom={!!currentQuote && customQuotes.some((q) => q.id === currentQuote.id)}
-          isRevisit={pager.currentIndex < pager.maxIndex}
+          // 불씨 보관함은 다시 보려고 모아 둔 목록이라 '새 명언으로' 버튼을 띄우지 않는다.
+          isRevisit={!isFavoritesMode && pager.currentIndex < pager.maxIndex}
           canGoPrev={pager.currentIndex > 0}
+          canGoNext={canGoNext}
           onNext={showNextQuote}
           onPrev={showPrevQuote}
           onJumpToLatest={showLatestQuote}
@@ -395,11 +369,6 @@ export default function Index() {
 
       <ThemePicker ref={themePickerRef} />
       <FontPicker ref={fontPickerRef} />
-      <CategoryPicker
-        ref={categoryPickerRef}
-        selectedId={isMineMode ? "mine" : isAllMode ? currentCategoryId : undefined}
-        onSelect={selectCategory}
-      />
 
       {/* 불씨를 직접 켜는 오버레이. 오늘 아직 점화하지 않았을 때만 표시 */}
       {!isIgnited && <IgniteScreen onIgnited={markIgnited} />}

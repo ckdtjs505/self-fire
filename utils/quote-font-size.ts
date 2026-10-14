@@ -17,3 +17,12 @@ export const fitQuoteFontSize = (len: number, preferred: number, screenWidth: nu
   const maxFit = Math.sqrt((width * height) / (LINE_HEIGHT_RATIO * Math.max(len, 1)));
   return Math.max(MIN_QUOTE_FONT_SIZE, Math.min(preferred, Math.floor(maxFit)));
 };
+
+// 실제로 그려 보니 overflow만큼 넘쳤을 때 줄일 글자 크기.
+// 본문 높이는 대략 fontSize²에 비례하므로 (본문 높이 - 넘친 만큼) / 본문 높이의 제곱근만큼 줄인다.
+// 어림이 빗나가도 매번 최소 1px은 줄여서 결국 들어가게 한다.
+export const shrinkToFit = (fontSize: number, textHeight: number, overflow: number) => {
+  const targetRatio = Math.max(textHeight - overflow, textHeight * 0.2) / textHeight;
+  const next = Math.min(fontSize - 1, Math.floor(fontSize * Math.sqrt(targetRatio)));
+  return Math.max(MIN_QUOTE_FONT_SIZE, next);
+};
