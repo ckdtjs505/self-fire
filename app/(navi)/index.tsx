@@ -359,8 +359,15 @@ export default function Index() {
         </Box>
 
         {/* 헤더 아래 가운데: 카테고리 선택 ('전체'·'내 명언' 모드에서만)
-            명언 카드와 겹치지 않도록 레이아웃 흐름 안에 두고, 모드가 바뀌어도 카드가 움직이지 않게 높이를 고정한다. */}
-        <Box width="100%" height={CATEGORY_AREA_HEIGHT} justifyContent="flex-end" alignItems="center" zIndex={10}>
+            명언 카드와 겹치지 않도록 레이아웃 흐름 안에 두고, 모드가 바뀌어도 카드가 움직이지 않게 높이를 고정한다.
+            이 영역이 헤더와 겹치므로 칩 바깥의 터치는 아래 헤더 버튼으로 넘긴다. */}
+        <Box
+          width="100%"
+          height={CATEGORY_AREA_HEIGHT}
+          justifyContent="flex-end"
+          alignItems="center"
+          pointerEvents="box-none"
+        >
           {!isFavoritesMode && (
             <CategoryChip categoryId={isMineMode ? "mine" : currentCategoryId} onPress={() => categoryPickerRef.current?.open()} />
           )}
