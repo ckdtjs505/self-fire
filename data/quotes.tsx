@@ -1,5 +1,7 @@
 import { Quote } from "@/models";
 
+// 서버/캐시 모두 사용할 수 없을 때 쓰는 기본 명언
+
 export const quotes: Quote[] = [
   {
     "id": "1",
@@ -17,7 +19,3 @@ export const quotes: Quote[] = [
     "author": "마하트마 간디"
   }
 ];
-
-export const getQuote = (id: string): Quote | undefined => {
-  return quotes.find((q) => q.id === id);
-};

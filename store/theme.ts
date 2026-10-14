@@ -1,19 +1,18 @@
-import { getCurrentTheme, themeId } from "@/themes";
-import { Theme } from "@/themes/dark";
+import { getTheme, Theme, ThemeId } from "@/themes";
 import { create } from "zustand";
 
 interface ThemeStore {
-  currentThemeId : themeId,
-  currentTheme : Theme,
-  updateThemeId : (state : themeId) => void
+  currentThemeId: ThemeId;
+  currentTheme: Theme;
+  updateThemeId: (themeId: ThemeId) => void;
 }
 
 export const useThemeStore = create<ThemeStore>((set) => ({
   currentThemeId: "dark",
-  currentTheme: getCurrentTheme("dark"),
-  updateThemeId: (state: themeId) =>
+  currentTheme: getTheme("dark"),
+  updateThemeId: (themeId) =>
     set({
-      currentThemeId: state,
-      currentTheme: getCurrentTheme(state),
+      currentThemeId: themeId,
+      currentTheme: getTheme(themeId),
     }),
 }));

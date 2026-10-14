@@ -6,13 +6,23 @@
 // - KeyboardAvoidingView로 iOS 키보드 가림 현상 방지
 // ─────────────────────────────────────────────────────────────
 
-import React, { useState, useEffect } from "react";
 import { Box, SafeAreaView, Text } from "@/atom";
-import { useFavoriteQuoteStore } from "@/store/quote";
-import { TextInput, Pressable, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from "react-native";
 import FeatherIcon from "@/components/icon";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import Toast from 'react-native-toast-message';
+import { useFavoriteQuoteStore } from "@/store/quote";
+import { useThemeStore } from "@/store/theme";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
+import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableWithoutFeedback,
+} from "react-native";
+import Toast from "react-native-toast-message";
 
 export default function AddQuoteScreen() {
   const router = useRouter();
@@ -24,6 +34,7 @@ export default function AddQuoteScreen() {
 
   // 명언 추가/수정 함수를 전역 스토어에서 가져온다.
   const { addCustomQuote, updateCustomQuote } = useFavoriteQuoteStore();
+  const inputColor = useThemeStore().currentTheme.colors.$foreground;
 
   // 명언 내용과 작성자 입력 상태 관리
   // 수정 모드이면 기존 값으로 초기화한다.
@@ -36,23 +47,23 @@ export default function AddQuoteScreen() {
   const handleSave = () => {
     // 명언 내용 필수 입력 검사
     if (!text.trim()) {
-      Toast.show({ type: 'error', text1: '알림', text2: '명언 내용을 입력해주세요.' });
+      Toast.show({ type: "error", text1: "알림", text2: "명언 내용을 입력해주세요." });
       return;
     }
     // 작성자/출처 필수 입력 검사
     if (!author.trim()) {
-      Toast.show({ type: 'error', text1: '알림', text2: '작성자(또는 출처)를 입력해주세요.' });
+      Toast.show({ type: "error", text1: "알림", text2: "작성자(또는 출처)를 입력해주세요." });
       return;
     }
 
-    if (isEditing && params.id) {
+    if (params.id) {
       // 수정 모드: 기존 명언 업데이트
       updateCustomQuote(params.id, text, author);
-      Toast.show({ type: 'success', text1: '성공', text2: '명언이 수정되었습니다.' });
+      Toast.show({ type: "success", text1: "성공", text2: "명언이 수정되었습니다." });
     } else {
       // 추가 모드: 새 명언 등록
       addCustomQuote(text, author);
-      Toast.show({ type: 'success', text1: '성공', text2: '새로운 명언이 등록되었습니다.' });
+      Toast.show({ type: "success", text1: "성공", text2: "새로운 명언이 등록되었습니다." });
     }
     router.back(); // 저장 완료 후 이전 화면으로 이동
   };
@@ -60,7 +71,7 @@ export default function AddQuoteScreen() {
   return (
     <SafeAreaView flex={1} backgroundColor="$background">
       {/* iOS에서 키보드가 올라올 때 화면이 밀리도록 처리 */}
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1 }}
       >
@@ -69,10 +80,10 @@ export default function AddQuoteScreen() {
           <Box flex={1}>
             {/* ── Header ─────────────────────────────────────
                 좌: 닫기 버튼 / 중앙: 화면 제목 / 우: 저장 버튼 */}
-            <Box 
-              flexDirection="row" 
-              alignItems="center" 
-              padding="md" 
+            <Box
+              flexDirection="row"
+              alignItems="center"
+              padding="md"
               justifyContent="space-between"
               borderBottomWidth={1}
               borderBottomColor="$headerBackground"
@@ -92,15 +103,15 @@ export default function AddQuoteScreen() {
               </Pressable>
             </Box>
 
-            <ScrollView 
-              style={{ flex: 1 }} 
+            <ScrollView
+              style={{ flex: 1 }}
               contentContainerStyle={{ padding: 20 }}
               keyboardShouldPersistTaps="handled" // 스크롤 중 탭해도 키보드가 닫히지 않게
             >
               {/* ── 명언 내용 입력 영역 ────────────────────── */}
               <Box marginBottom="xl">
                 <Text fontSize={14} fontWeight="600" marginBottom="s" style={{ opacity: 0.6 }}>내용</Text>
-                <Box 
+                <Box
                   backgroundColor="$sidebarBackground"
                   borderRadius="md"
                   padding="md"
@@ -112,7 +123,7 @@ export default function AddQuoteScreen() {
                     placeholderTextColor="#999"
                     value={text}
                     onChangeText={setText}
-                    style={styles.textArea}
+                    style={[styles.textArea, { color: inputColor }]}
                     textAlignVertical="top"          // Android: 텍스트를 상단 정렬
                   />
                 </Box>
@@ -121,7 +132,7 @@ export default function AddQuoteScreen() {
               {/* ── 작성자/출처 입력 영역 ──────────────────── */}
               <Box marginBottom="xl">
                 <Text fontSize={14} fontWeight="600" marginBottom="s" style={{ opacity: 0.6 }}>작성자 / 출처</Text>
-                <Box 
+                <Box
                   backgroundColor="$sidebarBackground"
                   borderRadius="md"
                   padding="md"
@@ -131,14 +142,14 @@ export default function AddQuoteScreen() {
                     placeholderTextColor="#999"
                     value={author}
                     onChangeText={setAuthor}
-                    style={styles.input}
+                    style={[styles.input, { color: inputColor }]}
                   />
                 </Box>
               </Box>
 
               {/* ── 안내 문구 ──────────────────────────────── */}
               <Box paddingVertical="xl" alignItems="center">
-                <Text fontSize={12} style={{ opacity: 0.5, textAlign: 'center', lineHeight: 18 }}>
+                <Text fontSize={12} style={{ opacity: 0.5, textAlign: "center", lineHeight: 18 }}>
                   등록된 명언은 메인 화면의 슬라이드 리스트에{"\n"}포함되어 무작위로 나타나게 됩니다.
                 </Text>
               </Box>
@@ -158,7 +169,6 @@ const styles = StyleSheet.create({
   },
   // 명언 내용 멀티라인 입력창
   textArea: {
-    color: "white",
     fontSize: 18,
     minHeight: 120,
     textAlignVertical: "top",
@@ -166,7 +176,6 @@ const styles = StyleSheet.create({
   },
   // 작성자/출처 단일 라인 입력창
   input: {
-    color: "white",
     fontSize: 16,
     padding: 0,
   }
