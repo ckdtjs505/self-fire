@@ -1,5 +1,5 @@
 import { Theme } from "@/themes";
-import { createBox, createRestyleComponent } from "@shopify/restyle";
+import { createBox } from "@shopify/restyle";
 import { SafeAreaView as NativeSafeAreaView } from "react-native-safe-area-context";
 
 type SafeAreaViewProps = React.ComponentProps<typeof NativeSafeAreaView>;

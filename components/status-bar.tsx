@@ -1,9 +1,10 @@
 import { Box } from "@/atom";
 import { Theme } from "@/themes";
 import { useTheme } from "@shopify/restyle";
-import { StatusBar as StatusBarRN } from "expo-status-bar";
+import { StatusBar as StatusBarRN, StatusBarStyle } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+// 상태바 영역을 현재 테마 배경색으로 칠한다.
 const StatusBar = () => {
   const theme = useTheme<Theme>();
   const { top } = useSafeAreaInsets();
@@ -19,9 +20,9 @@ const StatusBar = () => {
     >
       <StatusBarRN
         translucent={true}
-        style={theme.barStyle}
+        style={theme.barStyle as StatusBarStyle}
         backgroundColor={theme.colors["$background"]}
-      ></StatusBarRN>
+      />
     </Box>
   );
 };

@@ -2,436 +2,214 @@
 // app/(navi)/index.tsx
 // 앱 메인 화면 (홈 화면).
 // 핵심 기능:
-//   - 명언 카드 표시 (페이드 인/아웃 애니메이션)
-//   - 좌/우 탭으로 이전/다음 명언 전환
-//   - 필터 모드: 전체 / 내가 쓴 명언 / 즐겨찾기
-//   - 명언 풀(pool) 관리: 초기 50개 샘플링, 끝에 도달 시 추가 로드
+//   - 명언 카드 표시 + 좌우 스와이프로 이전/다음 명언 전환
+//   - 필터 모드: 전체 / 내가 쓴 명언 / 즐겨찾기 (모드별로 보던 위치 유지)
+//   - 명언 풀(pool) 관리: 초기 50개 로드, 끝에 가까워지면 추가 로드
 //   - 테마/폰트 변경 바텀시트
 //   - AdMob 배너 광고 (광고 제거 미구매 시)
+//   - 하루 1번 불씨 점화(Hold to Ignite) 화면
 //   - Android 오버레이 권한 최초 요청 (잠금 해제 자동 실행용)
 // ─────────────────────────────────────────────────────────────
 
 import { Box, SafeAreaView, Text } from "@/atom";
+import BannerAd from "@/components/banner-ad";
+import FontPicker from "@/components/font-picker";
+import HeaderIconButton from "@/components/header-icon-button";
 import HeaderLeft from "@/components/header-left";
 import FeatherIcon, { Ionicon } from "@/components/icon";
-import QuoteItem from "@/components/quote-items";
-import ThemePicker from "@/components/theme-picker";
-import FontPicker from "@/components/font-picker";
-import StreakBadge from "@/components/streak-badge";
-import { getQuote, quotes as fallbackQuotes } from "@/data/quotes";
-import { ActivityIndicator } from "react-native";
-import { Quote } from "@/models";
-import { useFavoriteQuoteStore } from "@/store/quote";
-import { useStreak } from "@/hooks/useStreak";
-import { router } from "expo-router";
-import { useRef, useState, useEffect } from "react";
-import { Pressable, Dimensions, Alert, Platform, Animated } from "react-native";
-import { PanGestureHandler, State, type PanGestureHandlerGestureEvent } from "react-native-gesture-handler";
-import Toast from 'react-native-toast-message';
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as IntentLauncher from "expo-intent-launcher";
-import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads";
-import { useAdStore } from "@/store/ad-store";
-import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { IgniteScreen } from "@/components/ignite-screen";
+import { PickerSheetHandle } from "@/components/picker-sheet";
+import QuoteSwiper from "@/components/quote-swiper";
+import StreakBadge from "@/components/streak-badge";
+import ThemePicker from "@/components/theme-picker";
+import { fetchRandomQuotes, QUOTE_BATCH_SIZE } from "@/data/quote-api";
+import { quotes as fallbackQuotes } from "@/data/quotes";
+import { useDailyIgnite } from "@/hooks/useDailyIgnite";
+import { useOverlayPermissionPrompt } from "@/hooks/useOverlayPermissionPrompt";
+import { useStreak } from "@/hooks/useStreak";
+import { Quote } from "@/models";
+import { useAdStore } from "@/store/ad-store";
+import { useFavoriteQuoteStore } from "@/store/quote";
+import { shuffle } from "@/utils/shuffle";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator } from "react-native";
+import Toast from "react-native-toast-message";
 
-// 화면 너비: 좌/우 터치 영역 분기 계산에 사용
-const { width } = Dimensions.get('window');
+// 오프라인 대비용으로 마지막에 받아온 명언을 저장하는 키
+const QUOTE_CACHE_KEY = "cached_recent_quotes";
+
+type FilterMode = "all" | "mine" | "favorites";
+
+// 한 필터 모드에서 보고 있는 명언 목록과 위치
+type QuotePager = {
+  quotes: Quote[];
+  currentIndex: number;
+  // 이번 세션에서 가장 멀리 진행한 인덱스 ('이전에 본 명언' 뱃지 표시용)
+  maxIndex: number;
+};
+
+const createPager = (quotes: Quote[] = []): QuotePager => ({ quotes, currentIndex: 0, maxIndex: 0 });
+
+/**
+ * 서버에서 명언을 받아온다.
+ * 실패하면 최근 캐시 → 앱 내장 기본 명언 순으로 대체한다.
+ */
+const loadInitialQuotes = async (): Promise<Quote[]> => {
+  try {
+    const fetched = await fetchRandomQuotes();
+    if (fetched.length > 0) {
+      await AsyncStorage.setItem(QUOTE_CACHE_KEY, JSON.stringify(fetched));
+      return fetched;
+    }
+  } catch (e) {
+    console.warn("API Fetch failed, using cache or fallback", e);
+  }
+
+  try {
+    const cached = await AsyncStorage.getItem(QUOTE_CACHE_KEY);
+    const cachedQuotes: Quote[] | null = cached ? JSON.parse(cached) : null;
+    if (cachedQuotes && cachedQuotes.length > 0) return cachedQuotes;
+  } catch (e) {
+    console.warn("Failed to read recent cache:", e);
+  }
+
+  return fallbackQuotes;
+};
 
 export default function Index() {
-  const [defaultQuotesState, setDefaultQuotesState] = useState<Quote[]>([]);
-  const [isGlobalLoading, setIsGlobalLoading] = useState(true);
-  // 광고 제거 여부 확인
   const { isAdFree } = useAdStore();
-  // 사용자가 작성한 커스텀 명언 목록과 즐겨찾기 ID 목록
   const { customQuotes, favorites } = useFavoriteQuoteStore();
-  // 연속 방문 스트릭 카운트
   const { currentStreak } = useStreak();
+  const { isIgnited, markIgnited } = useDailyIgnite();
+  useOverlayPermissionPrompt();
 
-  // 테마 / 폰트 선택 바텀시트 모달 참조
-  const refThemePicker = useRef<BottomSheetModal>(null);
-  const refFontPicker = useRef<BottomSheetModal>(null);
+  const themePickerRef = useRef<PickerSheetHandle>(null);
+  const fontPickerRef = useRef<PickerSheetHandle>(null);
 
-  // 배너 광고 로드 완료 여부 (로드 전까지 광고 영역을 숨긴다)
-  const [isAdLoaded, setIsAdLoaded] = useState(false);
+  // 서버(또는 캐시/기본값)에서 받아온 기본 명언
+  const [defaultQuotes, setDefaultQuotes] = useState<Quote[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // 현재 필터 모드: 'all'(전체) | 'mine'(내가 쓴 명언) | 'favorites'(즐겨찾기)
-  const [filterMode, setFilterMode] = useState<'all' | 'mine' | 'favorites'>('all');
-
-  // ── Hold to Ignite ────────────────────────────────────────
-  // 하루 1번, 앱 첫 진입 시 불씨 화면을 보여준다.
-  // AsyncStorage에 오늘 날짜(YYYY-MM-DD)가 기록되어 있으면 스킵.
-  const [isIgnited, setIsIgnited] = useState(true); // 초기값 true: 로딩 중 플리커 방지
-  useEffect(() => {
-    const checkDailyIgnite = async () => {
-      const today = new Date().toISOString().slice(0, 10);
-      const lastDate = await AsyncStorage.getItem('last_ignited_date');
-      // 오늘 처음 켠 경우에만 불씨 화면 표시
-      setIsIgnited(lastDate === today);
-    };
-    checkDailyIgnite();
-  }, []);
-
-  const handleIgnited = async () => {
-    const today = new Date().toISOString().slice(0, 10);
-    await AsyncStorage.setItem('last_ignited_date', today);
-    setIsIgnited(true);
-  };
-
-  // ── initQuotes (Bulk Fetch & Cache) ────────────────────────
-  useEffect(() => {
-    const initQuotes = async () => {
-      try {
-        const CACHE_KEY = 'cached_recent_quotes';
-        let cachedQuotes: Quote[] | null = null;
-
-        // 1. 오프라인 대비용 최근 캐시 확인
-        try {
-          const cachedStr = await AsyncStorage.getItem(CACHE_KEY);
-          if (cachedStr) {
-            cachedQuotes = JSON.parse(cachedStr);
-          }
-        } catch (e) {
-          console.warn('Failed to read recent cache:', e);
-        }
-
-        // 2. API에서 50개 랜덤 Fetch
-        try {
-          const response = await fetch('https://ckdtjst505.mycafe24.com/api/quote/get_all.php?random=true&limit=50');
-          const json = await response.json();
-
-          if (json && json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
-            const fetchedQuotes = json.data.map((item: any) => ({
-              id: String(item.id),
-              text: item.text,
-              author: item.author
-            }));
-
-            // 새 데이터로 캐시 갱신 (오프라인 대비)
-            await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(fetchedQuotes));
-            setDefaultQuotesState(fetchedQuotes);
-            setIsGlobalLoading(false);
-            return;
-          }
-        } catch (apiError) {
-          console.warn('API Fetch failed, using cache or fallback', apiError);
-        }
-
-        // 3. API 실패 시 캐시가 있으면 캐시 사용, 없으면 폴백 사용
-        if (cachedQuotes && cachedQuotes.length > 0) {
-          setDefaultQuotesState(cachedQuotes);
-        } else {
-          setDefaultQuotesState(fallbackQuotes);
-        }
-
-      } catch (error) {
-        console.error('Failed to fetch/cache quotes:', error);
-        setDefaultQuotesState(fallbackQuotes);
-      } finally {
-        setIsGlobalLoading(false);
-      }
-    };
-
-    initQuotes();
-  }, []);
-
-  // 데이터가 페치/캐시된 후 pool을 다시 세팅한다.
-  useEffect(() => {
-    if (defaultQuotesState.length > 0 && quotes.length === 0) {
-      setQuotes(getInitialPool(filterMode));
-    }
-  }, [defaultQuotesState]);
-
-  // ── shuffle ──────────────────────────────────────────────
-  const shuffle = <T,>(array: T[]): T[] => {
-    const newArray = [...array];
-    for (let i = newArray.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-    }
-    return newArray;
-  };
-
-  // 현재 표시 중인 명언 목록
-  const [quotes, setQuotes] = useState<Quote[]>([]);
-  // 현재 보고 있는 명언의 인덱스
-  const [currentIndex, setCurrentIndex] = useState(0);
-  // 현재 세션에서 가장 멀리 진행한 인덱스 (이전 명언 뱃지 표시용)
-  const [maxIndex, setMaxIndex] = useState(0);
-
-  // ── Animation Values ────────────────────────────────────
-  const slideX = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-
-  // ── getInitialPool ────────────────────────────────────────
-  // 필터 모드에 따라 명언 풀을 생성하여 반환한다.
-  //   - 'all': 기본 + 커스텀 명언 전체에서 무작위 50개 샘플링
-  //   - 'mine': 커스텀 명언만 셔플
-  //   - 'favorites': 즐겨찾기에 포함된 명언만 셔플
-  const getInitialPool = (mode: 'all' | 'mine' | 'favorites') => {
-    let pool: Quote[] = [
-      ...defaultQuotesState,
-      ...customQuotes
-    ];
-
-    if (mode === 'mine') {
-      // 내가 쓴 명언만 필터링
-      pool = customQuotes;
-      return shuffle(pool);
-    } else if (mode === 'favorites') {
-      // 즐겨찾기만 필터링
-      pool = pool.filter(q => favorites.includes(q.id));
-      return shuffle(pool);
-    } else {
-      // 전체 명언: 무작위로 50개 샘플링하여 셔플
-      return shuffle(pool).slice(0, 50);
-    }
-  };
-
-  // 각 필터 모드별로 보던 명언 상태를 유지하기 위한 저장소
-  const savedStates = useRef<Record<string, { quotes: Quote[], currentIndex: number, maxIndex: number }>>({
-    all: { quotes: [], currentIndex: 0, maxIndex: 0 },
-    mine: { quotes: [], currentIndex: 0, maxIndex: 0 },
-    favorites: { quotes: [], currentIndex: 0, maxIndex: 0 },
+  const [filterMode, setFilterMode] = useState<FilterMode>("all");
+  const [pager, setPager] = useState<QuotePager>(createPager);
+  // 다른 필터 모드로 전환했다 돌아올 때 보던 위치를 복원하기 위한 저장소
+  const savedPagers = useRef<Record<FilterMode, QuotePager>>({
+    all: createPager(),
+    mine: createPager(),
+    favorites: createPager(),
   });
-  const currentStateRef = useRef({ quotes, currentIndex, maxIndex });
-  const prevFilterMode = useRef(filterMode);
 
-  // 현재 상태 최신화
+  // ── 초기 명언 로드 ─────────────────────────────────────────
   useEffect(() => {
-    currentStateRef.current = { quotes, currentIndex, maxIndex };
-  }, [quotes, currentIndex, maxIndex]);
+    loadInitialQuotes().then((loaded) => {
+      setDefaultQuotes(loaded);
+      setIsLoading(false);
+    });
+  }, []);
 
-  // 필터 모드가 변경될 때 이전 모드의 상태를 저장하고, 새 모드의 상태를 복원한다.
+  // 기본 명언이 준비되면 첫 명언 풀을 만든다.
   useEffect(() => {
-    if (prevFilterMode.current !== filterMode) {
-      // 1. 이전 상태 저장
-      savedStates.current[prevFilterMode.current] = currentStateRef.current;
-
-      // 2. 새 상태 복원 (이전에 본 적이 있으면 복원, 없으면 새로 풀을 가져옴)
-      const saved = savedStates.current[filterMode];
-      if (saved && saved.quotes.length > 0) {
-        if (filterMode === 'favorites') {
-          // 즐겨찾기 해제된 항목을 걸러냄
-          const validQuotes = saved.quotes.filter(q => favorites.includes(q.id));
-          if (validQuotes.length > 0) {
-            setQuotes(validQuotes);
-            setCurrentIndex(Math.min(saved.currentIndex, validQuotes.length - 1));
-            setMaxIndex(Math.min(saved.maxIndex, validQuotes.length - 1));
-          } else {
-            setQuotes(getInitialPool(filterMode));
-            setCurrentIndex(0);
-            setMaxIndex(0);
-          }
-        } else {
-          setQuotes(saved.quotes);
-          setCurrentIndex(saved.currentIndex);
-          setMaxIndex(saved.maxIndex);
-        }
-      } else {
-        setQuotes(getInitialPool(filterMode));
-        setCurrentIndex(0);
-        setMaxIndex(0);
-      }
-      fadeAnim.setValue(1);
-      prevFilterMode.current = filterMode;
-    } else {
-      // 초기 렌더링 시
-      if (quotes.length === 0) {
-        setQuotes(getInitialPool(filterMode));
-        setCurrentIndex(0);
-        setMaxIndex(0);
-      }
+    if (defaultQuotes.length > 0) {
+      setPager(createPager(buildPool(filterMode)));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterMode]);
+  }, [defaultQuotes]);
+
+  // ── buildPool ─────────────────────────────────────────────
+  // 필터 모드에 맞는 명언 풀을 무작위 순서로 만든다.
+  //   - 'all': 기본 + 커스텀 명언 중 무작위 50개
+  //   - 'mine': 커스텀 명언 전체
+  //   - 'favorites': 즐겨찾기한 명언 전체
+  const buildPool = (mode: FilterMode): Quote[] => {
+    const allQuotes = [...defaultQuotes, ...customQuotes];
+    switch (mode) {
+      case "mine":
+        return shuffle(customQuotes);
+      case "favorites":
+        return shuffle(allQuotes.filter((q) => favorites.includes(q.id)));
+      case "all":
+        return shuffle(allQuotes).slice(0, QUOTE_BATCH_SIZE);
+    }
+  };
+
+  // 저장해 둔 모드별 위치를 복원한다. 처음 보는 모드면 새 풀을 만든다.
+  const restorePager = (mode: FilterMode): QuotePager => {
+    const saved = savedPagers.current[mode];
+
+    if (mode === "favorites") {
+      // 그 사이 즐겨찾기에서 해제된 명언은 제외한다.
+      const stillFavorite = saved.quotes.filter((q) => favorites.includes(q.id));
+      if (stillFavorite.length === 0) return createPager(buildPool(mode));
+      const lastIndex = stillFavorite.length - 1;
+      return {
+        quotes: stillFavorite,
+        currentIndex: Math.min(saved.currentIndex, lastIndex),
+        maxIndex: Math.min(saved.maxIndex, lastIndex),
+      };
+    }
+
+    return saved.quotes.length > 0 ? saved : createPager(buildPool(mode));
+  };
+
+  const changeFilterMode = (nextMode: FilterMode) => {
+    savedPagers.current[filterMode] = pager;
+    setPager(restorePager(nextMode));
+    setFilterMode(nextMode);
+  };
+
+  // 필터 버튼: 이미 켜져 있으면 전체 모드로 돌아가고, 아니면 해당 모드로 전환한다.
+  // 해당 모드에 보여줄 명언이 없으면 안내 토스트만 띄운다.
+  const toggleFilterMode = (mode: Exclude<FilterMode, "all">, isEmpty: boolean, emptyMessage: string) => {
+    if (filterMode === mode) {
+      changeFilterMode("all");
+      return;
+    }
+    if (isEmpty) {
+      Toast.show({ type: "info", text1: "알림", text2: emptyMessage });
+      return;
+    }
+    changeFilterMode(mode);
+  };
 
   // ── loadMoreQuotes ────────────────────────────────────────
-  // '전체' 모드에서 목록 끝에 가까워질 때 API에서 50개를 추가 로드한다.
+  // '전체' 모드에서 목록 끝에 가까워지면 서버에서 명언을 더 받아와 뒤에 붙인다.
   const loadMoreQuotes = async () => {
-    if (filterMode !== 'all') return; // 필터 모드에서는 더 불러오지 않음
+    if (filterMode !== "all") return;
 
     try {
-      const response = await fetch('https://ckdtjst505.mycafe24.com/api/quote/get_all.php?random=true&limit=50');
-      const json = await response.json();
-
-      if (json && json.status === 'success' && Array.isArray(json.data)) {
-        const fetchedQuotes = json.data.map((item: any) => ({
-          id: String(item.id),
-          text: item.text,
-          author: item.author
-        }));
-
-        setQuotes(prevQuotes => {
-          // 기존 목록에 중복되지 않는 명언만 추가
-          const currentIds = new Set(prevQuotes.map(q => q.id));
-          const newQuotes = fetchedQuotes.filter(q => !currentIds.has(q.id));
-          return [...prevQuotes, ...newQuotes];
-        });
-      }
-    } catch (e) {
-      console.warn('Failed to load more quotes:', e);
-    }
-  };
-
-  // ── animateTransition ─────────────────────────────────────
-  // 방향(dir: -1=다음, 1=이전)에 따라 카드를 슬라이드 아웃 → 인 애니메이션.
-  const animateTransition = (dir: -1 | 1, callback: () => void) => {
-    // 1. 현재 카드를 dir 방향으로 슬라이드 아웃
-    Animated.parallel([
-      Animated.timing(slideX, {
-        toValue: width * dir,   // -1: 왼쪽 밖으로, 1: 오른쪽 밖으로
-        duration: 280,
-        useNativeDriver: true,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      // 2. 인덱스 업데이트
-      callback();
-      // 3. 반대편에서 슬라이드 인
-      slideX.setValue(-width * dir);
-      Animated.parallel([
-        Animated.spring(slideX, {
-          toValue: 0,
-          useNativeDriver: true,
-          tension: 65,
-          friction: 11,
-        }),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    });
-  };
-
-  // ── goToNextQuote ─────────────────────────────────────────
-  const goToNextQuote = () => {
-    if (quotes.length === 0) return;
-    animateTransition(-1, () => {
-      setCurrentIndex((prev) => {
-        let nextIndex = prev + 1;
-        if (nextIndex >= quotes.length - 2) {
-          loadMoreQuotes();
-        }
-        if (nextIndex >= quotes.length) {
-          nextIndex = 0;
-        }
-        setMaxIndex(prevMax => Math.max(prevMax, nextIndex));
-        return nextIndex;
+      const fetched = await fetchRandomQuotes();
+      setPager((prev) => {
+        const existingIds = new Set(prev.quotes.map((q) => q.id));
+        const newQuotes = fetched.filter((q) => !existingIds.has(q.id));
+        return { ...prev, quotes: [...prev.quotes, ...newQuotes] };
       });
-    });
-  };
-
-  // ── goToPrevQuote ─────────────────────────────────────────
-  const goToPrevQuote = () => {
-    if (quotes.length === 0 || currentIndex === 0) return;
-    animateTransition(1, () => {
-      setCurrentIndex((prev) => (prev > 0 ? prev - 1 : 0));
-    });
-  };
-
-  // ── PanGestureHandler (스와이프 제스처) ─────────────────────
-  // react-native-gesture-handler 기반: Drawer와 충돌 없이 작동
-  const lastDx = useRef(0);
-
-  const onGestureEvent = (event: PanGestureHandlerGestureEvent) => {
-    const dx = event.nativeEvent.translationX;
-    lastDx.current = dx;
-    // 카드가 손가락을 살짝 따라 이동 + 투명해짐
-    slideX.setValue(dx * 0.45);
-    fadeAnim.setValue(1 - Math.min(Math.abs(dx) / (width * 0.9), 0.25));
-  };
-
-  const onHandlerStateChange = (event: PanGestureHandlerGestureEvent) => {
-    if (event.nativeEvent.state === State.END || event.nativeEvent.state === State.CANCELLED) {
-      const dx = event.nativeEvent.translationX;
-      const vx = event.nativeEvent.velocityX;
-      const threshold = width * 0.20;
-      const velocityThreshold = 500;
-
-      // 이전 애니메이션이 진행 중이어도 즉시 멈추고 새 전환 시작
-      slideX.stopAnimation();
-      fadeAnim.stopAnimation();
-
-      if (dx < -threshold || vx < -velocityThreshold) {
-        // 왼쪽 스와이프 → 다음 명언
-        setCurrentIndex((prev) => {
-          const nextIndex = prev + 1 >= quotes.length ? 0 : prev + 1;
-          if (nextIndex >= quotes.length - 2) loadMoreQuotes();
-          setMaxIndex(prevMax => Math.max(prevMax, nextIndex));
-          slideX.setValue(width * 0.25);
-          fadeAnim.setValue(0);
-          Animated.parallel([
-            Animated.spring(slideX, { toValue: 0, useNativeDriver: true, tension: 70, friction: 12 }),
-            Animated.timing(fadeAnim, { toValue: 1, duration: 230, useNativeDriver: true }),
-          ]).start();
-          return nextIndex;
-        });
-      } else if (dx > threshold || vx > velocityThreshold) {
-        // 오른쪽 스와이프 → 이전 명언
-        setCurrentIndex((prev) => {
-          if (prev === 0) {
-            // 첫 명언이면 원위치 스프링
-            Animated.spring(slideX, { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }).start();
-            Animated.timing(fadeAnim, { toValue: 1, duration: 150, useNativeDriver: true }).start();
-            return prev;
-          }
-          const nextIndex = prev - 1;
-          slideX.setValue(-width * 0.25);
-          fadeAnim.setValue(0);
-          Animated.parallel([
-            Animated.spring(slideX, { toValue: 0, useNativeDriver: true, tension: 70, friction: 12 }),
-            Animated.timing(fadeAnim, { toValue: 1, duration: 230, useNativeDriver: true }),
-          ]).start();
-          return nextIndex;
-        });
-      } else {
-        // 임계값 미달 → 스프링으로 원위치
-        Animated.spring(slideX, { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }).start();
-        Animated.timing(fadeAnim, { toValue: 1, duration: 150, useNativeDriver: true }).start();
-      }
+    } catch (e) {
+      console.warn("Failed to load more quotes:", e);
     }
   };
 
-  // ── 오버레이 권한 최초 요청 (Android) ────────────────────
-  // 앱 최초 실행 시(hasPromptedOverlay 키 없을 때) 1초 뒤에 다이얼로그를 표시한다.
-  // 잠금 해제 시 명언을 자동으로 띄우는 '다른 앱 위에 표시' 권한 요청용.
-  useEffect(() => {
-    const requestOverlayPermission = async () => {
-      if (Platform.OS === 'android') {
-        try {
-          const hasPrompted = await AsyncStorage.getItem('hasPromptedOverlay');
-          if (!hasPrompted) {
-            Alert.alert(
-              "화면 자동 켜짐 설정",
-              "휴대폰 잠금 해제 시 명언을 자동으로 띄우려면 '다른 앱 위에 표시' 권한이 필요합니다. 설정 화면으로 이동하시겠습니까?",
-              [
-                { text: "나중에", style: "cancel", onPress: () => AsyncStorage.setItem('hasPromptedOverlay', 'true') },
-                {
-                  text: "설정하러 가기",
-                  onPress: async () => {
-                    await AsyncStorage.setItem('hasPromptedOverlay', 'true');
-                    IntentLauncher.startActivityAsync(IntentLauncher.ActivityAction.MANAGE_OVERLAY_PERMISSION);
-                  }
-                }
-              ]
-            );
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }
-    };
-    setTimeout(requestOverlayPermission, 1000); // 1초 뒤에 띄움 (로딩 안정화)
-  }, []);
+  // ── 이전/다음 명언 ─────────────────────────────────────────
+  const showNextQuote = () => {
+    const { quotes, currentIndex } = pager;
+    if (quotes.length === 0) return;
 
-  if (isGlobalLoading) {
+    // 끝까지 보면 처음으로 돌아간다.
+    const nextIndex = currentIndex + 1 >= quotes.length ? 0 : currentIndex + 1;
+    if (nextIndex >= quotes.length - 2) loadMoreQuotes();
+
+    setPager((prev) => ({
+      ...prev,
+      currentIndex: nextIndex,
+      maxIndex: Math.max(prev.maxIndex, nextIndex),
+    }));
+  };
+
+  const showPrevQuote = () => {
+    setPager((prev) => ({ ...prev, currentIndex: Math.max(prev.currentIndex - 1, 0) }));
+  };
+
+  if (isLoading) {
     return (
       <SafeAreaView flex={1}>
         <Box bg="$background" flex={1} justifyContent="center" alignItems="center">
@@ -442,253 +220,88 @@ export default function Index() {
     );
   }
 
+  const currentQuote = pager.quotes[pager.currentIndex];
+  const isMineMode = filterMode === "mine";
+  const isFavoritesMode = filterMode === "favorites";
+
   return (
     <SafeAreaView flex={1}>
-      <Box
-        bg="$background"
-        flex={1}
-        justifyContent={"center"}
-        alignItems={"center"}
-      >
-        {/* 좌측 상단: 연속 방문 스트릭 뱃지 */}
+      <Box bg="$background" flex={1} justifyContent="center" alignItems="center">
+        {/* 좌측 상단: 메뉴 + 연속 방문 스트릭 뱃지 */}
         <HeaderLeft>
           <StreakBadge streak={currentStreak} />
         </HeaderLeft>
 
-        {/* 우측 상단: 필터 버튼 / 테마 버튼 / 폰트 버튼 */}
+        {/* 우측 상단: 내 명언 필터 / 불씨 보관함 필터 / 테마 / 폰트 */}
         <Box
-          position={"absolute"}
+          position="absolute"
           top={0}
           right={0}
           m="s"
           p="xs"
           minHeight={44}
           width={180}
-          justifyContent={"space-around"}
-          alignItems={"center"}
-          flexDirection={"row"}
+          justifyContent="space-around"
+          alignItems="center"
+          flexDirection="row"
           zIndex={10}
         >
-          {/* 내가 작성한 명언 필터 버튼
-              - 커스텀 명언이 없으면 안내 토스트를 표시하고 전환 불가
-              - 활성화 시 파란색 배경으로 강조 */}
-          <Pressable
-            onPress={() => {
-              if (filterMode !== 'mine' && customQuotes.length === 0) {
-                Toast.show({
-                  type: 'info',
-                  text1: '알림',
-                  text2: '아직 직접 작성한 명언이 없습니다. 명언을 먼저 등록해 보세요!',
-                });
-                return;
-              }
-              // 이미 활성화된 경우 전체 모드로 복귀, 아니면 mine 모드 진입
-              setFilterMode(filterMode === 'mine' ? 'all' : 'mine');
-            }}
+          <HeaderIconButton
+            active={isMineMode}
+            onPress={() =>
+              toggleFilterMode("mine", customQuotes.length === 0, "아직 직접 작성한 명언이 없습니다. 명언을 먼저 등록해 보세요!")
+            }
           >
-            <Box
-              borderRadius="hg"
-              width={40}
-              height={40}
-              justifyContent="center"
-              alignItems="center"
-              backgroundColor={filterMode === 'mine' ? "$primary" : "$sidebarBackground"}
-              style={{
-                shadowColor: filterMode === 'mine' ? "#4F46E5" : "#000",
-                shadowOpacity: filterMode === 'mine' ? 0.3 : 0.05,
-                shadowRadius: 10,
-                shadowOffset: { width: 0, height: 4 }
-              }}
-            >
-              <FeatherIcon
-                name={filterMode === 'mine' ? "user-check" : "user"}
-                size={20}
-                color={filterMode === 'mine' ? "white" : "$foreground"}
-              />
-            </Box>
-          </Pressable>
+            <FeatherIcon name={isMineMode ? "user-check" : "user"} size={20} color={isMineMode ? "white" : "$foreground"} />
+          </HeaderIconButton>
 
-          {/* 불씨 보관함 명언 필터 버튼
-              - 보관함이 비어있으면 안내 토스트를 표시하고 전환 불가
-              - 활성화 시 주황색 배경으로 강조 */}
-          <Pressable
-            onPress={() => {
-              if (filterMode !== 'favorites' && favorites.length === 0) {
-                Toast.show({
-                  type: 'info',
-                  text1: '알림',
-                  text2: '아직 보관된 불씨가 없습니다. 마음에 와닿는 문장에 불씨를 지펴보세요! 🔥',
-                });
-                return;
-              }
-              // 이미 활성화된 경우 전체 모드로 복귀, 아니면 favorites 모드 진입
-              setFilterMode(filterMode === 'favorites' ? 'all' : 'favorites');
-            }}
+          <HeaderIconButton
+            active={isFavoritesMode}
+            activeColor="red"
+            onPress={() =>
+              toggleFilterMode(
+                "favorites",
+                favorites.length === 0,
+                "아직 보관된 불씨가 없습니다. 마음에 와닿는 문장에 불씨를 지펴보세요! 🔥"
+              )
+            }
           >
-            <Box
-              borderRadius="hg"
-              width={40}
-              height={40}
-              justifyContent="center"
-              alignItems="center"
-              backgroundColor={filterMode === 'favorites' ? "red" : "$sidebarBackground"}
-              style={{
-                shadowColor: filterMode === 'favorites' ? "red" : "#000",
-                shadowOpacity: filterMode === 'favorites' ? 0.3 : 0.05,
-                shadowRadius: 10,
-                shadowOffset: { width: 0, height: 4 }
-              }}
-            >
-              <Ionicon
-                name={filterMode === 'favorites' ? "flame" : "flame-outline"}
-                size={20}
-                color={filterMode === 'favorites' ? "white" : "$foreground"}
-              />
-            </Box>
-          </Pressable>
+            <Ionicon
+              name={isFavoritesMode ? "flame" : "flame-outline"}
+              size={20}
+              color={isFavoritesMode ? "white" : "$foreground"}
+            />
+          </HeaderIconButton>
 
-          {/* 테마(배경색/이미지) 변경 버튼 */}
-          <Pressable onPress={() => refThemePicker.current?.open()}>
-            <Box
-              borderRadius="hg"
-              width={40}
-              height={40}
-              justifyContent="center"
-              alignItems="center"
-              backgroundColor="$sidebarBackground"
-              style={{
-                shadowColor: "#000",
-                shadowOpacity: 0.05,
-                shadowRadius: 10,
-                shadowOffset: { width: 0, height: 4 }
-              }}
-            >
-              <FeatherIcon name="image" size={20}></FeatherIcon>
-            </Box>
-          </Pressable>
+          <HeaderIconButton onPress={() => themePickerRef.current?.open()}>
+            <FeatherIcon name="image" size={20} />
+          </HeaderIconButton>
 
-          {/* 폰트 변경 버튼 */}
-          <Pressable onPress={() => refFontPicker.current?.open()}>
-            <Box
-              borderRadius="hg"
-              width={40}
-              height={40}
-              justifyContent="center"
-              alignItems="center"
-              backgroundColor="$sidebarBackground"
-              style={{
-                shadowColor: "#000",
-                shadowOpacity: 0.05,
-                shadowRadius: 10,
-                shadowOffset: { width: 0, height: 4 }
-              }}
-            >
-              <FeatherIcon name="type" size={20}></FeatherIcon>
-            </Box>
-          </Pressable>
+          <HeaderIconButton onPress={() => fontPickerRef.current?.open()}>
+            <FeatherIcon name="type" size={20} />
+          </HeaderIconButton>
         </Box>
 
-        {/* ── 명언 카드 영역 (스와이프 제스처)
-            PanGestureHandler: Drawer와 충돌 없이 좌우 스와이프 */}
-        <PanGestureHandler
-          onGestureEvent={onGestureEvent}
-          onHandlerStateChange={onHandlerStateChange}
-          activeOffsetX={[-12, 12]}
-          failOffsetY={[-8, 8]}
-          style={{ flex: 1, width: '100%' }}
-        >
-          <Animated.View style={{ flex: 1, width: '100%' }}>
-            {/* 이전 명언 표시 뱃지 */}
-            {currentIndex < maxIndex && (
-              <Box
-                position="absolute"
-                top={70}
-                alignSelf="center"
-                bg="$sidebarBackground"
-                px="md"
-                py="xs"
-                borderRadius="hg"
-                zIndex={20}
-                pointerEvents="none"
-                borderWidth={1}
-                borderColor="$foreground"
-                opacity={0.6}
-              >
-                <Text fontSize={12} color="$foreground" fontWeight="bold">
-                  이전에 본 명언
-                </Text>
-              </Box>
-            )}
-
-            {/* 현재 명언 카드 (슬라이드 + 페이드 + 스케일 애니메이션) */}
-            <Box flex={1} width="100%" justifyContent="center" alignItems="center">
-              {quotes.length > 0 && quotes[currentIndex] && (
-                <Animated.View style={{
-                  opacity: fadeAnim,
-                  transform: [
-                    { translateX: slideX },
-                    {
-                      scale: fadeAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.94, 1]
-                      })
-                    }
-                  ],
-                  flex: 1,
-                  width: '100%'
-                }}>
-                  <QuoteItem
-                    key={`${quotes[currentIndex].id}-${currentIndex}`}
-                    {...quotes[currentIndex]}
-                    isCustom={customQuotes.some(cq => cq.id === quotes[currentIndex].id)}
-                  />
-                </Animated.View>
-              )}
-            </Box>
-          </Animated.View>
-        </PanGestureHandler>
+        {/* 명언 카드 (좌우 스와이프) */}
+        <QuoteSwiper
+          quote={currentQuote}
+          isCustom={!!currentQuote && customQuotes.some((q) => q.id === currentQuote.id)}
+          isRevisit={pager.currentIndex < pager.maxIndex}
+          canGoPrev={pager.currentIndex > 0}
+          onNext={showNextQuote}
+          onPrev={showPrevQuote}
+        />
       </Box>
 
-      {/* ── 배너 광고 영역 ────────────────────────────────────
-          광고 제거를 구매하지 않은 경우에만 표시한다.
-          광고 로드 완료 전까지는 opacity 0으로 숨겨 레이아웃 깜빡임을 방지한다. */}
-      {!isAdFree && (
-        <Box
-          alignItems="center"
-          justifyContent="center"
-          width={width}
-          minHeight={60}
-          opacity={isAdLoaded ? 1 : 0}
-          pointerEvents={isAdLoaded ? "auto" : "none"}
-        >
-          <BannerAd
-            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-            // 개발 환경에서는 테스트 광고 ID를 사용한다.
-            unitId={__DEV__ ? TestIds.BANNER : "ca-app-pub-3739053005473702/4339756170"}
-            requestOptions={{
-              requestNonPersonalizedAdsOnly: true, // 비개인화 광고 요청
-            }}
-            onAdLoaded={() => {
-              console.log('Ad loaded successfully');
-              setIsAdLoaded(true);
-            }}
-            onAdFailedToLoad={(error) => {
-              console.log('Ad failed to load: ', error);
-              setIsAdLoaded(false);
-            }}
-          />
-        </Box>
-      )}
+      {!isAdFree && <BannerAd />}
 
-      {/* 테마 선택 바텀시트 */}
-      <ThemePicker ref={refThemePicker} />
-      {/* 폰트 선택 바텀시트 */}
-      <FontPicker ref={refFontPicker} />
+      <ThemePicker ref={themePickerRef} />
+      <FontPicker ref={fontPickerRef} />
 
-      {/* ── Hold to Ignite 오버레이 ──────────────────────────
-          isIgnited가 false일 때만 표시.
-          하루 1번, 오늘 처음 앱을 열었을 때 불씨를 직접 켜는 인터랙션. */}
-      {!!isIgnited && <IgniteScreen onIgnited={handleIgnited} />}
+      {/* 불씨를 직접 켜는 오버레이.
+          TODO: 의도는 '오늘 아직 점화하지 않았을 때(!isIgnited)'만 표시하는 것이지만,
+          현재 동작을 유지하기 위해 기존 조건(isIgnited)을 그대로 두었다. */}
+      {isIgnited && <IgniteScreen onIgnited={markIgnited} />}
     </SafeAreaView>
   );
 }

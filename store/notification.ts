@@ -12,11 +12,9 @@ interface NotificationState {
   setTime: (hour: number, minute: number) => Promise<void>;
 }
 
-const getRandomQuote = () => {
-  const idx = Math.floor(Math.random() * defaultQuotes.length);
-  return defaultQuotes[idx];
-};
+const getRandomQuote = () => defaultQuotes[Math.floor(Math.random() * defaultQuotes.length)];
 
+// 기존 예약을 지우고, 매일 hour:minute에 명언 알림을 예약한다.
 const scheduleDaily = async (hour: number, minute: number) => {
   await Notifications.cancelAllScheduledNotificationsAsync();
   const quote = getRandomQuote();
@@ -34,6 +32,7 @@ const scheduleDaily = async (hour: number, minute: number) => {
   });
 };
 
+// '오늘의 명언' 알림 설정 (켜짐 여부, 알림 시각)
 export const useNotificationStore = create<NotificationState>()(
   persist(
     (set, get) => ({

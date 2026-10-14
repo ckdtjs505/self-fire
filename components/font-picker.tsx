@@ -1,22 +1,18 @@
 import { Box, Text } from "@/atom";
-import {
-  BottomSheetBackdrop,
-  BottomSheetFlatList,
-  BottomSheetModal,
-  BottomSheetView,
-} from "@gorhom/bottom-sheet";
-import {
-  forwardRef,
-  useCallback,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-} from "react";
+import { BottomSheetFlatList, BottomSheetView } from "@gorhom/bottom-sheet";
+import { forwardRef, useImperativeHandle, useRef } from "react";
 import { Pressable } from "react-native";
-import { useFontStore, FontId } from "@/store/font-store";
+import { useFontStore, FontId, toFontFamily } from "@/store/font-store";
 import { useThemeStore } from "@/store/theme";
+import PickerSheet, { PickerSheetHandle } from "./picker-sheet";
 
-const fontList: { id: FontId; name: string }[] = [
+const FONT_SIZE_MIN = 16;
+const FONT_SIZE_MAX = 48;
+const FONT_SIZE_STEP = 2;
+
+const SNAP_POINTS = ["50%"];
+
+const FONT_LIST: { id: FontId; name: string }[] = [
   { id: "system", name: "시스템 기본\n(System)" },
   { id: "NotoSansKR_400Regular", name: "노토 산스\n(Noto Sans)" },
   { id: "NanumMyeongjo_400Regular", name: "나눔 명조\n(Myeongjo)" },
@@ -25,102 +21,95 @@ const fontList: { id: FontId; name: string }[] = [
   { id: "NanumPenScript_400Regular", name: "나눔 펜\n(Nanum Pen)" },
 ];
 
-const FontPicker = forwardRef((props, ref) => {
-  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-  const snapPoints = useMemo(() => ["50%"], []);
+// 글자 크기 -/+ 버튼
+const FontSizeButton: React.FC<{ label: string; onPress: () => void }> = ({ label, onPress }) => (
+  <Pressable onPress={onPress}>
+    <Box
+      bg="$background"
+      p="xs"
+      px="md"
+      borderRadius="md"
+      style={{ elevation: 1, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } }}
+    >
+      <Text fontSize={20} fontWeight="bold">{label}</Text>
+    </Box>
+  </Pressable>
+);
+
+const FontPicker = forwardRef<PickerSheetHandle>((_props, ref) => {
+  const sheetRef = useRef<PickerSheetHandle>(null);
   const { currentFontId, updateFontId, currentFontSize, updateFontSize } = useFontStore();
   const { currentTheme } = useThemeStore();
 
   useImperativeHandle(ref, () => ({
-    open: () => bottomSheetModalRef.current?.present(),
-    close: () => bottomSheetModalRef.current?.dismiss(),
+    open: () => sheetRef.current?.open(),
+    close: () => sheetRef.current?.close(),
   }));
 
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop 
-        {...props} 
-        pressBehavior={"close"} 
-        appearsOnIndex={0} 
-        disappearsOnIndex={-1} 
-      />
-    ),
-    []
-  );
+  const changeFontSize = (delta: number) => {
+    const next = Math.min(FONT_SIZE_MAX, Math.max(FONT_SIZE_MIN, currentFontSize + delta));
+    updateFontSize(next);
+  };
 
   return (
-    <BottomSheetModal
-      index={0}
-      ref={bottomSheetModalRef}
-      snapPoints={snapPoints}
-      backdropComponent={renderBackdrop}
+    <PickerSheet
+      ref={sheetRef}
+      snapPoints={SNAP_POINTS}
       backgroundStyle={{ backgroundColor: currentTheme.colors.$sidebarBackground }}
       handleIndicatorStyle={{ backgroundColor: currentTheme.colors.$foreground }}
     >
       <BottomSheetView style={{ paddingBottom: 24 }}>
+        {/* ── 글자 크기 조절 ── */}
         <Box flexDirection="row" alignItems="center" justifyContent="space-between" px="xl" py="md" mt="md" mb="s">
           <Text fontSize={16} fontWeight="bold">글자 크기</Text>
           <Box flexDirection="row" alignItems="center" style={{ gap: 16 }}>
-            <Pressable onPress={() => updateFontSize(Math.max(16, currentFontSize - 2))}>
-              <Box bg="$background" p="xs" px="md" borderRadius="md" style={{ elevation: 1, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } }}>
-                <Text fontSize={20} fontWeight="bold">-</Text>
-              </Box>
-            </Pressable>
-            <Text fontSize={16} fontWeight="bold" style={{ minWidth: 24, textAlign: 'center' }}>{currentFontSize}</Text>
-            <Pressable onPress={() => updateFontSize(Math.min(48, currentFontSize + 2))}>
-              <Box bg="$background" p="xs" px="md" borderRadius="md" style={{ elevation: 1, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } }}>
-                <Text fontSize={20} fontWeight="bold">+</Text>
-              </Box>
-            </Pressable>
+            <FontSizeButton label="-" onPress={() => changeFontSize(-FONT_SIZE_STEP)} />
+            <Text fontSize={16} fontWeight="bold" style={{ minWidth: 24, textAlign: "center" }}>
+              {currentFontSize}
+            </Text>
+            <FontSizeButton label="+" onPress={() => changeFontSize(FONT_SIZE_STEP)} />
           </Box>
         </Box>
 
+        {/* ── 폰트 목록 (2열 그리드) ── */}
         <BottomSheetFlatList
-          data={fontList}
+          data={FONT_LIST}
           keyExtractor={(item) => item.id}
           numColumns={2}
-          contentContainerStyle={{
-            paddingTop: 12,
-            paddingHorizontal: 16,
-            paddingBottom: 24,
-          }}
-          columnWrapperStyle={{
-            marginBottom: 16,
-            justifyContent: "space-between",
-            gap: 16,
-          }}
+          contentContainerStyle={{ paddingTop: 12, paddingHorizontal: 16, paddingBottom: 24 }}
+          columnWrapperStyle={{ marginBottom: 16, justifyContent: "space-between", gap: 16 }}
           renderItem={({ item }) => {
             const isActive = currentFontId === item.id;
             return (
-              <Pressable 
+              <Pressable
+                style={{ flex: 1 }}
                 onPress={() => {
                   updateFontId(item.id);
-                  bottomSheetModalRef.current?.dismiss();
-                }} 
-                style={{ flex: 1 }}
+                  sheetRef.current?.close();
+                }}
               >
                 <Box
                   p="lg"
                   borderRadius="lg"
                   backgroundColor={isActive ? "$primary" : "$background"}
                   style={{
+                    height: 80,
+                    justifyContent: "center",
+                    alignItems: "center",
                     shadowColor: isActive ? currentTheme.colors.$primary : "#000",
                     shadowOpacity: 0.15,
                     shadowRadius: 8,
                     shadowOffset: { width: 0, height: 4 },
                     elevation: 2,
-                    height: 80,
-                    justifyContent: "center",
-                    alignItems: "center",
                   }}
                 >
                   <Text
-                    style={{ 
-                      fontFamily: item.id !== "system" ? item.id : undefined,
+                    style={{
+                      fontFamily: toFontFamily(item.id),
                       color: isActive ? "white" : currentTheme.colors.$foreground,
                       textAlign: "center",
                       fontSize: 15,
-                      fontWeight: isActive ? 'bold' : 'normal',
+                      fontWeight: isActive ? "bold" : "normal",
                     }}
                   >
                     {item.name}
@@ -131,7 +120,7 @@ const FontPicker = forwardRef((props, ref) => {
           }}
         />
       </BottomSheetView>
-    </BottomSheetModal>
+    </PickerSheet>
   );
 });
 
