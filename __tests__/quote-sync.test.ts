@@ -22,23 +22,31 @@ describe("syncNewQuotes", () => {
   });
 
   it("번들 이후의 새 명언만 저장하고 반환한다", async () => {
-    mockFetch([{ id: 3, text: " c ", author: "z" }]);
+    mockFetch([{ id: 3, text: " 시작이 반이다. ", author: "z" }]);
     const fresh = await syncNewQuotes();
-    expect(fresh).toEqual([{ id: "3", text: "c", author: "z" }]);
+    expect(fresh).toEqual([{ id: "3", text: "시작이 반이다.", author: "z" }]);
     expect(await loadSyncedQuotes()).toEqual(fresh);
     expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining("since_id=2"));
   });
 
   it("24시간 안에는 다시 요청하지 않는다", async () => {
-    mockFetch([{ id: 3, text: "c", author: "z" }]);
+    mockFetch([{ id: 3, text: "시작이 반이다.", author: "z" }]);
     await syncNewQuotes();
-    mockFetch([{ id: 4, text: "d", author: "z" }]);
+    mockFetch([{ id: 4, text: "아는 것이 힘이다.", author: "z" }]);
     expect(await syncNewQuotes()).toEqual([]);
     expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it("서버가 이전 id를 섞어 보내면 결과를 버린다", async () => {
-    mockFetch([{ id: 1, text: "a", author: "x" }, { id: 3, text: "c", author: "z" }]);
+    mockFetch([{ id: 1, text: "a", author: "x" }, { id: 3, text: "시작이 반이다.", author: "z" }]);
     expect(await syncNewQuotes()).toEqual([]);
+  });
+
+  it("새 명언도 다듬고 부적절한 항목은 뺀다", async () => {
+    mockFetch([
+      { id: 3, text: "시작이 반이다.\n시작은 절반이다.", author: "" },
+      { id: 4, text: "국력은 방어에 있는 것이 아니라 침략에 있다.", author: "아돌프 히틀러" },
+    ]);
+    expect(await syncNewQuotes()).toEqual([{ id: "3", text: "시작이 반이다.", author: "작자 미상" }]);
   });
 });
