@@ -4,6 +4,7 @@
 // 핵심 기능:
 //   - 명언 카드 표시 + 좌우 스와이프로 이전/다음 명언 전환
 //   - 필터 모드: 전체 / 내가 쓴 명언 / 즐겨찾기 (모드별로 보던 위치 유지, 수정·삭제 즉시 반영)
+//   - 카테고리: '전체' 모드에서 고른 카테고리의 명언만 보여준다
 //   - 명언 풀(pool) 관리: 번들 명언에서 50개씩 샘플링, 새 명언은 백그라운드 동기화
 //   - 테마/폰트 변경 바텀시트
 //   - AdMob 배너 광고 (광고 제거 미구매 시)
@@ -13,6 +14,8 @@
 
 import { Box, SafeAreaView } from "@/atom";
 import BannerAd from "@/components/banner-ad";
+import CategoryChip from "@/components/category-chip";
+import CategoryPicker, { CategorySelection } from "@/components/category-picker";
 import FontPicker from "@/components/font-picker";
 import HeaderIconButton from "@/components/header-icon-button";
 import HeaderLeft from "@/components/header-left";
@@ -23,12 +26,14 @@ import QuoteSwiper from "@/components/quote-swiper";
 import StreakBadge from "@/components/streak-badge";
 import ThemePicker from "@/components/theme-picker";
 import { QUOTE_BATCH_SIZE } from "@/data/quote-api";
+import { CategoryId, matchesCategory } from "@/data/quote-categories";
 import { quotes as bundledQuotes, loadSyncedQuotes, syncNewQuotes } from "@/data/quotes";
 import { useDailyIgnite } from "@/hooks/useDailyIgnite";
 import { useOverlayPermissionPrompt } from "@/hooks/useOverlayPermissionPrompt";
 import { useStreak } from "@/hooks/useStreak";
 import { Quote } from "@/models";
 import { useAdStore } from "@/store/ad-store";
+import { useCategoryStore } from "@/store/category";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { shuffle } from "@/utils/shuffle";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -56,12 +61,14 @@ const isCustomQuoteId = (id: string) => id.startsWith("custom-");
 export default function Index() {
   const { isAdFree } = useAdStore();
   const { customQuotes, favorites, favoritesData } = useFavoriteQuoteStore();
+  const { currentCategoryId, updateCategoryId } = useCategoryStore();
   const { currentStreak } = useStreak();
   const { isIgnited, markIgnited } = useDailyIgnite();
   useOverlayPermissionPrompt();
 
   const themePickerRef = useRef<PickerSheetHandle>(null);
   const fontPickerRef = useRef<PickerSheetHandle>(null);
+  const categoryPickerRef = useRef<PickerSheetHandle>(null);
 
   // 기본 명언: 앱에 번들된 전체 명언 + 동기화로 추가된 명언
   const [defaultQuotes, setDefaultQuotes] = useState<Quote[]>(bundledQuotes);
@@ -109,19 +116,25 @@ export default function Index() {
     return favorites.map((id) => byId.get(id)).filter((q): q is Quote => !!q);
   };
 
+  // '전체' 모드의 후보 명언: 기본 + 커스텀 중 고른 카테고리에 속하는 것
+  const getAllModeCandidates = (categoryId: CategoryId | null = currentCategoryId): Quote[] => {
+    const all = [...defaultQuotes, ...customQuotes];
+    return categoryId ? all.filter((q) => matchesCategory(q, categoryId)) : all;
+  };
+
   // ── buildPool ─────────────────────────────────────────────
   // 필터 모드에 맞는 명언 풀을 무작위 순서로 만든다.
-  //   - 'all': 기본 + 커스텀 명언 중 무작위 50개
+  //   - 'all': 기본 + 커스텀 명언 중 (카테고리에 맞는) 무작위 50개
   //   - 'mine': 커스텀 명언 전체
   //   - 'favorites': 즐겨찾기한 명언 전체
-  const buildPool = (mode: FilterMode): Quote[] => {
+  const buildPool = (mode: FilterMode, categoryId?: CategoryId | null): Quote[] => {
     switch (mode) {
       case "mine":
         return shuffle(customQuotes);
       case "favorites":
         return shuffle(getFavoriteQuotes());
       case "all":
-        return shuffle([...defaultQuotes, ...customQuotes]).slice(0, QUOTE_BATCH_SIZE);
+        return shuffle(getAllModeCandidates(categoryId)).slice(0, QUOTE_BATCH_SIZE);
     }
   };
 
@@ -210,6 +223,40 @@ export default function Index() {
     changeFilterMode(mode);
   };
 
+  // 카테고리를 바꾸면 '전체' 모드 목록을 새로 만들고 '전체' 모드로 전환한다.
+  const changeCategory = (categoryId: CategoryId | null) => {
+    if (filterMode !== "all") savedPagers.current[filterMode] = pager;
+    savedPagers.current.all = createPager();
+    setPager(createPager(buildPool("all", categoryId)));
+    setFilterMode("all");
+    updateCategoryId(categoryId);
+  };
+
+  // 저장된 카테고리를 늦게 불러오면 첫 명언 풀을 그 카테고리로 다시 만든다.
+  useEffect(() => {
+    const rebuild = (categoryId: CategoryId | null) => {
+      if (categoryId) setPager(createPager(buildPool("all", categoryId)));
+    };
+    // 첫 렌더와 이 effect 사이에 불러오기가 끝났으면 바로 반영한다.
+    const hydrated = useCategoryStore.getState().currentCategoryId;
+    if (useCategoryStore.persist.hasHydrated() && hydrated !== currentCategoryId) rebuild(hydrated);
+    return useCategoryStore.persist.onFinishHydration((state) => rebuild(state.currentCategoryId));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 카테고리 시트에서 고른 항목: '내 명언'이면 내 명언 모드로, 아니면 그 카테고리로 전환한다.
+  const selectCategory = (selection: CategorySelection) => {
+    if (selection !== "mine") {
+      changeCategory(selection);
+      return;
+    }
+    if (customQuotes.length === 0) {
+      Toast.show({ type: "info", text1: "알림", text2: "아직 직접 작성한 명언이 없습니다. 명언을 먼저 등록해 보세요!" });
+      return;
+    }
+    if (filterMode !== "mine") changeFilterMode("mine");
+  };
+
   // ── loadMoreQuotes ────────────────────────────────────────
   // '전체' 모드에서 목록 끝에 가까워지면 로컬 명언에서 더 뽑아 뒤에 붙인다.
   const loadMoreQuotes = () => {
@@ -217,7 +264,7 @@ export default function Index() {
 
     setPager((prev) => {
       const existingIds = new Set(prev.quotes.map((q) => q.id));
-      const candidates = [...defaultQuotes, ...customQuotes].filter((q) => !existingIds.has(q.id));
+      const candidates = getAllModeCandidates().filter((q) => !existingIds.has(q.id));
       return { ...prev, quotes: [...prev.quotes, ...shuffle(candidates).slice(0, QUOTE_BATCH_SIZE)] };
     });
   };
@@ -243,6 +290,7 @@ export default function Index() {
   };
 
   const currentQuote = pager.quotes[pager.currentIndex];
+  const isAllMode = filterMode === "all";
   const isMineMode = filterMode === "mine";
   const isFavoritesMode = filterMode === "favorites";
 
@@ -254,7 +302,7 @@ export default function Index() {
           <StreakBadge streak={currentStreak} />
         </HeaderLeft>
 
-        {/* 우측 상단: 내 명언 필터 / 불씨 보관함 필터 / 테마 / 폰트 */}
+        {/* 우측 상단: 불씨 보관함 필터 / 테마 / 폰트 (내 명언은 카테고리 시트에서 고른다) */}
         <Box
           position="absolute"
           top={0}
@@ -262,21 +310,12 @@ export default function Index() {
           m="s"
           p="xs"
           minHeight={44}
-          width={180}
+          width={135}
           justifyContent="space-around"
           alignItems="center"
           flexDirection="row"
           zIndex={10}
         >
-          <HeaderIconButton
-            active={isMineMode}
-            onPress={() =>
-              toggleFilterMode("mine", customQuotes.length === 0, "아직 직접 작성한 명언이 없습니다. 명언을 먼저 등록해 보세요!")
-            }
-          >
-            <FeatherIcon name={isMineMode ? "user-check" : "user"} size={20} color={isMineMode ? "white" : "$foreground"} />
-          </HeaderIconButton>
-
           <HeaderIconButton
             active={isFavoritesMode}
             activeColor="red"
@@ -304,6 +343,13 @@ export default function Index() {
           </HeaderIconButton>
         </Box>
 
+        {/* 헤더 아래 가운데: 카테고리 선택 ('전체'·'내 명언' 모드에서만) */}
+        {!isFavoritesMode && (
+          <Box position="absolute" top={72} left={0} right={0} alignItems="center" zIndex={10}>
+            <CategoryChip categoryId={isMineMode ? "mine" : currentCategoryId} onPress={() => categoryPickerRef.current?.open()} />
+          </Box>
+        )}
+
         {/* 명언 카드 (좌우 스와이프) */}
         <QuoteSwiper
           quote={currentQuote}
@@ -319,6 +365,11 @@ export default function Index() {
 
       <ThemePicker ref={themePickerRef} />
       <FontPicker ref={fontPickerRef} />
+      <CategoryPicker
+        ref={categoryPickerRef}
+        selectedId={isMineMode ? "mine" : isAllMode ? currentCategoryId : undefined}
+        onSelect={selectCategory}
+      />
 
       {/* 불씨를 직접 켜는 오버레이. 오늘 아직 점화하지 않았을 때만 표시 */}
       {!isIgnited && <IgniteScreen onIgnited={markIgnited} />}
