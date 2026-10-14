@@ -5,7 +5,7 @@
 //   - 명언 카드 표시 + 좌우 스와이프로 이전/다음 명언 전환
 //   - 필터 모드: 전체 / 내가 쓴 명언 / 즐겨찾기 (모드별로 보던 위치 유지, 수정·삭제 즉시 반영)
 //   - 카테고리: '전체' 모드에서 고른 카테고리의 명언만 보여준다
-//   - 명언 풀(pool) 관리: 번들 명언에서 50개씩 샘플링, 새 명언은 백그라운드 동기화
+//   - 명언 풀(pool) 관리: 번들 명언에서 50개씩 샘플링(첫 50개는 날짜 시드로 고정 = 오늘의 명언), 새 명언은 백그라운드 동기화
 //   - 테마/폰트 변경 바텀시트
 //   - AdMob 배너 광고 (광고 제거 미구매 시)
 //   - 하루 1번 불씨 점화(Hold to Ignite) 화면
@@ -25,13 +25,15 @@ import QuoteSwiper from "@/components/quote-swiper";
 import StreakBadge from "@/components/streak-badge";
 import ThemePicker from "@/components/theme-picker";
 import { QUOTE_BATCH_SIZE } from "@/data/quote-api";
-import { CategoryId, matchesCategory } from "@/data/quote-categories";
+import { getAllModeCandidates, orderQuotesForDay } from "@/data/daily-quote";
+import { CategoryId } from "@/data/quote-categories";
 import { quotes as bundledQuotes, loadSyncedQuotes, syncNewQuotes } from "@/data/quotes";
 import { useDailyIgnite } from "@/hooks/useDailyIgnite";
 import { useOverlayPermissionPrompt } from "@/hooks/useOverlayPermissionPrompt";
 import { useStreak } from "@/hooks/useStreak";
 import { Quote } from "@/models";
 import { useAdStore } from "@/store/ad-store";
+import { refreshDailyNotifications } from "@/store/notification";
 import { useCategoryStore } from "@/store/category";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { shuffle } from "@/utils/shuffle";
@@ -100,6 +102,13 @@ export default function Index() {
     })();
   }, []);
 
+  // 오늘의 명언을 정하는 후보(카테고리·즐겨찾기·명언 목록)가 바뀌면 알림 명언도 다시 예약한다.
+  // 연달아 바뀌는 경우(즐겨찾기 여러 번 등)를 묶어서 한 번만 예약한다.
+  useEffect(() => {
+    const timer = setTimeout(refreshDailyNotifications, 1000);
+    return () => clearTimeout(timer);
+  }, [currentCategoryId, favorites, customQuotes, defaultQuotes]);
+
   // 첫 명언 풀을 만든다. (명언이 추가되어도 보던 위치는 유지)
   useEffect(() => {
     setPager((prev) => (prev.quotes.length > 0 ? prev : createPager(buildPool(filterMode))));
@@ -117,19 +126,14 @@ export default function Index() {
     return favorites.map((id) => byId.get(id)).filter((q): q is Quote => !!q);
   };
 
-  // '전체' 모드의 후보 명언: 기본 + 커스텀 중 고른 카테고리에 속하고, 불씨를 지피지(즐겨찾기) 않은 것
-  // 카테고리의 명언을 모두 즐겨찾기했다면 즐겨찾기한 명언도 그대로 보여준다.
-  const getAllModeCandidates = (categoryId: CategoryId | null = currentCategoryId): Quote[] => {
-    const all = [...defaultQuotes, ...customQuotes];
-    const inCategory = categoryId ? all.filter((q) => matchesCategory(q, categoryId)) : all;
-    const favoriteIds = new Set(favorites);
-    const notFavorited = inCategory.filter((q) => !favoriteIds.has(q.id));
-    return notFavorited.length > 0 ? notFavorited : inCategory;
-  };
+  // '전체' 모드의 후보 명언 (기본 + 커스텀, data/daily-quote.ts 참고)
+  const getCandidates = (categoryId: CategoryId | null = currentCategoryId): Quote[] =>
+    getAllModeCandidates([...defaultQuotes, ...customQuotes], categoryId, new Set(favorites));
 
   // ── buildPool ─────────────────────────────────────────────
   // 필터 모드에 맞는 명언 풀을 무작위 순서로 만든다.
-  //   - 'all': 기본 + 커스텀 명언 중 (카테고리에 맞는) 무작위 50개
+  //   - 'all': 기본 + 커스텀 명언 중 (카테고리에 맞는) 50개. 오늘 날짜를 시드로 섞어서
+  //            같은 날에는 앱을 다시 실행해도 첫 명언(오늘의 명언)과 순서가 같다.
   //   - 'mine': 커스텀 명언 전체
   //   - 'favorites': 즐겨찾기한 명언 전체
   const buildPool = (mode: FilterMode, categoryId?: CategoryId | null): Quote[] => {
@@ -139,7 +143,7 @@ export default function Index() {
       case "favorites":
         return shuffle(getFavoriteQuotes());
       case "all":
-        return shuffle(getAllModeCandidates(categoryId)).slice(0, QUOTE_BATCH_SIZE);
+        return orderQuotesForDay(getCandidates(categoryId)).slice(0, QUOTE_BATCH_SIZE);
     }
   };
 
@@ -269,7 +273,7 @@ export default function Index() {
 
     setPager((prev) => {
       const existingIds = new Set(prev.quotes.map((q) => q.id));
-      const candidates = getAllModeCandidates().filter((q) => !existingIds.has(q.id));
+      const candidates = getCandidates().filter((q) => !existingIds.has(q.id));
       return { ...prev, quotes: [...prev.quotes, ...shuffle(candidates).slice(0, QUOTE_BATCH_SIZE)] };
     });
   };
