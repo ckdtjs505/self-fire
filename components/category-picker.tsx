@@ -6,8 +6,6 @@
 
 import { Box, Text } from "@/atom";
 import { CATEGORIES, CategoryId } from "@/data/quote-categories";
-import { useThemeStore } from "@/store/theme";
-import { BottomSheetView } from "@gorhom/bottom-sheet";
 import { forwardRef, useImperativeHandle, useRef } from "react";
 import { Pressable } from "react-native";
 import PickerSheet, { PickerSheetHandle } from "./picker-sheet";
@@ -29,7 +27,6 @@ type Props = {
 
 const CategoryPicker = forwardRef<PickerSheetHandle, Props>(function CategoryPicker({ selectedId, onSelect }, ref) {
   const sheetRef = useRef<PickerSheetHandle>(null);
-  const { currentTheme } = useThemeStore();
 
   useImperativeHandle(ref, () => ({
     open: () => sheetRef.current?.open(),
@@ -37,58 +34,38 @@ const CategoryPicker = forwardRef<PickerSheetHandle, Props>(function CategoryPic
   }));
 
   return (
-    <PickerSheet
-      ref={sheetRef}
-      backgroundStyle={{ backgroundColor: currentTheme.colors.$sidebarBackground }}
-      handleIndicatorStyle={{ backgroundColor: currentTheme.colors.$foreground, opacity: 0.2 }}
-    >
-      <BottomSheetView style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 40 }}>
-        <Text fontSize={18} fontWeight="bold">카테고리</Text>
-        <Text fontSize={13} mt="xs" style={{ opacity: 0.5 }}>
-          보고 싶은 명언의 주제를 골라 보세요
-        </Text>
-
-        {/* 내용 길이에 맞춰 줄바꿈되는 칩 목록 */}
-        <Box flexDirection="row" flexWrap="wrap" mt="lg" style={{ gap: 8 }}>
-          {ITEMS.map((item) => {
-            const isActive = selectedId === item.id;
-            return (
-              <Pressable
-                key={item.id ?? "all"}
-                onPress={() => {
-                  onSelect(item.id);
-                  sheetRef.current?.close();
-                }}
+    <PickerSheet ref={sheetRef} title="카테고리" description="보고 싶은 명언의 주제를 골라 보세요">
+      {/* 내용 길이에 맞춰 줄바꿈되는 칩 목록 */}
+      <Box flexDirection="row" flexWrap="wrap" style={{ gap: 8 }}>
+        {ITEMS.map((item) => {
+          const isActive = selectedId === item.id;
+          return (
+            <Pressable
+              key={item.id ?? "all"}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isActive }}
+              onPress={() => {
+                onSelect(item.id);
+                sheetRef.current?.close();
+              }}
+            >
+              <Box
+                flexDirection="row"
+                alignItems="center"
+                height={42}
+                borderRadius="pill"
+                bg={isActive ? "$primary" : "$surfaceMuted"}
+                style={{ gap: 6, paddingHorizontal: 16 }}
               >
-                <Box
-                  flexDirection="row"
-                  alignItems="center"
-                  borderRadius="hg"
-                  backgroundColor={isActive ? "$primary" : "$background"}
-                  style={{
-                    gap: 6,
-                    height: 40,
-                    paddingHorizontal: 14,
-                    borderWidth: 1,
-                    borderColor: isActive ? currentTheme.colors.$primary : currentTheme.colors.$foreground + "14",
-                  }}
-                >
-                  <Text fontSize={15}>{item.emoji}</Text>
-                  <Text
-                    fontSize={14}
-                    style={{
-                      color: isActive ? "white" : currentTheme.colors.$foreground,
-                      fontWeight: isActive ? "bold" : "500",
-                    }}
-                  >
-                    {item.label}
-                  </Text>
-                </Box>
-              </Pressable>
-            );
-          })}
-        </Box>
-      </BottomSheetView>
+                <Text fontSize={15}>{item.emoji}</Text>
+                <Text fontSize={14} fontWeight={isActive ? "700" : "500"} color={isActive ? "$onPrimary" : "$foreground"}>
+                  {item.label}
+                </Text>
+              </Box>
+            </Pressable>
+          );
+        })}
+      </Box>
     </PickerSheet>
   );
 });

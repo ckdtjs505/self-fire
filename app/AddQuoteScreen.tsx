@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { Box, SafeAreaView, Text } from "@/atom";
-import FeatherIcon from "@/components/icon";
+import ScreenHeader from "@/components/screen-header";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { useThemeStore } from "@/store/theme";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -34,7 +34,9 @@ export default function AddQuoteScreen() {
 
   // 명언 추가/수정 함수를 전역 스토어에서 가져온다.
   const { addCustomQuote, updateCustomQuote } = useFavoriteQuoteStore();
-  const inputColor = useThemeStore().currentTheme.colors.$foreground;
+  const { colors } = useThemeStore().currentTheme;
+  // 지금 입력 중인 칸 (테두리를 강조색으로 표시)
+  const [focused, setFocused] = useState<"text" | "author" | null>(null);
 
   // 명언 내용과 작성자 입력 상태 관리
   // 수정 모드이면 기존 값으로 초기화한다.
@@ -78,52 +80,52 @@ export default function AddQuoteScreen() {
         {/* 화면 바깥 터치 시 키보드 닫기 */}
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <Box flex={1}>
-            {/* ── Header ─────────────────────────────────────
-                좌: 닫기 버튼 / 중앙: 화면 제목 / 우: 저장 버튼 */}
-            <Box
-              flexDirection="row"
-              alignItems="center"
-              padding="md"
-              justifyContent="space-between"
-              borderBottomWidth={1}
-              borderBottomColor="$headerBackground"
-              backgroundColor="$background"
-            >
-              {/* 닫기 버튼: 이전 화면으로 돌아간다 */}
-              <Pressable onPress={() => router.back()} style={styles.headerButton}>
-                <FeatherIcon name="x" size={24} color="$foreground" />
-              </Pressable>
-              {/* 화면 제목: 수정 모드에 따라 문구가 달라진다 */}
-              <Text fontSize={18} fontWeight="bold" color="$foreground">
-                {isEditing ? "명언 수정" : "명언 추가"}
-              </Text>
-              {/* 저장 버튼 */}
-              <Pressable onPress={handleSave} style={styles.headerButton}>
-                <Text fontSize={18} fontWeight="bold" color="$primary">저장</Text>
-              </Pressable>
-            </Box>
+            {/* ── Header: 닫기 / 화면 제목 / 저장 ── */}
+            <ScreenHeader
+              title={isEditing ? "명언 수정" : "명언 추가"}
+              backIcon="x"
+              right={
+                <Pressable onPress={handleSave} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+                  <Box bg="$primary" borderRadius="pill" height={38} px="lg" justifyContent="center">
+                    <Text color="$onPrimary" fontSize={14} fontWeight="800">
+                      저장
+                    </Text>
+                  </Box>
+                </Pressable>
+              }
+            />
 
             <ScrollView
               style={{ flex: 1 }}
-              contentContainerStyle={{ padding: 20 }}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12 }}
               keyboardShouldPersistTaps="handled" // 스크롤 중 탭해도 키보드가 닫히지 않게
             >
               {/* ── 명언 내용 입력 영역 ────────────────────── */}
               <Box marginBottom="xl">
-                <Text fontSize={14} fontWeight="600" marginBottom="s" style={{ opacity: 0.6 }}>내용</Text>
+                <Box flexDirection="row" justifyContent="space-between" alignItems="flex-end" marginBottom="s" marginLeft="xs">
+                  <Text variant="overline">내용</Text>
+                  <Text variant="caption" fontSize={12} style={{ fontVariant: ["tabular-nums"] }}>
+                    {text.length}자
+                  </Text>
+                </Box>
                 <Box
-                  backgroundColor="$sidebarBackground"
-                  borderRadius="md"
-                  padding="md"
-                  minHeight={150}
+                  bg="$surface"
+                  borderRadius="lg"
+                  padding="lg"
+                  minHeight={170}
+                  borderWidth={1.5}
+                  borderColor={focused === "text" ? "$primary" : "$border"}
                 >
                   <TextInput
                     multiline                        // 여러 줄 입력 허용
                     placeholder="가슴을 뛰게 하는 명언을 입력하세요."
-                    placeholderTextColor="#999"
+                    placeholderTextColor={colors.$muted}
+                    selectionColor={colors.$primary}
                     value={text}
                     onChangeText={setText}
-                    style={[styles.textArea, { color: inputColor }]}
+                    onFocus={() => setFocused("text")}
+                    onBlur={() => setFocused(null)}
+                    style={[styles.textArea, { color: colors.$foreground }]}
                     textAlignVertical="top"          // Android: 텍스트를 상단 정렬
                   />
                 </Box>
@@ -131,26 +133,36 @@ export default function AddQuoteScreen() {
 
               {/* ── 작성자/출처 입력 영역 ──────────────────── */}
               <Box marginBottom="xl">
-                <Text fontSize={14} fontWeight="600" marginBottom="s" style={{ opacity: 0.6 }}>작성자 / 출처</Text>
+                <Text variant="overline" marginBottom="s" marginLeft="xs">
+                  작성자 / 출처
+                </Text>
                 <Box
-                  backgroundColor="$sidebarBackground"
-                  borderRadius="md"
-                  padding="md"
+                  bg="$surface"
+                  borderRadius="lg"
+                  paddingHorizontal="lg"
+                  height={54}
+                  justifyContent="center"
+                  borderWidth={1.5}
+                  borderColor={focused === "author" ? "$primary" : "$border"}
                 >
                   <TextInput
                     placeholder="이름 또는 출처를 입력하세요."
-                    placeholderTextColor="#999"
+                    placeholderTextColor={colors.$muted}
+                    selectionColor={colors.$primary}
                     value={author}
                     onChangeText={setAuthor}
-                    style={[styles.input, { color: inputColor }]}
+                    onFocus={() => setFocused("author")}
+                    onBlur={() => setFocused(null)}
+                    style={[styles.input, { color: colors.$foreground }]}
                   />
                 </Box>
               </Box>
 
               {/* ── 안내 문구 ──────────────────────────────── */}
-              <Box paddingVertical="xl" alignItems="center">
-                <Text fontSize={12} style={{ opacity: 0.5, textAlign: "center", lineHeight: 18 }}>
-                  등록된 명언은 메인 화면의 슬라이드 리스트에{"\n"}포함되어 무작위로 나타나게 됩니다.
+              <Box flexDirection="row" bg="$surfaceMuted" borderRadius="md" padding="md" style={{ gap: 8 }}>
+                <Text fontSize={13}>💡</Text>
+                <Text variant="caption" lineHeight={19} style={{ flex: 1 }}>
+                  등록된 명언은 메인 화면의 명언 목록에 포함되어 무작위로 나타납니다.
                 </Text>
               </Box>
             </ScrollView>
@@ -163,14 +175,11 @@ export default function AddQuoteScreen() {
 
 // ── StyleSheet ────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  // 헤더 좌/우 버튼의 터치 영역을 넓히기 위한 패딩
-  headerButton: {
-    padding: 4,
-  },
   // 명언 내용 멀티라인 입력창
   textArea: {
     fontSize: 18,
-    minHeight: 120,
+    lineHeight: 28,
+    minHeight: 130,
     textAlignVertical: "top",
     padding: 0,
   },

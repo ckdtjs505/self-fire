@@ -12,7 +12,7 @@ type Props = {
   streak: number;
 };
 
-// 헤더 아이콘 버튼과 같은 높이·배경의 알약 모양으로 연속 방문 일수를 보여준다.
+// 헤더 아이콘 버튼과 같은 높이의 알약 모양으로 연속 방문 일수를 보여준다.
 const StreakBadge: React.FC<Props> = ({ streak }) => {
   const scale = useSharedValue(1);
   const prevStreak = useRef(streak);
@@ -35,29 +35,22 @@ const StreakBadge: React.FC<Props> = ({ streak }) => {
   if (streak <= 0) return null;
 
   return (
-    <Animated.View style={animStyle}>
+    <Animated.View style={animStyle} accessibilityLabel={`${streak}일 연속 방문`}>
       <Box
         flexDirection="row"
         alignItems="center"
-        bg="$sidebarBackground"
-        borderRadius="hg"
-        height={40}
-        justifyContent="center"
-        style={{
-          gap: 4,
-          paddingLeft: 12,
-          paddingRight: 14,
-          shadowColor: "#000",
-          shadowOpacity: 0.05,
-          shadowRadius: 10,
-          shadowOffset: { width: 0, height: 4 },
-        }}
+        bg="$surface"
+        borderWidth={1}
+        borderColor="$border"
+        borderRadius="pill"
+        height={42}
+        style={{ gap: 5, paddingLeft: 12, paddingRight: 14 }}
       >
-        <Ionicon name="flame" size={16} color="red" />
-        <Text fontSize={14} fontWeight="bold">
+        <Ionicon name="flame" size={17} color="$flame" />
+        <Text fontSize={15} fontWeight="800">
           {streak}
         </Text>
-        <Text fontSize={12} style={{ opacity: 0.6 }}>
+        <Text variant="caption" fontSize={12}>
           일째
         </Text>
       </Box>

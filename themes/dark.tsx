@@ -1,35 +1,22 @@
 import { createTheme } from "@shopify/restyle";
-import light from "./light";
-const palette = {
-  slate00: "#020617", // Very deep background
-  slate10: "#0F172A", // Deep Navy background
-  slate20: "#1E293B", // Elevated background
-  slate30: "#334155", // Borders/secondary elevated
-  slate40: "#475569", 
-  slate100: "#94A3B8", // Subtle text
-  slate900: "#F8FAFC", // Main bright text
-  primary: "#818CF8", // Vibrant Indigo for contrast
-};
+import light, { makeColors } from "./light";
+
+// 다크 — 꺼지지 않는 잉걸불 같은 따뜻한 검정
 const theme = createTheme({
   ...light,
-  colors: {
-    ...light.colors,
-
-    $primary: palette.primary,
-    $background: palette.slate10,
-    $foreground: palette.slate900,
-    $sidebarBackground: palette.slate20,
-    $sidebarForeground: palette.slate100,
-    $headerBackground: palette.slate10,
-  },
-  textVariants: {
-    defaults: {
-      color: "$foreground",
-      fontSize: 16,
-    },
-  },
+  colors: makeColors({
+    background: "#141211",
+    surface: "#1E1B19",
+    surfaceMuted: "#282421",
+    foreground: "#F4EFE9",
+    muted: "#A39A91",
+    border: "rgba(244,239,233,0.08)",
+    primary: "#FF7A3D",
+    primarySoft: "rgba(255,122,61,0.14)",
+    onPrimary: "#1A0E08",
+    flame: "#FF6A2C",
+  }),
   barStyle: "light",
 });
 
-export type Theme = typeof theme;
 export default theme;

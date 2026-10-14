@@ -14,14 +14,14 @@ describe("fitQuoteFontSize", () => {
     expect(fitQuoteFontSize(1, 30, W, H)).toBe(30);
   });
 
-  it("긴 명언은 본문 영역(화면 높이의 40%)에 들어가도록 줄인다", () => {
+  it("긴 명언은 본문 영역(화면 높이의 36%)에 들어가도록 줄인다", () => {
     const textWidth = W - 16 * 2 - 40 * 2;
     for (const len of [97, 130, 175]) {
       const fs = fitQuoteFontSize(len, 48, W, H);
       expect(fs).toBeLessThan(48);
       // 글자 하나 ≈ fs 너비로 가정한 예상 높이
       const estimatedHeight = ((len * fs) / textWidth) * fs * 1.6;
-      expect(estimatedHeight).toBeLessThanOrEqual(H * 0.4);
+      expect(estimatedHeight).toBeLessThanOrEqual(H * 0.36);
     }
   });
 

@@ -4,7 +4,9 @@
 // ─────────────────────────────────────────────────────────────
 
 import { Box, SafeAreaView, Text } from "@/atom";
+import HeaderIconButton from "@/components/header-icon-button";
 import FeatherIcon from "@/components/icon";
+import ScreenHeader from "@/components/screen-header";
 import { Quote } from "@/models";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { useRouter } from "expo-router";
@@ -12,38 +14,23 @@ import { Alert, FlatList, Pressable } from "react-native";
 
 // 목록이 비었을 때 안내 + 첫 명언 등록 버튼
 const EmptyState: React.FC<{ onAdd: () => void }> = ({ onAdd }) => (
-  <Box flex={1} justifyContent="center" alignItems="center" padding="xl" marginTop="hg">
-    <Box
-      width={80}
-      height={80}
-      borderRadius="hg"
-      bg="$sidebarBackground"
-      justifyContent="center"
-      alignItems="center"
-      style={{ opacity: 0.5 }}
-    >
-      <FeatherIcon name="edit-3" size={40} color="$foreground" />
+  <Box flex={1} justifyContent="center" alignItems="center" padding="xl" style={{ marginTop: 96 }}>
+    <Box width={76} height={76} borderRadius="pill" bg="$primarySoft" justifyContent="center" alignItems="center">
+      <FeatherIcon name="edit-3" size={30} color="$primary" />
     </Box>
-    <Text marginTop="xl" fontSize={18} fontWeight="bold" color="$foreground" style={{ opacity: 0.7 }}>
-      명언이 아직 없습니다.
+    <Text variant="heading" marginTop="xl">
+      아직 작성한 명언이 없어요
     </Text>
-    <Text marginTop="s" color="$foreground" style={{ opacity: 0.5, textAlign: "center" }}>
+    <Text variant="caption" fontSize={14} marginTop="s" textAlign="center" lineHeight={21}>
       당신의 마음을 울리는 첫 번째{"\n"}명언을 직접 기록해 보세요.
     </Text>
-    <Pressable
-      onPress={onAdd}
-      style={({ pressed }) => ({
-        marginTop: 32,
-        paddingHorizontal: 24,
-        paddingVertical: 12,
-        backgroundColor: "#2185d0",
-        borderRadius: 24,
-        opacity: pressed ? 0.8 : 1,
-      })}
-    >
-      <Text color="white" fontWeight="bold" fontSize={16}>
-        첫 명언 등록하기
-      </Text>
+    <Pressable onPress={onAdd} style={({ pressed }) => ({ marginTop: 28, opacity: pressed ? 0.8 : 1 })}>
+      <Box bg="$primary" borderRadius="pill" height={50} px="xl" flexDirection="row" alignItems="center" style={{ gap: 6 }}>
+        <FeatherIcon name="plus" size={18} color="$onPrimary" />
+        <Text color="$onPrimary" fontWeight="800" fontSize={15}>
+          첫 명언 등록하기
+        </Text>
+      </Box>
     </Pressable>
   </Box>
 );
@@ -54,56 +41,37 @@ type QuoteRowProps = {
   onDelete: () => void;
 };
 
+// 명언 한 장: 누르면 수정, 휴지통 버튼으로 삭제
 const QuoteRow: React.FC<QuoteRowProps> = ({ quote, onEdit, onDelete }) => (
-  <Box
-    bg="$sidebarBackground"
-    marginHorizontal="md"
-    marginVertical="xs"
-    borderRadius="lg"
-    padding="lg"
-    flexDirection="row"
-    alignItems="center"
-    justifyContent="space-between"
-    style={{
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
-    }}
-  >
-    <Box flex={1} marginRight="md">
-      <Text color="$sidebarForeground" fontSize={17} fontWeight="600" lineHeight={24}>
-        {`"${quote.text}"`}
-      </Text>
-      <Text color="$sidebarForeground" fontSize={13} marginTop="s" style={{ opacity: 0.5 }}>
-        — {quote.author}
-      </Text>
-    </Box>
+  <Pressable onPress={onEdit} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+    <Box
+      bg="$surface"
+      borderWidth={1}
+      borderColor="$border"
+      marginHorizontal="lg"
+      marginBottom="s"
+      borderRadius="lg"
+      padding="lg"
+      flexDirection="row"
+      alignItems="flex-start"
+      style={{ gap: 12 }}
+    >
+      <Box flex={1}>
+        <Text fontSize={16} fontWeight="600" lineHeight={25}>
+          {quote.text}
+        </Text>
+        <Text variant="caption" marginTop="s">
+          {quote.author}
+        </Text>
+      </Box>
 
-    <Box flexDirection="row" alignItems="center" style={{ gap: 8 }}>
-      <Pressable
-        onPress={onEdit}
-        style={({ pressed }) => ({
-          padding: 8,
-          borderRadius: 20,
-          backgroundColor: pressed ? "rgba(255,255,255,0.1)" : undefined,
-        })}
-      >
-        <FeatherIcon name="edit-2" size={18} color="$sidebarForeground" style={{ opacity: 0.7 }} />
-      </Pressable>
-      <Pressable
-        onPress={onDelete}
-        style={({ pressed }) => ({
-          padding: 8,
-          borderRadius: 20,
-          backgroundColor: pressed ? "rgba(255,0,0,0.1)" : undefined,
-        })}
-      >
-        <FeatherIcon name="trash-2" size={18} color="red" style={{ opacity: 0.8 }} />
+      <Pressable onPress={onDelete} hitSlop={8} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
+        <Box width={34} height={34} borderRadius="pill" bg="$surfaceMuted" justifyContent="center" alignItems="center">
+          <FeatherIcon name="trash-2" size={15} color="$muted" />
+        </Box>
       </Pressable>
     </Box>
-  </Box>
+  </Pressable>
 );
 
 export default function MyQuotesScreen() {
@@ -124,38 +92,27 @@ export default function MyQuotesScreen() {
   };
 
   return (
-    <SafeAreaView flex={1}>
-      <Box backgroundColor="$background" flex={1}>
-        {/* ── 헤더: 뒤로 / 제목 / 추가 ── */}
-        <Box
-          flexDirection="row"
-          alignItems="center"
-          padding="md"
-          justifyContent="space-between"
-          borderBottomWidth={1}
-          borderBottomColor="$headerBackground"
-        >
-          <Pressable onPress={() => router.back()} style={{ padding: 4 }}>
-            <FeatherIcon name="chevron-left" size={24} color="$foreground" />
-          </Pressable>
-          <Text fontSize={20} fontWeight="bold" color="$foreground">
-            나만의 명언
-          </Text>
-          <Pressable onPress={goToAdd} style={{ padding: 4 }}>
-            <FeatherIcon name="plus" size={24} color="$primary" />
-          </Pressable>
-        </Box>
+    <SafeAreaView flex={1} bg="$background">
+      <ScreenHeader
+        title="나만의 명언"
+        right={
+          customQuotes.length > 0 && (
+            <HeaderIconButton active onPress={goToAdd} accessibilityLabel="명언 추가">
+              <FeatherIcon name="plus" size={20} color="$onPrimary" />
+            </HeaderIconButton>
+          )
+        }
+      />
 
-        <FlatList
-          data={customQuotes}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingBottom: 40 }}
-          ListEmptyComponent={<EmptyState onAdd={goToAdd} />}
-          renderItem={({ item }) => (
-            <QuoteRow quote={item} onEdit={() => goToEdit(item)} onDelete={() => confirmDelete(item.id)} />
-          )}
-        />
-      </Box>
+      <FlatList
+        data={customQuotes}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingTop: 8, paddingBottom: 40, flexGrow: 1 }}
+        ListEmptyComponent={<EmptyState onAdd={goToAdd} />}
+        renderItem={({ item }) => (
+          <QuoteRow quote={item} onEdit={() => goToEdit(item)} onDelete={() => confirmDelete(item.id)} />
+        )}
+      />
     </SafeAreaView>
   );
 }

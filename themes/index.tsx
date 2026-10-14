@@ -14,12 +14,12 @@ export type ThemeMeta = {
 };
 
 export const themeList: ThemeMeta[] = [
-  { id: "light", name: "Light", theme: light },
-  { id: "dark", name: "Dark", theme: dark },
-  { id: "nature", name: "Nature", theme: nature },
-  { id: "ocean", name: "Ocean", theme: ocean },
-  { id: "sunset", name: "Sunset", theme: sunset },
-  { id: "sepia", name: "Sepia", theme: sepia },
+  { id: "light", name: "라이트", theme: light },
+  { id: "dark", name: "다크", theme: dark },
+  { id: "nature", name: "숲", theme: nature },
+  { id: "ocean", name: "바다", theme: ocean },
+  { id: "sunset", name: "노을", theme: sunset },
+  { id: "sepia", name: "세피아", theme: sepia },
 ];
 
 export const getTheme = (themeId: ThemeId): Theme =>

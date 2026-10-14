@@ -8,7 +8,9 @@
 // ─────────────────────────────────────────────────────────────
 
 import { Box, SafeAreaView, Text } from "@/atom";
+import ScreenHeader from "@/components/screen-header";
 import SettingItem, { SettingDivider, SettingSection, SettingSwitch } from "@/components/setting-item";
+import FeatherIcon from "@/components/icon";
 import { useAutoLaunch } from "@/hooks/useAutoLaunch";
 import { useRemoveAdsPurchase } from "@/hooks/useRemoveAdsPurchase";
 import { useNotificationStore } from "@/store/notification";
@@ -43,19 +45,15 @@ const TimeStepper: React.FC<{ value: number; onDecrease: () => void; onIncrease:
   onDecrease,
   onIncrease,
 }) => (
-  <Box flexDirection="row" alignItems="center" style={{ gap: 6 }}>
-    <Pressable onPress={onDecrease} hitSlop={6}>
-      <Box bg="$background" borderRadius="md" px="s" py="xs">
-        <Text fontSize={16}>‹</Text>
-      </Box>
+  <Box flexDirection="row" alignItems="center" bg="$surfaceMuted" borderRadius="sm" style={{ padding: 2 }}>
+    <Pressable onPress={onDecrease} hitSlop={6} style={({ pressed }) => ({ padding: 6, opacity: pressed ? 0.5 : 1 })}>
+      <FeatherIcon name="chevron-left" size={16} color="$muted" />
     </Pressable>
-    <Text fontSize={15} fontWeight="bold" style={{ minWidth: 24, textAlign: "center" }}>
+    <Text fontSize={16} fontWeight="800" style={{ minWidth: 24, textAlign: "center", fontVariant: ["tabular-nums"] }}>
       {pad2(value)}
     </Text>
-    <Pressable onPress={onIncrease} hitSlop={6}>
-      <Box bg="$background" borderRadius="md" px="s" py="xs">
-        <Text fontSize={16}>›</Text>
-      </Box>
+    <Pressable onPress={onIncrease} hitSlop={6} style={({ pressed }) => ({ padding: 6, opacity: pressed ? 0.5 : 1 })}>
+      <FeatherIcon name="chevron-right" size={16} color="$muted" />
     </Pressable>
   </Box>
 );
@@ -73,12 +71,10 @@ export default function SettingScreen() {
   } = useNotificationStore();
 
   return (
-    <SafeAreaView flex={1}>
-      <Box backgroundColor="$background" flex={1}>
-        <ScrollView contentContainerStyle={{ padding: 16 }}>
-          <Text fontSize={24} fontWeight="bold" marginBottom="xl" marginTop="s">
-            설정
-          </Text>
+    <SafeAreaView flex={1} bg="$background">
+      <Box flex={1}>
+        <ScreenHeader title="설정" />
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8 }}>
 
           <SettingSection title="알림">
             <SettingItem
@@ -92,18 +88,20 @@ export default function SettingScreen() {
             {isNotificationEnabled && (
               <>
                 <SettingDivider />
-                <Box flexDirection="row" alignItems="center" justifyContent="space-between" px="md" minHeight={56}>
-                  <Box flexDirection="row" alignItems="center" style={{ gap: 8 }}>
-                    <Text fontSize={14}>⏰</Text>
-                    <Text fontSize={14}>알림 시간</Text>
+                <Box flexDirection="row" alignItems="center" minHeight={58} style={{ paddingHorizontal: 14, gap: 12 }}>
+                  <Box width={34} height={34} borderRadius="sm" bg="$surfaceMuted" justifyContent="center" alignItems="center">
+                    <FeatherIcon name="clock" size={17} />
                   </Box>
+                  <Text variant="body" style={{ flex: 1 }}>
+                    알림 시간
+                  </Text>
                   <Box flexDirection="row" alignItems="center" style={{ gap: 4 }}>
                     <TimeStepper
                       value={hour}
                       onDecrease={() => setTime(stepWithWrap(hour, -1, 23), minute)}
                       onIncrease={() => setTime(stepWithWrap(hour, 1, 23), minute)}
                     />
-                    <Text fontSize={15} fontWeight="bold">:</Text>
+                    <Text fontSize={16} fontWeight="800" color="$muted">:</Text>
                     <TimeStepper
                       value={minute}
                       onDecrease={() => setTime(hour, stepWithWrap(minute, -MINUTE_STEP, 60 - MINUTE_STEP))}
@@ -140,11 +138,13 @@ export default function SettingScreen() {
               onPress={purchaseRemoveAds}
               rightElement={
                 isAdFree ? (
-                  <Text fontSize={14} color="$primary" fontWeight="bold">
-                    활성화됨
-                  </Text>
+                  <Box bg="$primarySoft" borderRadius="pill" px="s" style={{ paddingVertical: 3 }}>
+                    <Text fontSize={12} color="$primary" fontWeight="800">
+                      적용됨
+                    </Text>
+                  </Box>
                 ) : (
-                  <Text fontSize={14} style={{ opacity: 0.6 }}>
+                  <Text variant="caption" fontSize={14} fontWeight="600">
                     {price}
                   </Text>
                 )
@@ -171,7 +171,7 @@ export default function SettingScreen() {
               icon="info"
               title="버전 정보"
               rightElement={
-                <Text color="$sidebarForeground" style={{ opacity: 0.6 }}>
+                <Text variant="caption" fontSize={14}>
                   {APP_VERSION}
                 </Text>
               }
@@ -179,7 +179,7 @@ export default function SettingScreen() {
           </SettingSection>
 
           <Box paddingVertical="xl" alignItems="center">
-            <Text fontSize={12} color="$foreground" style={{ opacity: 0.4 }}>
+            <Text variant="caption" fontSize={12}>
               © 2026 Self-Fire. All rights reserved.
             </Text>
           </Box>

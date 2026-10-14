@@ -11,13 +11,12 @@ import { Box } from "@/atom";
 import { Quote } from "@/models";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import * as MediaLibrary from "expo-media-library";
-import { NativeViewGestureHandler, Pressable } from "react-native-gesture-handler";
+import { NativeViewGestureHandler } from "react-native-gesture-handler";
 import Toast from "react-native-toast-message";
 import ViewShot from "react-native-view-shot";
+import ActionButton from "./action-button";
 import FeatherIcon, { Ionicon } from "./icon";
 import ShareButton from "./share-button";
-
-const HIT_SLOP = 12;
 
 type Props = Quote & {
   // 이미지 캡처 대상 카드
@@ -62,30 +61,16 @@ const QuoteBar: React.FC<Props> = ({ id, text, author, viewShotRef }) => {
 
   return (
     <NativeViewGestureHandler>
-      <Box
-        m="md"
-        p="xs"
-        height={44}
-        width={140}
-        justifyContent="space-around"
-        borderRadius="lg"
-        alignItems="center"
-        backgroundColor="$headerBackground"
-        flexDirection="row"
-      >
+      <Box flexDirection="row" justifyContent="center" style={{ gap: 28, marginTop: 20 }}>
         <ShareButton text={`${text} -${author}`} viewShotRef={viewShotRef} />
 
-        <Pressable onPress={handleSaveImage} hitSlop={HIT_SLOP}>
-          <FeatherIcon name="download" size={24} />
-        </Pressable>
+        <ActionButton label="저장" onPress={handleSaveImage}>
+          <FeatherIcon name="download" size={20} />
+        </ActionButton>
 
-        <Pressable onPress={toggleFavorite} hitSlop={HIT_SLOP}>
-          {isFavorite ? (
-            <Ionicon name="flame" size={24} color="red" />
-          ) : (
-            <Ionicon name="flame-outline" size={24} />
-          )}
-        </Pressable>
+        <ActionButton label={isFavorite ? "보관됨" : "불씨"} onPress={toggleFavorite} active={isFavorite}>
+          <Ionicon name={isFavorite ? "flame" : "flame-outline"} size={22} color={isFavorite ? "white" : "$foreground"} />
+        </ActionButton>
       </Box>
     </NativeViewGestureHandler>
   );

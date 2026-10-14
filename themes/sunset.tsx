@@ -1,26 +1,21 @@
 import { createTheme } from "@shopify/restyle";
-import light from "./light";
+import light, { makeColors } from "./light";
 
-const palette = {
-  bg00: "#450A0A", // red-950
-  bg10: "#7F1D1D", // red-900
-  bg20: "#991B1B", // red-800
-  fg100: "#FEE2E2", // red-100
-  fg900: "#FEF2F2", // red-50
-  primary: "#F97316", // orange-500
-};
-
+// 노을 — 해 질 녘의 짙은 적갈색
 const theme = createTheme({
   ...light,
-  colors: {
-    ...light.colors,
-    $primary: palette.primary,
-    $background: palette.bg00,
-    $foreground: palette.fg900,
-    $sidebarBackground: palette.bg10,
-    $sidebarForeground: palette.fg100,
-    $headerBackground: palette.bg00,
-  },
+  colors: makeColors({
+    background: "#24120F",
+    surface: "#321A16",
+    surfaceMuted: "#3E221D",
+    foreground: "#FFEDE4",
+    muted: "#CFA295",
+    border: "rgba(255,237,228,0.09)",
+    primary: "#FF8A4C",
+    primarySoft: "rgba(255,138,76,0.16)",
+    onPrimary: "#2A0F05",
+    flame: "#FF9A5C",
+  }),
   barStyle: "light",
 });
 

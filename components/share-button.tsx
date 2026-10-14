@@ -1,7 +1,7 @@
-import FeatherIcon from "./icon";
 import { Share } from "react-native";
-import { Pressable } from "react-native-gesture-handler";
 import ViewShot from "react-native-view-shot";
+import ActionButton from "./action-button";
+import FeatherIcon from "./icon";
 
 type Props = {
   text: string;
@@ -24,9 +24,9 @@ const ShareButton: React.FC<Props> = ({ text, viewShotRef }) => {
   };
 
   return (
-    <Pressable onPress={handleShare} hitSlop={12}>
-      <FeatherIcon name="share" size={24} />
-    </Pressable>
+    <ActionButton label="공유" onPress={handleShare}>
+      <FeatherIcon name="share" size={20} />
+    </ActionButton>
   );
 };
 
