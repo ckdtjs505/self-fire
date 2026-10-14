@@ -3,7 +3,7 @@
 // 앱 메인 화면 (홈 화면).
 // 핵심 기능:
 //   - 명언 카드 표시 + 좌우 스와이프로 이전/다음 명언 전환
-//   - 필터 모드: 전체 / 내가 쓴 명언 / 즐겨찾기 (모드별로 보던 위치 유지)
+//   - 필터 모드: 전체 / 내가 쓴 명언 / 즐겨찾기 (모드별로 보던 위치 유지, 수정·삭제 즉시 반영)
 //   - 명언 풀(pool) 관리: 번들 명언에서 50개씩 샘플링, 새 명언은 백그라운드 동기화
 //   - 테마/폰트 변경 바텀시트
 //   - AdMob 배너 광고 (광고 제거 미구매 시)
@@ -50,6 +50,9 @@ type QuotePager = {
 
 const createPager = (quotes: Quote[] = []): QuotePager => ({ quotes, currentIndex: 0, maxIndex: 0 });
 
+// 사용자가 직접 작성한 명언의 id (store/quote.ts의 addCustomQuote 참고)
+const isCustomQuoteId = (id: string) => id.startsWith("custom-");
+
 export default function Index() {
   const { isAdFree } = useAdStore();
   const { customQuotes, favorites, favoritesData } = useFavoriteQuoteStore();
@@ -95,47 +98,97 @@ export default function Index() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultQuotes]);
 
+  // 즐겨찾기한 명언 목록 (즐겨찾기한 순서)
+  // 저장해 둔 favoritesData를 우선 사용하고, id만 저장된 예전 즐겨찾기는 현재 명언 목록에서 보충한다.
+  const getFavoriteQuotes = (): Quote[] => {
+    const byId = new Map<string, Quote>();
+    (favoritesData || []).forEach((q) => byId.set(q.id, q));
+    [...defaultQuotes, ...customQuotes].forEach((q) => {
+      if (!byId.has(q.id)) byId.set(q.id, q);
+    });
+    return favorites.map((id) => byId.get(id)).filter((q): q is Quote => !!q);
+  };
+
   // ── buildPool ─────────────────────────────────────────────
   // 필터 모드에 맞는 명언 풀을 무작위 순서로 만든다.
   //   - 'all': 기본 + 커스텀 명언 중 무작위 50개
   //   - 'mine': 커스텀 명언 전체
   //   - 'favorites': 즐겨찾기한 명언 전체
   const buildPool = (mode: FilterMode): Quote[] => {
-    const allQuotes = [...defaultQuotes, ...customQuotes];
     switch (mode) {
       case "mine":
         return shuffle(customQuotes);
-      case "favorites": {
-        // 기본 명언 일부만 메모리에 있던 예전 구조와 달리, 저장해 둔 favoritesData를 우선 사용하고
-        // id만 저장된 예전 즐겨찾기는 현재 명언 목록에서 보충한다.
-        const byId = new Map<string, Quote>();
-        (favoritesData || []).forEach((q) => byId.set(q.id, q));
-        allQuotes.forEach((q) => { if (!byId.has(q.id)) byId.set(q.id, q); });
-        return shuffle(favorites.map((id) => byId.get(id)).filter((q): q is Quote => !!q));
-      }
+      case "favorites":
+        return shuffle(getFavoriteQuotes());
       case "all":
-        return shuffle(allQuotes).slice(0, QUOTE_BATCH_SIZE);
+        return shuffle([...defaultQuotes, ...customQuotes]).slice(0, QUOTE_BATCH_SIZE);
     }
   };
 
-  // 저장해 둔 모드별 위치를 복원한다. 처음 보는 모드면 새 풀을 만든다.
+  // ── syncPager ─────────────────────────────────────────────
+  // 보고 있던 목록을 최신 상태에 맞춘다. (보던 명언 위치는 최대한 유지)
+  //   - 수정된 나만의 명언은 새 내용으로, 삭제된 명언은 목록에서 뺀다.
+  //   - 'favorites': 즐겨찾기 해제된 명언은 빼고, 새로 즐겨찾기한 명언은 뒤에 붙인다.
+  //   - 'mine': 새로 작성한 명언을 뒤에 붙인다.
+  const syncPager = (pager: QuotePager, mode: FilterMode): QuotePager => {
+    const latestCustom = new Map(customQuotes.map((q) => [q.id, q]));
+    const favoriteIds = new Set(favorites);
+
+    const kept: Quote[] = [];
+    let removedBeforeCurrent = 0;
+    let removedBeforeMax = 0;
+    pager.quotes.forEach((quote, index) => {
+      const latest = isCustomQuoteId(quote.id) ? latestCustom.get(quote.id) : quote;
+      const removed = !latest || (mode === "favorites" && !favoriteIds.has(quote.id));
+      if (removed) {
+        if (index < pager.currentIndex) removedBeforeCurrent++;
+        if (index < pager.maxIndex) removedBeforeMax++;
+        return;
+      }
+      kept.push(latest);
+    });
+
+    const keptIds = new Set(kept.map((q) => q.id));
+    const source = mode === "mine" ? customQuotes : mode === "favorites" ? getFavoriteQuotes() : [];
+    const added = source.filter((q) => !keptIds.has(q.id));
+    const quotes = [...kept, ...added];
+
+    const unchanged =
+      quotes.length === pager.quotes.length && quotes.every((q, i) => q === pager.quotes[i]);
+    if (unchanged) return pager;
+
+    const lastIndex = Math.max(quotes.length - 1, 0);
+    return {
+      quotes,
+      currentIndex: Math.min(pager.currentIndex - removedBeforeCurrent, lastIndex),
+      maxIndex: Math.min(pager.maxIndex - removedBeforeMax, lastIndex),
+    };
+  };
+
+  // 저장해 둔 모드별 위치를 복원한다. 처음 보는 모드거나 비어 있으면 새 풀을 만든다.
   const restorePager = (mode: FilterMode): QuotePager => {
-    const saved = savedPagers.current[mode];
-
-    if (mode === "favorites") {
-      // 그 사이 즐겨찾기에서 해제된 명언은 제외한다.
-      const stillFavorite = saved.quotes.filter((q) => favorites.includes(q.id));
-      if (stillFavorite.length === 0) return createPager(buildPool(mode));
-      const lastIndex = stillFavorite.length - 1;
-      return {
-        quotes: stillFavorite,
-        currentIndex: Math.min(saved.currentIndex, lastIndex),
-        maxIndex: Math.min(saved.maxIndex, lastIndex),
-      };
-    }
-
-    return saved.quotes.length > 0 ? saved : createPager(buildPool(mode));
+    const synced = syncPager(savedPagers.current[mode], mode);
+    return synced.quotes.length > 0 ? synced : createPager(buildPool(mode));
   };
+
+  // 나만의 명언/즐겨찾기가 바뀌면 보고 있던 목록에 바로 반영한다.
+  // 현재 모드에 보여줄 명언이 하나도 남지 않으면 전체 모드로 돌아간다.
+  useEffect(() => {
+    (Object.keys(savedPagers.current) as FilterMode[]).forEach((mode) => {
+      if (mode !== filterMode) savedPagers.current[mode] = syncPager(savedPagers.current[mode], mode);
+    });
+
+    const synced = syncPager(pager, filterMode);
+    if (synced === pager) return;
+    if (filterMode !== "all" && synced.quotes.length === 0) {
+      savedPagers.current[filterMode] = createPager();
+      setPager(restorePager("all"));
+      setFilterMode("all");
+      return;
+    }
+    setPager(synced);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customQuotes, favorites, favoritesData]);
 
   const changeFilterMode = (nextMode: FilterMode) => {
     savedPagers.current[filterMode] = pager;

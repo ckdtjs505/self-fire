@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // _layout.tsx
 // 앱 전체의 루트 레이아웃.
-// - AdMob 초기화 / 포그라운드 알림 핸들러 설정
+// - AdMob 초기화 / 포그라운드 알림 핸들러 설정 / 오늘의 명언 알림 예약 갱신
 // - 구글 폰트 로드
 // - 강제 업데이트 체크
 // - 백그라운드에 한동안 있다가 복귀 시 메인 화면으로 이동
@@ -10,6 +10,7 @@
 
 import StatusBar from "@/components/status-bar";
 import { toastConfig } from "@/components/simple-toast";
+import { refreshDailyNotifications } from "@/store/notification";
 import { useThemeStore } from "@/store/theme";
 import { GowunDodum_400Regular } from "@expo-google-fonts/gowun-dodum";
 import { Jua_400Regular } from "@expo-google-fonts/jua";
@@ -90,6 +91,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     checkForcedUpdate();
+    refreshDailyNotifications();
 
     // 한동안 다른 앱에 있다가 돌아오면 명언(메인) 화면을 보여준다.
     // - iOS의 'inactive'(결제 시트, 권한 팝업 등)는 앱을 떠난 것으로 보지 않는다.

@@ -41,7 +41,7 @@ public class AutoLaunchService extends Service {
         Notification notification = builder
                 .setContentTitle("Self-Fire 실행 중")
                 .setContentText("잠금 해제 시 명언을 띄우기 위해 대기 중입니다.")
-                .setSmallIcon(getResources().getIdentifier("ic_launcher", "mipmap", getPackageName()))
+                .setSmallIcon(R.drawable.ic_stat_flame)
                 .setContentIntent(pendingIntent)
                 .build();
 
@@ -232,6 +232,18 @@ public class AutoLaunchModule extends ReactContextBaseJavaModule {
 }
 `;
 
+const notificationIconXml = `<!-- 상태바 알림용 단색(흰색) 불꽃 아이콘. 알림 아이콘은 알파 채널만 사용되므로 컬러 아이콘을 쓰면 회색 네모로 보인다. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+  <path
+      android:fillColor="#FFFFFFFF"
+      android:pathData="M19.48,12.35c-1.57,-4.08 -7.16,-4.3 -5.81,-10.23c0.1,-0.44 -0.37,-0.78 -0.75,-0.55C9.29,3.71 6.68,8 8.87,13.62c0.18,0.46 -0.36,0.89 -0.75,0.59c-1.81,-1.37 -2,-3.34 -1.84,-4.75c0.06,-0.52 -0.62,-0.77 -0.91,-0.34C4.69,10.16 4,11.84 4,14.37c0.38,5.6 5.11,7.32 6.81,7.54c2.43,0.31 5.06,-0.14 6.95,-1.87C19.84,18.11 20.6,15.03 19.48,12.35zM10.2,17.38c1.44,-0.35 2.18,-1.39 2.38,-2.31c0.33,-1.43 -0.96,-2.83 -0.09,-5.09c0.33,1.87 3.27,3.04 3.27,5.08C15.84,17.59 13.1,19.76 10.2,17.38z" />
+</vector>
+`;
+
 const javaPackageCode = `package com.changsunoh.selfFire;
 
 import com.facebook.react.ReactPackage;
@@ -272,6 +284,10 @@ const withAutoLaunchReceiver = (config) => {
       fs.writeFileSync(path.join(packagePath, 'BootReceiver.java'), javaBootCode);
       fs.writeFileSync(path.join(packagePath, 'AutoLaunchModule.java'), javaModuleCode);
       fs.writeFileSync(path.join(packagePath, 'AutoLaunchPackage.java'), javaPackageCode);
+
+      const drawablePath = path.join(platformProjectRoot, 'app/src/main/res/drawable');
+      fs.mkdirSync(drawablePath, { recursive: true });
+      fs.writeFileSync(path.join(drawablePath, 'ic_stat_flame.xml'), notificationIconXml);
       
       return config;
     },

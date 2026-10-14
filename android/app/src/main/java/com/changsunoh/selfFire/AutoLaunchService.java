@@ -37,7 +37,7 @@ public class AutoLaunchService extends Service {
         Notification notification = builder
                 .setContentTitle("Self-Fire 실행 중")
                 .setContentText("잠금 해제 시 명언을 띄우기 위해 대기 중입니다.")
-                .setSmallIcon(getResources().getIdentifier("ic_launcher", "mipmap", getPackageName()))
+                .setSmallIcon(R.drawable.ic_stat_flame)
                 .setContentIntent(pendingIntent)
                 .build();
 
