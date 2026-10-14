@@ -39,3 +39,6 @@ app-example
 
 # GitHub Pages (separate repo)
 github-pages/
+
+# 명언 전체 데이터 (npm run update-quotes 로 생성)
+data/quotes.json

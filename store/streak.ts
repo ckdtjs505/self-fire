@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { toLocalDateString } from "@/utils/date";
 
 interface StreakState {
   currentStreak: number;
@@ -9,15 +10,12 @@ interface StreakState {
   checkAndUpdateStreak: () => void;
 }
 
-const getTodayString = () => {
-  const today = new Date();
-  return today.toISOString().split("T")[0];
-};
+const getTodayString = () => toLocalDateString();
 
 const getYesterdayString = () => {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  return yesterday.toISOString().split("T")[0];
+  return toLocalDateString(yesterday);
 };
 
 export const useStreakStore = create<StreakState>()(

@@ -1,6 +1,5 @@
 import React from "react";
 import { Box, Text } from "@/atom";
-import { quotes } from "@/data/quotes";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { Alert, ScrollView, Image } from "react-native";
 import { Pressable } from "react-native-gesture-handler";

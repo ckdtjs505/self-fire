@@ -18,8 +18,7 @@ import QuoteItem from "@/components/quote-items";
 import ThemePicker from "@/components/theme-picker";
 import FontPicker from "@/components/font-picker";
 import StreakBadge from "@/components/streak-badge";
-import { getQuote, quotes as fallbackQuotes } from "@/data/quotes";
-import { ActivityIndicator } from "react-native";
+import { quotes as bundledQuotes, loadSyncedQuotes, syncNewQuotes } from "@/data/quotes";
 import { Quote } from "@/models";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { useStreak } from "@/hooks/useStreak";
@@ -34,17 +33,18 @@ import { BannerAd, BannerAdSize, TestIds } from "react-native-google-mobile-ads"
 import { useAdStore } from "@/store/ad-store";
 import { BottomSheetModal } from "@gorhom/bottom-sheet";
 import { IgniteScreen } from "@/components/ignite-screen";
+import { toLocalDateString } from "@/utils/date";
 
 // 화면 너비: 좌/우 터치 영역 분기 계산에 사용
 const { width } = Dimensions.get('window');
 
 export default function Index() {
-  const [defaultQuotesState, setDefaultQuotesState] = useState<Quote[]>([]);
-  const [isGlobalLoading, setIsGlobalLoading] = useState(true);
+  // 기본 명언 풀: 앱에 번들된 전체 명언 + 동기화로 추가된 명언
+  const [defaultQuotesState, setDefaultQuotesState] = useState<Quote[]>(bundledQuotes);
   // 광고 제거 여부 확인
   const { isAdFree } = useAdStore();
   // 사용자가 작성한 커스텀 명언 목록과 즐겨찾기 ID 목록
-  const { customQuotes, favorites } = useFavoriteQuoteStore();
+  const { customQuotes, favorites, favoritesData } = useFavoriteQuoteStore();
   // 연속 방문 스트릭 카운트
   const { currentStreak } = useStreak();
 
@@ -64,7 +64,7 @@ export default function Index() {
   const [isIgnited, setIsIgnited] = useState(true); // 초기값 true: 로딩 중 플리커 방지
   useEffect(() => {
     const checkDailyIgnite = async () => {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = toLocalDateString();
       const lastDate = await AsyncStorage.getItem('last_ignited_date');
       // 오늘 처음 켠 경우에만 불씨 화면 표시
       setIsIgnited(lastDate === today);
@@ -73,65 +73,27 @@ export default function Index() {
   }, []);
 
   const handleIgnited = async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toLocalDateString();
     await AsyncStorage.setItem('last_ignited_date', today);
     setIsIgnited(true);
   };
 
-  // ── initQuotes (Bulk Fetch & Cache) ────────────────────────
+  // ── initQuotes ─────────────────────────────────────────────
+  // 번들 명언으로 바로 시작하고, 이전에 동기화한 명언과 서버의 새 명언을 뒤에 덧붙인다.
   useEffect(() => {
-    const initQuotes = async () => {
-      try {
-        const CACHE_KEY = 'cached_recent_quotes';
-        let cachedQuotes: Quote[] | null = null;
-
-        // 1. 오프라인 대비용 최근 캐시 확인
-        try {
-          const cachedStr = await AsyncStorage.getItem(CACHE_KEY);
-          if (cachedStr) {
-            cachedQuotes = JSON.parse(cachedStr);
-          }
-        } catch (e) {
-          console.warn('Failed to read recent cache:', e);
-        }
-
-        // 2. API에서 50개 랜덤 Fetch
-        try {
-          const response = await fetch('https://ckdtjst505.mycafe24.com/api/quote/get_all.php?random=true&limit=50');
-          const json = await response.json();
-
-          if (json && json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
-            const fetchedQuotes = json.data.map((item: any) => ({
-              id: String(item.id),
-              text: item.text,
-              author: item.author
-            }));
-
-            // 새 데이터로 캐시 갱신 (오프라인 대비)
-            await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(fetchedQuotes));
-            setDefaultQuotesState(fetchedQuotes);
-            setIsGlobalLoading(false);
-            return;
-          }
-        } catch (apiError) {
-          console.warn('API Fetch failed, using cache or fallback', apiError);
-        }
-
-        // 3. API 실패 시 캐시가 있으면 캐시 사용, 없으면 폴백 사용
-        if (cachedQuotes && cachedQuotes.length > 0) {
-          setDefaultQuotesState(cachedQuotes);
-        } else {
-          setDefaultQuotesState(fallbackQuotes);
-        }
-
-      } catch (error) {
-        console.error('Failed to fetch/cache quotes:', error);
-        setDefaultQuotesState(fallbackQuotes);
-      } finally {
-        setIsGlobalLoading(false);
-      }
+    const appendQuotes = (extra: Quote[]) => {
+      if (extra.length === 0) return;
+      setDefaultQuotesState(prev => {
+        const ids = new Set(prev.map(q => q.id));
+        return [...prev, ...extra.filter(q => !ids.has(q.id))];
+      });
     };
-
+    const initQuotes = async () => {
+      appendQuotes(await loadSyncedQuotes());
+      appendQuotes(await syncNewQuotes());
+      // 예전 버전의 50개 랜덤 캐시는 더 이상 사용하지 않음
+      AsyncStorage.removeItem('cached_recent_quotes');
+    };
     initQuotes();
   }, []);
 
@@ -180,7 +142,12 @@ export default function Index() {
       return shuffle(pool);
     } else if (mode === 'favorites') {
       // 즐겨찾기만 필터링
-      pool = pool.filter(q => favorites.includes(q.id));
+      // 기본 명언은 매번 랜덤 50개만 받아오므로, 저장해 둔 favoritesData를 우선 사용하고
+      // 예전 버전처럼 데이터 없이 id만 저장된 경우는 현재 풀에서 보충한다.
+      const favMap = new Map<string, Quote>();
+      (favoritesData || []).forEach(q => favMap.set(q.id, q));
+      pool.forEach(q => { if (!favMap.has(q.id)) favMap.set(q.id, q); });
+      pool = favorites.map(id => favMap.get(id)).filter((q): q is Quote => !!q);
       return shuffle(pool);
     } else {
       // 전체 명언: 무작위로 50개 샘플링하여 셔플
@@ -247,31 +214,16 @@ export default function Index() {
   }, [filterMode]);
 
   // ── loadMoreQuotes ────────────────────────────────────────
-  // '전체' 모드에서 목록 끝에 가까워질 때 API에서 50개를 추가 로드한다.
-  const loadMoreQuotes = async () => {
+  // '전체' 모드에서 목록 끝에 가까워질 때 로컬 명언 풀에서 50개를 추가한다.
+  const loadMoreQuotes = () => {
     if (filterMode !== 'all') return; // 필터 모드에서는 더 불러오지 않음
 
-    try {
-      const response = await fetch('https://ckdtjst505.mycafe24.com/api/quote/get_all.php?random=true&limit=50');
-      const json = await response.json();
-
-      if (json && json.status === 'success' && Array.isArray(json.data)) {
-        const fetchedQuotes = json.data.map((item: any) => ({
-          id: String(item.id),
-          text: item.text,
-          author: item.author
-        }));
-
-        setQuotes(prevQuotes => {
-          // 기존 목록에 중복되지 않는 명언만 추가
-          const currentIds = new Set(prevQuotes.map(q => q.id));
-          const newQuotes = fetchedQuotes.filter(q => !currentIds.has(q.id));
-          return [...prevQuotes, ...newQuotes];
-        });
-      }
-    } catch (e) {
-      console.warn('Failed to load more quotes:', e);
-    }
+    setQuotes(prevQuotes => {
+      // 기존 목록에 중복되지 않는 명언만 추가
+      const currentIds = new Set(prevQuotes.map(q => q.id));
+      const pool = [...defaultQuotesState, ...customQuotes].filter(q => !currentIds.has(q.id));
+      return [...prevQuotes, ...shuffle(pool).slice(0, 50)];
+    });
   };
 
   // ── animateTransition ─────────────────────────────────────
@@ -431,16 +383,6 @@ export default function Index() {
     setTimeout(requestOverlayPermission, 1000); // 1초 뒤에 띄움 (로딩 안정화)
   }, []);
 
-  if (isGlobalLoading) {
-    return (
-      <SafeAreaView flex={1}>
-        <Box bg="$background" flex={1} justifyContent="center" alignItems="center">
-          <ActivityIndicator size="large" color="#4F46E5" />
-          <Text mt="md" color="$foreground">명언 데이터를 불러오는 중...</Text>
-        </Box>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView flex={1}>
@@ -688,7 +630,7 @@ export default function Index() {
       {/* ── Hold to Ignite 오버레이 ──────────────────────────
           isIgnited가 false일 때만 표시.
           하루 1번, 오늘 처음 앱을 열었을 때 불씨를 직접 켜는 인터랙션. */}
-      {!!isIgnited && <IgniteScreen onIgnited={handleIgnited} />}
+      {!isIgnited && <IgniteScreen onIgnited={handleIgnited} />}
     </SafeAreaView>
   );
 }
