@@ -1,71 +1,24 @@
-import { Box, Text } from "@/atom";
-import { themelist } from "@/themes";
-import {
-  BottomSheetBackdrop,
-  BottomSheetFlatList,
-  BottomSheetModal,
-  BottomSheetView,
-} from "@gorhom/bottom-sheet";
-import {
-  forwardRef,
-  useCallback,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-} from "react";
+import { themeList } from "@/themes";
+import { BottomSheetFlatList, BottomSheetView } from "@gorhom/bottom-sheet";
+import { forwardRef } from "react";
+import PickerSheet, { PickerSheetHandle } from "./picker-sheet";
 import ThemeItem from "./theme-item";
 
-const DATA = themelist;
+const SNAP_POINTS = ["25%"];
 
-const ThemePicker = forwardRef((props, ref) => {
-  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-  const snapPoints = useMemo(() => ["25%"], []);
-
-  useImperativeHandle(ref, () => ({
-    open: () => bottomSheetModalRef.current?.present(),
-    close: () => bottomSheetModalRef.current?.dismiss(),
-  }));
-
-  const renderBackdrop = useCallback(
-    (props: any) => (
-      <BottomSheetBackdrop 
-        {...props} 
-        pressBehavior={"close"} 
-        appearsOnIndex={0} 
-        disappearsOnIndex={-1} 
+const ThemePicker = forwardRef<PickerSheetHandle>((_props, ref) => (
+  <PickerSheet ref={ref} snapPoints={SNAP_POINTS}>
+    <BottomSheetView>
+      <BottomSheetFlatList
+        data={themeList}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        contentContainerStyle={{ paddingTop: 12, paddingHorizontal: 16 }}
+        columnWrapperStyle={{ marginBottom: 16, justifyContent: "space-between", gap: 8 }}
+        renderItem={({ item }) => <ThemeItem item={item} />}
       />
-    ),
-    []
-  );
-
-  return (
-    <BottomSheetModal
-      index={0}
-      ref={bottomSheetModalRef}
-      snapPoints={snapPoints}
-      backdropComponent={renderBackdrop}
-    >
-      <BottomSheetView>
-        <BottomSheetFlatList
-          data={DATA}
-          keyExtractor={(item, index) => index.toString()}
-          numColumns={2}
-          contentContainerStyle={{
-            paddingTop: 12,
-            paddingHorizontal: 16,
-          }}
-          columnWrapperStyle={{
-            marginBottom: 16,
-            justifyContent: "space-between",
-            gap: 8,
-          }}
-          renderItem={({ item }) => {
-            return <ThemeItem item={item} />;
-          }}
-        ></BottomSheetFlatList>
-      </BottomSheetView>
-    </BottomSheetModal>
-  );
-});
+    </BottomSheetView>
+  </PickerSheet>
+));
 
 export default ThemePicker;

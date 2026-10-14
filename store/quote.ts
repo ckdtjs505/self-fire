@@ -1,11 +1,14 @@
 import { Quote } from "@/models";
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 interface FavoritesQuoteStore {
+  // 즐겨찾기(불씨 보관함)한 명언 ID 목록
   favorites: string[];
+  // 즐겨찾기한 명언의 내용 (사이드바에서 바로 표시하기 위해 함께 저장)
   favoritesData: Quote[];
+  // 사용자가 직접 작성한 명언 목록
   customQuotes: Quote[];
   addFavorite: (id: string, quote?: Quote) => void;
   removeFavorite: (id: string) => void;
@@ -14,61 +17,48 @@ interface FavoritesQuoteStore {
   updateCustomQuote: (id: string, text: string, author: string) => void;
 }
 
-// 즐겨찾기한 명언 리스트 및 나만의 명언 상태 관리
+// 즐겨찾기한 명언 및 나만의 명언 상태 관리
 export const useFavoriteQuoteStore = create<FavoritesQuoteStore>()(
   persist(
     (set) => ({
-      favorites: [], // 즐겨찾기 리스트
-      favoritesData: [], // 즐겨찾기 명언 객체 데이터
-      customQuotes: [], // 사용자가 만든 명언 리스트
-      addFavorite: (id: string, quote?: Quote) =>
-        set((state) =>
-          state.favorites.some((_id) => _id === id)
-            ? state
-            : { 
-                favorites: [...state.favorites, id],
-                favoritesData: quote ? [...(state.favoritesData || []), quote] : (state.favoritesData || [])
-              },
-        ),
-      removeFavorite: (id: string) =>
+      favorites: [],
+      favoritesData: [],
+      customQuotes: [],
+
+      addFavorite: (id, quote) =>
+        set((state) => {
+          if (state.favorites.includes(id)) return state;
+          const favoritesData = state.favoritesData || [];
+          return {
+            favorites: [...state.favorites, id],
+            favoritesData: quote ? [...favoritesData, quote] : favoritesData,
+          };
+        }),
+
+      removeFavorite: (id) =>
         set((state) => ({
-          favorites: state.favorites.filter((_id) => _id !== id),
+          favorites: state.favorites.filter((favoriteId) => favoriteId !== id),
           favoritesData: (state.favoritesData || []).filter((q) => q.id !== id),
         })),
-      addCustomQuote: (text: string, author: string) =>
+
+      addCustomQuote: (text, author) =>
         set((state) => ({
-          customQuotes: [
-            ...state.customQuotes,
-            { id: `custom-${Date.now()}`, text, author },
-          ],
+          customQuotes: [...state.customQuotes, { id: `custom-${Date.now()}`, text, author }],
         })),
-      removeCustomQuote: (id: string) =>
+
+      removeCustomQuote: (id) =>
         set((state) => ({
           customQuotes: state.customQuotes.filter((q) => q.id !== id),
         })),
-      updateCustomQuote: (id: string, text: string, author: string) =>
+
+      updateCustomQuote: (id, text, author) =>
         set((state) => ({
-          customQuotes: state.customQuotes.map((q) =>
-            q.id === id ? { ...q, text, author } : q,
-          ),
+          customQuotes: state.customQuotes.map((q) => (q.id === id ? { ...q, text, author } : q)),
         })),
     }),
-
     {
       name: "favorites",
-      storage: {
-        getItem: async (name) => {
-          const value = await AsyncStorage.getItem(name);
-          return value != null ? JSON.parse(value) : null; // `JSON.parse`로 변환
-        },
-        setItem: async (name, value) => {
-          await AsyncStorage.setItem(name, JSON.stringify(value)); // `JSON.stringify`로 변환
-        },
-        removeItem: async (name) => {
-          await AsyncStorage.removeItem(name);
-        },
-      },
-      //partialize: (state )=> ({ favorites : state.favorites}),
-    },
-  ),
+      storage: createJSONStorage(() => AsyncStorage),
+    }
+  )
 );

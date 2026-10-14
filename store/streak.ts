@@ -1,7 +1,7 @@
-import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
+import { toDateString } from "@/utils/date";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { toLocalDateString } from "@/utils/date";
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 interface StreakState {
   currentStreak: number;
@@ -10,14 +10,13 @@ interface StreakState {
   checkAndUpdateStreak: () => void;
 }
 
-const getTodayString = () => toLocalDateString();
-
 const getYesterdayString = () => {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  return toLocalDateString(yesterday);
+  return toDateString(yesterday);
 };
 
+// 연속 방문 일수(스트릭) 관리
 export const useStreakStore = create<StreakState>()(
   persist(
     (set, get) => ({
@@ -25,28 +24,17 @@ export const useStreakStore = create<StreakState>()(
       longestStreak: 0,
       lastOpenDate: null,
 
+      // 오늘 처음 열었으면 스트릭을 갱신한다.
+      // 어제도 열었으면 +1, 하루 이상 건너뛰었으면 1부터 다시 시작한다.
       checkAndUpdateStreak: () => {
-        const today = getTodayString();
-        const yesterday = getYesterdayString();
+        const today = toDateString();
         const { lastOpenDate, currentStreak, longestStreak } = get();
+        if (lastOpenDate === today) return;
 
-        if (lastOpenDate === today) {
-          return;
-        }
-
-        let newStreak: number;
-
-        if (lastOpenDate === yesterday) {
-          newStreak = currentStreak + 1;
-        } else {
-          newStreak = 1;
-        }
-
-        const newLongest = Math.max(longestStreak, newStreak);
-
+        const newStreak = lastOpenDate === getYesterdayString() ? currentStreak + 1 : 1;
         set({
           currentStreak: newStreak,
-          longestStreak: newLongest,
+          longestStreak: Math.max(longestStreak, newStreak),
           lastOpenDate: today,
         });
       },
