@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "test": "jest --watchAll",
     "lint": "expo lint",
-    "update-quotes": "node scripts/update-quotes.js"
+    "update-quotes": "node scripts/update-quotes.js",
+    "eas-build-post-install": "npm run update-quotes"
   },
   "jest": {
     "preset": "jest-expo"
