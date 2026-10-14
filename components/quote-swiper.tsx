@@ -4,15 +4,23 @@
 //   - 드래그 중: 카드가 손가락을 살짝 따라오며 옅어짐
 //   - 임계값 이상 스와이프: 새 카드가 반대편에서 슬라이드 + 페이드 인
 //   - 임계값 미달: 스프링으로 원위치
+//   - 이전에 본 명언을 보는 중이면 아래에 '새 명언으로' 버튼을 띄워 마지막 위치로 바로 돌아간다
 // PanGestureHandler 기반이라 Drawer 제스처와 충돌하지 않는다.
 // ─────────────────────────────────────────────────────────────
 
 import { Box, Text } from "@/atom";
+import FeatherIcon from "@/components/icon";
 import QuoteItem from "@/components/quote-items";
 import { Quote } from "@/models";
 import { useRef } from "react";
 import { Animated, Dimensions } from "react-native";
-import { PanGestureHandler, State, type PanGestureHandlerGestureEvent } from "react-native-gesture-handler";
+import {
+  NativeViewGestureHandler,
+  PanGestureHandler,
+  Pressable,
+  State,
+  type PanGestureHandlerGestureEvent,
+} from "react-native-gesture-handler";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -30,9 +38,11 @@ type Props = {
   canGoPrev: boolean;
   onNext: () => void;
   onPrev: () => void;
+  // 가장 멀리 본 명언으로 돌아간다
+  onJumpToLatest: () => void;
 };
 
-const QuoteSwiper: React.FC<Props> = ({ quote, isCustom, isRevisit, canGoPrev, onNext, onPrev }) => {
+const QuoteSwiper: React.FC<Props> = ({ quote, isCustom, isRevisit, canGoPrev, onNext, onPrev, onJumpToLatest }) => {
   const slideX = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(1)).current;
 
@@ -88,27 +98,6 @@ const QuoteSwiper: React.FC<Props> = ({ quote, isCustom, isRevisit, canGoPrev, o
       failOffsetY={[-8, 8]}
     >
       <Animated.View style={{ flex: 1, width: "100%" }}>
-        {isRevisit && (
-          <Box
-            position="absolute"
-            top={70}
-            alignSelf="center"
-            bg="$sidebarBackground"
-            px="md"
-            py="xs"
-            borderRadius="hg"
-            zIndex={20}
-            pointerEvents="none"
-            borderWidth={1}
-            borderColor="$foreground"
-            opacity={0.6}
-          >
-            <Text fontSize={12} color="$foreground" fontWeight="bold">
-              이전에 본 명언
-            </Text>
-          </Box>
-        )}
-
         <Box flex={1} width="100%" justifyContent="center" alignItems="center">
           {quote && (
             <Animated.View
@@ -126,6 +115,38 @@ const QuoteSwiper: React.FC<Props> = ({ quote, isCustom, isRevisit, canGoPrev, o
             </Animated.View>
           )}
         </Box>
+
+        {isRevisit && (
+          // 부모 PanGestureHandler가 탭을 가로채지 않도록 감싼다 (quote-bar.tsx 참고)
+          <Box position="absolute" bottom={16} left={0} right={0} alignItems="center" zIndex={20}>
+            <NativeViewGestureHandler>
+              <Pressable
+                hitSlop={8}
+                onPress={() => {
+                  onJumpToLatest();
+                  playEnter(ENTER_OFFSET);
+                }}
+              >
+                <Box
+                  flexDirection="row"
+                  alignItems="center"
+                  bg="$sidebarBackground"
+                  px="md"
+                  py="s"
+                  borderRadius="hg"
+                  borderWidth={1}
+                  borderColor="$foreground"
+                  style={{ gap: 4, opacity: 0.8 }}
+                >
+                  <Text fontSize={13} fontWeight="bold">
+                    새 명언으로
+                  </Text>
+                  <FeatherIcon name="chevron-right" size={14} />
+                </Box>
+              </Pressable>
+            </NativeViewGestureHandler>
+          </Box>
+        )}
       </Animated.View>
     </PanGestureHandler>
   );

@@ -285,6 +285,10 @@ export default function Index() {
     }));
   };
 
+  const showLatestQuote = () => {
+    setPager((prev) => ({ ...prev, currentIndex: prev.maxIndex }));
+  };
+
   const showPrevQuote = () => {
     setPager((prev) => ({ ...prev, currentIndex: Math.max(prev.currentIndex - 1, 0) }));
   };
@@ -358,6 +362,7 @@ export default function Index() {
           canGoPrev={pager.currentIndex > 0}
           onNext={showNextQuote}
           onPrev={showPrevQuote}
+          onJumpToLatest={showLatestQuote}
         />
       </Box>
 
