@@ -74,7 +74,7 @@ const QuoteRow: React.FC<QuoteRowProps> = ({ quote, onEdit, onDelete }) => (
   >
     <Box flex={1} marginRight="md">
       <Text color="$sidebarForeground" fontSize={17} fontWeight="600" lineHeight={24}>
-        "{quote.text}"
+        {`"${quote.text}"`}
       </Text>
       <Text color="$sidebarForeground" fontSize={13} marginTop="s" style={{ opacity: 0.5 }}>
         — {quote.author}

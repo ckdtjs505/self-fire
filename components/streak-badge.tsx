@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Box, Text } from "@/atom";
 import Animated, {
   useSharedValue,
@@ -6,7 +6,6 @@ import Animated, {
   withSpring,
   withSequence,
 } from "react-native-reanimated";
-import { useEffect } from "react";
 
 type Props = {
   streak: number;
@@ -22,7 +21,7 @@ const StreakBadge: React.FC<Props> = ({ streak }) => {
         withSpring(1, { damping: 8 })
       );
     }
-  }, [streak]);
+  }, [streak, scale]);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],

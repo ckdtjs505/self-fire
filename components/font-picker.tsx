@@ -36,7 +36,7 @@ const FontSizeButton: React.FC<{ label: string; onPress: () => void }> = ({ labe
   </Pressable>
 );
 
-const FontPicker = forwardRef<PickerSheetHandle>((_props, ref) => {
+const FontPicker = forwardRef<PickerSheetHandle>(function FontPicker(_props, ref) {
   const sheetRef = useRef<PickerSheetHandle>(null);
   const { currentFontId, updateFontId, currentFontSize, updateFontSize } = useFontStore();
   const { currentTheme } = useThemeStore();

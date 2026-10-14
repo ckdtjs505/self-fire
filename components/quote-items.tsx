@@ -61,7 +61,7 @@ const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom }) => {
             fontWeight: "900",
           }}
         >
-          "
+          {'"'}
         </Text>
 
         <Text

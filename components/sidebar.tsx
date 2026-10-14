@@ -59,7 +59,7 @@ const FavoriteQuoteCard: React.FC<{ quote: Quote; onRemove: () => void }> = ({ q
       style={{ opacity: 0.9 }}
     >
       <Text fontSize={14} lineHeight={22} color="$sidebarForeground" fontWeight="500">
-        "{quote.text}"
+        {`"${quote.text}"`}
       </Text>
       {!!quote.author && (
         <Text fontSize={12} color="$sidebarForeground" opacity={0.6} marginTop="xs" textAlign="right">
