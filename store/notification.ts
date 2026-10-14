@@ -2,8 +2,11 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
-import { quotes as defaultQuotes } from "@/data/quotes";
-import { shuffle } from "@/utils/shuffle";
+import { getAllModeCandidates, getDailyQuote } from "@/data/daily-quote";
+import { quotes as bundledQuotes, loadSyncedQuotes } from "@/data/quotes";
+import { Quote } from "@/models";
+import { useCategoryStore } from "@/store/category";
+import { useFavoriteQuoteStore } from "@/store/quote";
 
 interface NotificationState {
   isEnabled: boolean;
@@ -13,18 +16,23 @@ interface NotificationState {
   setTime: (hour: number, minute: number) => Promise<void>;
 }
 
-// 반복(DAILY) 알림은 내용이 고정되므로, 앞으로 며칠치를 날짜별로 다른 명언으로 예약한다.
+// 반복(DAILY) 알림은 내용이 고정되므로, 앞으로 며칠치를 날짜별로 그날의 '오늘의 명언'으로 예약한다.
 // 앱을 열 때마다 다시 채우므로 이 기간 안에 한 번이라도 앱을 열면 알림이 끊기지 않는다.
 const DAYS_AHEAD = 30;
 
-// 기존 예약을 지우고, 앞으로 DAYS_AHEAD일 동안 매일 hour:minute에 서로 다른 명언 알림을 예약한다.
-export const scheduleUpcoming = async (hour: number, minute: number, now: Date = new Date()) => {
+// 기존 예약을 지우고, 앞으로 DAYS_AHEAD일 동안 매일 hour:minute에 그날의 '오늘의 명언' 알림을 예약한다.
+// candidates는 홈 화면 '전체' 모드와 같은 후보여야 알림 명언과 그날 홈 화면의 첫 명언이 같아진다.
+export const scheduleUpcoming = async (
+  hour: number,
+  minute: number,
+  candidates: Quote[],
+  now: Date = new Date(),
+) => {
   await Notifications.cancelAllScheduledNotificationsAsync();
-  const picked = shuffle(defaultQuotes).slice(0, DAYS_AHEAD + 1);
 
   for (let day = 0; day <= DAYS_AHEAD; day++) {
     const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + day, hour, minute);
-    const quote = picked[day];
+    const quote = getDailyQuote(candidates, date);
     if (date <= now || !quote) continue;
 
     await Notifications.scheduleNotificationAsync({
@@ -54,7 +62,7 @@ export const useNotificationStore = create<NotificationState>()(
             return;
           }
           const { notificationHour, notificationMinute } = get();
-          await scheduleUpcoming(notificationHour, notificationMinute);
+          await scheduleUpcoming(notificationHour, notificationMinute, await loadDailyCandidates());
         } else {
           await Notifications.cancelAllScheduledNotificationsAsync();
         }
@@ -65,7 +73,7 @@ export const useNotificationStore = create<NotificationState>()(
         set({ notificationHour: hour, notificationMinute: minute });
         const { isEnabled } = get();
         if (isEnabled) {
-          await scheduleUpcoming(hour, minute);
+          await scheduleUpcoming(hour, minute, await loadDailyCandidates());
         }
       },
     }),
@@ -76,22 +84,44 @@ export const useNotificationStore = create<NotificationState>()(
   )
 );
 
-const waitForHydration = () =>
+type PersistedStore = {
+  persist: { hasHydrated: () => boolean; onFinishHydration: (fn: () => void) => () => void };
+};
+
+const waitForHydration = (store: PersistedStore) =>
   new Promise<void>((resolve) => {
-    if (useNotificationStore.persist.hasHydrated()) return resolve();
-    const unsubscribe = useNotificationStore.persist.onFinishHydration(() => {
+    if (store.persist.hasHydrated()) return resolve();
+    const unsubscribe = store.persist.onFinishHydration(() => {
       unsubscribe();
       resolve();
     });
   });
 
+// 홈 화면 '전체' 모드와 같은 후보 명언 (기본 + 동기화된 명언 + 나만의 명언, 카테고리·즐겨찾기 반영)
+async function loadDailyCandidates(): Promise<Quote[]> {
+  await Promise.all([waitForHydration(useFavoriteQuoteStore), waitForHydration(useCategoryStore)]);
+  const synced = await loadSyncedQuotes();
+  const bundledIds = new Set(bundledQuotes.map((q) => q.id));
+  const { customQuotes, favorites } = useFavoriteQuoteStore.getState();
+  const all = [...bundledQuotes, ...synced.filter((q) => !bundledIds.has(q.id)), ...customQuotes];
+  return getAllModeCandidates(all, useCategoryStore.getState().currentCategoryId, new Set(favorites));
+}
+
+// 예약 작업이 겹치면 취소·예약이 뒤섞여 알림이 중복될 수 있으므로 한 번에 하나씩 실행한다.
+let refreshQueue: Promise<void> = Promise.resolve();
+
 /**
- * 앱 시작 시 호출: 알림이 켜져 있으면 예약 기간을 다시 채운다.
+ * 알림이 켜져 있으면 예약 기간을 다시 채운다. (앱 시작 시, 카테고리·즐겨찾기·명언이 바뀔 때 호출)
  * 그 사이 시스템 설정에서 알림 권한을 끈 경우에는 설정도 꺼 둔다.
  */
-export const refreshDailyNotifications = async () => {
+export const refreshDailyNotifications = () => {
+  refreshQueue = refreshQueue.then(refreshNow);
+  return refreshQueue;
+};
+
+const refreshNow = async () => {
   try {
-    await waitForHydration();
+    await waitForHydration(useNotificationStore);
     const { isEnabled, notificationHour, notificationMinute } = useNotificationStore.getState();
     if (!isEnabled) return;
 
@@ -101,7 +131,7 @@ export const refreshDailyNotifications = async () => {
       useNotificationStore.setState({ isEnabled: false });
       return;
     }
-    await scheduleUpcoming(notificationHour, notificationMinute);
+    await scheduleUpcoming(notificationHour, notificationMinute, await loadDailyCandidates());
   } catch (e) {
     console.warn("Failed to refresh notifications:", e);
   }
