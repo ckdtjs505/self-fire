@@ -38,13 +38,15 @@ type Props = {
   // 이미 지나온 명언을 다시 보고 있으면 true
   isRevisit: boolean;
   canGoPrev: boolean;
+  // 넘길 다음 명언이 없으면 (예: 내 명언의 마지막 명언) false
+  canGoNext: boolean;
   onNext: () => void;
   onPrev: () => void;
   // 가장 멀리 본 명언으로 돌아간다
   onJumpToLatest: () => void;
 };
 
-const QuoteSwiper: React.FC<Props> = ({ quote, isCustom, isRevisit, canGoPrev, onNext, onPrev, onJumpToLatest }) => {
+const QuoteSwiper: React.FC<Props> = ({ quote, isCustom, isRevisit, canGoPrev, canGoNext, onNext, onPrev, onJumpToLatest }) => {
   const slideX = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(1)).current;
 
@@ -81,7 +83,7 @@ const QuoteSwiper: React.FC<Props> = ({ quote, isCustom, isRevisit, canGoPrev, o
     const isSwipeLeft = dx < -SWIPE_DISTANCE_THRESHOLD || vx < -SWIPE_VELOCITY_THRESHOLD;
     const isSwipeRight = dx > SWIPE_DISTANCE_THRESHOLD || vx > SWIPE_VELOCITY_THRESHOLD;
 
-    if (isSwipeLeft) {
+    if (isSwipeLeft && canGoNext) {
       onNext();
       playEnter(ENTER_OFFSET);
     } else if (isSwipeRight && canGoPrev) {

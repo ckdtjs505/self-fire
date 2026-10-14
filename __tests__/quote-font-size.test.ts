@@ -1,4 +1,4 @@
-import { MIN_QUOTE_FONT_SIZE, fitQuoteFontSize } from "@/utils/quote-font-size";
+import { MIN_QUOTE_FONT_SIZE, fitQuoteFontSize, shrinkToFit } from "@/utils/quote-font-size";
 
 // iPhone 14 기준 화면 크기
 const W = 390;
@@ -27,5 +27,20 @@ describe("fitQuoteFontSize", () => {
 
   it("작은 화면에서도 최소 크기 아래로 내려가지 않는다", () => {
     expect(fitQuoteFontSize(175, 48, 320, 568)).toBeGreaterThanOrEqual(MIN_QUOTE_FONT_SIZE);
+  });
+});
+
+describe("shrinkToFit", () => {
+  it("넘친 만큼 본문 높이가 줄도록 글자 크기를 줄인다", () => {
+    // 본문 400px 중 100px 넘침 → 높이 비율 0.75 → 크기 비율 √0.75
+    expect(shrinkToFit(40, 400, 100)).toBe(Math.floor(40 * Math.sqrt(0.75)));
+  });
+
+  it("조금만 넘쳐도 최소 1px은 줄인다", () => {
+    expect(shrinkToFit(30, 400, 1)).toBe(29);
+  });
+
+  it("최소 크기 아래로 내려가지 않는다", () => {
+    expect(shrinkToFit(16, 400, 390)).toBe(MIN_QUOTE_FONT_SIZE);
   });
 });
