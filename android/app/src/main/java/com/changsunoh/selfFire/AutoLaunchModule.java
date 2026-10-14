@@ -42,7 +42,7 @@ public class AutoLaunchModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void isEnabled(Promise promise) {
         SharedPreferences prefs = getReactApplicationContext().getSharedPreferences("AutoLaunchPrefs", Context.MODE_PRIVATE);
-        promise.resolve(prefs.getBoolean("enabled", true));
+        promise.resolve(prefs.getBoolean("enabled", false));
     }
 
     /** SYSTEM_ALERT_WINDOW 권한 여부 반환 */

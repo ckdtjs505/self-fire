@@ -1,4 +1,4 @@
-const { withDangerousMod, withAndroidManifest, withMainActivity, withAppBuildGradle, withMainApplication } = require('@expo/config-plugins');
+const { withDangerousMod, withAndroidManifest, withMainActivity, withMainApplication } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
@@ -45,7 +45,15 @@ public class AutoLaunchService extends Service {
                 .setContentIntent(pendingIntent)
                 .build();
 
-        startForeground(1, notification);
+        // Android 12+는 백그라운드에서 포그라운드 서비스 시작을 막는다.
+        // (START_STICKY 재시작 등) 이 경우 크래시 대신 서비스를 종료하고, 다음에 앱을 열 때 다시 시작된다.
+        try {
+            startForeground(1, notification);
+        } catch (Exception e) {
+            Log.w(TAG, "startForeground not allowed, stopping service", e);
+            stopSelf();
+            return;
+        }
 
         unlockReceiver = new BroadcastReceiver() {
             @Override
@@ -125,7 +133,7 @@ public class BootReceiver extends BroadcastReceiver {
             "android.intent.action.MY_PACKAGE_REPLACED".equals(intent.getAction())) {
             
             SharedPreferences prefs = context.getSharedPreferences("AutoLaunchPrefs", Context.MODE_PRIVATE);
-            boolean enabled = prefs.getBoolean("enabled", true);
+            boolean enabled = prefs.getBoolean("enabled", false);
             
             if (!enabled) {
                 Log.d("BootReceiver", "AutoLaunch is disabled in settings. Skipping service start.");
@@ -154,7 +162,9 @@ const javaModuleCode = `package com.changsunoh.selfFire;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Build;
+import android.provider.Settings;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
@@ -191,7 +201,33 @@ public class AutoLaunchModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void isEnabled(Promise promise) {
         SharedPreferences prefs = getReactApplicationContext().getSharedPreferences("AutoLaunchPrefs", Context.MODE_PRIVATE);
-        promise.resolve(prefs.getBoolean("enabled", true));
+        promise.resolve(prefs.getBoolean("enabled", false));
+    }
+
+    /** SYSTEM_ALERT_WINDOW 권한 여부 반환 */
+    @ReactMethod
+    public void hasOverlayPermission(Promise promise) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            promise.resolve(Settings.canDrawOverlays(getReactApplicationContext()));
+        } else {
+            promise.resolve(true);
+        }
+    }
+
+    /** 시스템 "다른 앱 위에 표시" 설정 화면으로 이동 */
+    @ReactMethod
+    public void openOverlaySettings(Promise promise) {
+        try {
+            Intent intent = new Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:" + getReactApplicationContext().getPackageName())
+            );
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            getReactApplicationContext().startActivity(intent);
+            promise.resolve(true);
+        } catch (Exception e) {
+            promise.reject("ERROR", e.getMessage());
+        }
     }
 }
 `;
@@ -264,7 +300,7 @@ import com.changsunoh.selfFire.AutoLaunchService;`;
       
       const startServiceCode = isKotlin ? `
     val prefs = getSharedPreferences("AutoLaunchPrefs", Context.MODE_PRIVATE)
-    if (prefs.getBoolean("enabled", true)) {
+    if (prefs.getBoolean("enabled", false)) {
         try {
             val serviceIntent = Intent(this, AutoLaunchService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -275,7 +311,7 @@ import com.changsunoh.selfFire.AutoLaunchService;`;
         } catch (e: Exception) {}
     }` : `
     android.content.SharedPreferences prefs = getSharedPreferences("AutoLaunchPrefs", android.content.Context.MODE_PRIVATE);
-    if (prefs.getBoolean("enabled", true)) {
+    if (prefs.getBoolean("enabled", false)) {
         try {
             Intent serviceIntent = new Intent(this, AutoLaunchService.class);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

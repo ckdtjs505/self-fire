@@ -23,7 +23,7 @@ class MainActivity : ReactActivity() {
     super.onCreate(null)
 
     val prefs = getSharedPreferences("AutoLaunchPrefs", Context.MODE_PRIVATE)
-    if (prefs.getBoolean("enabled", true)) {
+    if (prefs.getBoolean("enabled", false)) {
         try {
             val serviceIntent = Intent(this, AutoLaunchService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
