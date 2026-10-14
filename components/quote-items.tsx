@@ -1,12 +1,15 @@
 import { Box, Text } from "@/atom";
+import { CARD_TEXT_COLORS, getCardBackground } from "@/data/card-backgrounds";
 import { Quote } from "@/models";
+import { useCardBackgroundStore } from "@/store/card-background";
 import { toFontFamily, useFontStore } from "@/store/font-store";
 import { useThemeStore } from "@/store/theme";
 import { LINE_HEIGHT_RATIO, MIN_QUOTE_FONT_SIZE, fitQuoteFontSize, shrinkToFit } from "@/utils/quote-font-size";
+import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
-import { useWindowDimensions } from "react-native";
+import { Image, StyleSheet, View, useWindowDimensions } from "react-native";
 import ViewShot from "react-native-view-shot";
-import FeatherIcon, { Ionicon } from "./icon";
+import FeatherIcon from "./icon";
 import QuoteBar from "./quote-bar";
 
 type Props = Quote & {
@@ -19,6 +22,12 @@ const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom }) => {
   const { colors } = useThemeStore().currentTheme;
   const { currentFontId, currentFontSize } = useFontStore();
   const fontFamily = toFontFamily(currentFontId);
+  // 카드 배경 이미지를 고르면 테마 색 대신 이미지 밝기에 맞춘 글씨 색을 쓴다.
+  const background = getCardBackground(useCardBackgroundStore().currentBackgroundId);
+  const imageColors = background.tone ? CARD_TEXT_COLORS[background.tone] : undefined;
+  const foregroundColor = imageColors?.foreground ?? colors.$foreground;
+  const mutedColor = imageColors?.muted ?? colors.$muted;
+  const accentColor = imageColors?.foreground ?? colors.$primary;
   // Android에서는 굵기를 지정하면 그 굵기가 없는 폰트 대신 기본 폰트로 바뀐다.
   // 고른 폰트가 그대로 보이도록 굵기는 시스템 기본 폰트일 때만 준다.
   const isSystemFont = !fontFamily;
@@ -77,8 +86,17 @@ const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom }) => {
             alignItems: "center",
             borderColor: colors.$border,
             borderWidth: 1,
+            overflow: "hidden",
           }}
         >
+          {background.source && (
+            <>
+              <Image source={background.source} resizeMode="cover" style={StyleSheet.absoluteFill} />
+              {/* 글씨가 잘 읽히도록 살짝 덮는 막 */}
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: imageColors?.scrim }]} />
+            </>
+          )}
+
           {isCustom ? (
             <Box
               flexDirection="row"
@@ -97,7 +115,7 @@ const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom }) => {
             // 장식용 여는 따옴표
             <Text
               style={{
-                color: colors.$primary,
+                color: accentColor,
                 fontSize: 52,
                 lineHeight: 52,
                 height: 30,
@@ -114,7 +132,7 @@ const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom }) => {
             fontWeight={isSystemFont ? "700" : undefined}
             textAlign="center"
             lineHeight={fontSize * LINE_HEIGHT_RATIO}
-            style={{ letterSpacing: -0.4, fontFamily, marginTop: 16 }}
+            style={{ letterSpacing: -0.4, fontFamily, marginTop: 16, color: foregroundColor }}
             onLayout={(e) => {
               textHeight.current = e.nativeEvent.layout.height;
             }}
@@ -122,22 +140,27 @@ const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom }) => {
             {text}
           </Text>
 
-          <Box width={24} height={2} borderRadius="pill" bg="$primary" style={{ marginTop: 20, opacity: 0.7 }} />
+          <Box
+            width={24}
+            height={2}
+            borderRadius="pill"
+            style={{ marginTop: 20, opacity: 0.7, backgroundColor: accentColor }}
+          />
 
           <Text
             variant="caption"
             fontSize={15}
             fontWeight={isSystemFont ? "600" : undefined}
             textAlign="center"
-            style={{ marginTop: 14, fontFamily }}
+            style={{ marginTop: 14, fontFamily, color: mutedColor }}
           >
             {author}
           </Text>
 
           {/* 저장·공유 이미지에 남는 워터마크 */}
-          <Box flexDirection="row" alignItems="center" style={{ marginTop: 22, gap: 4, opacity: 0.4 }}>
-            <Ionicon name="flame" size={11} color="$muted" />
-            <Text color="$muted" fontSize={10} fontWeight="800" style={{ letterSpacing: 2.5 }}>
+          <Box flexDirection="row" alignItems="center" style={{ marginTop: 22, gap: 4, opacity: imageColors ? 0.6 : 0.4 }}>
+            <Ionicons name="flame" size={11} color={mutedColor} />
+            <Text fontSize={10} fontWeight="800" style={{ letterSpacing: 2.5, color: mutedColor }}>
               SELF FIRE
             </Text>
           </Box>
