@@ -2,7 +2,7 @@
   "expo": {
     "name": "selfFire",
     "slug": "selfFire",
-    "version": "1.0.1",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/fire-icon.png",
     "scheme": "myapp",
@@ -57,7 +57,39 @@
       ],
       "expo-font",
       "expo-web-browser",
-      "./plugins/withAutoLaunch.js"
+      "./plugins/withAutoLaunch.js",
+      [
+        "react-native-android-widget",
+        {
+          "fonts": [
+            "./node_modules/@expo-google-fonts/nanum-myeongjo/700Bold/NanumMyeongjo_700Bold.ttf"
+          ],
+          "widgets": [
+            {
+              "name": "Quote",
+              "label": "오늘의 명언",
+              "description": "오늘의 명언과 불씨 상태를 보여 줍니다",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "Flame",
+              "label": "불씨",
+              "description": "불씨를 이어 온 날과 오늘 점화 여부를 보여 줍니다",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

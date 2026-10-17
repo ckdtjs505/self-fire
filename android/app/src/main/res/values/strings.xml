@@ -2,4 +2,6 @@
   <string name="app_name">selfFire</string>
   <string name="expo_system_ui_user_interface_style" translatable="false">automatic</string>
   <string name="expo_splash_screen_resize_mode" translatable="false">contain</string>
+  <string name="widget_quote_description" translatable="false">오늘의 명언과 불씨 상태를 보여 줍니다</string>
+  <string name="widget_flame_description" translatable="false">불씨를 이어 온 날과 오늘 점화 여부를 보여 줍니다</string>
 </resources>
