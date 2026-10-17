@@ -18,11 +18,8 @@ const StatusBar = () => {
       zIndex={1}
       backgroundColor={"$background"}
     >
-      <StatusBarRN
-        translucent={true}
-        style={theme.barStyle as StatusBarStyle}
-        backgroundColor={theme.colors["$background"]}
-      />
+      {/* edge-to-edge에서는 backgroundColor/translucent가 지원 중단된 Window API를 호출하므로 넘기지 않는다. */}
+      <StatusBarRN style={theme.barStyle as StatusBarStyle} />
     </Box>
   );
 };
