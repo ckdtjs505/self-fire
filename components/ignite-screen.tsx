@@ -10,12 +10,11 @@
 // ─────────────────────────────────────────────────────────────
 
 import React, { useRef, useEffect } from 'react';
-import { Animated, Dimensions, StyleSheet, Easing } from 'react-native';
+import { Animated, StyleSheet, Easing, useWindowDimensions } from 'react-native';
 import { Text } from '@/atom';
 // 테마를 거치지 않고 직접 Ionicons를 사용 → hex 색상이 그대로 적용됨
 import { Ionicons } from '@expo/vector-icons';
 
-const { width, height } = Dimensions.get('window');
 const HOLD_DURATION = 1500; // 점화까지 필요한 홀드 시간 (ms)
 
 // ── 파티클 설정 ────────────────────────────────────────────────
@@ -34,6 +33,8 @@ type Props = {
 };
 
 export const IgniteScreen: React.FC<Props> = ({ onIgnited }) => {
+  // 회전·창 크기 변경에 맞춰 다시 계산되도록 렌더 시점에 읽는다.
+  const { width, height } = useWindowDimensions();
   // ── 핵심 애니메이션 값 ──────────────────────────────────────
   const progress   = useRef(new Animated.Value(0)).current; // 홀드 진행도 (0→1)
   const revealAnim = useRef(new Animated.Value(1)).current; // 오버레이 불투명도 (1→0)
@@ -219,6 +220,7 @@ export const IgniteScreen: React.FC<Props> = ({ onIgnited }) => {
               height: cfg.size,
               borderRadius: cfg.size / 2,
               left: width / 2 + cfg.x - cfg.size / 2,
+              bottom: height / 2,
               opacity: particles[i].opacity,
               transform: [{ translateY: particles[i].y }],
             },
@@ -245,7 +247,7 @@ export const IgniteScreen: React.FC<Props> = ({ onIgnited }) => {
       </Animated.View>
 
       {/* ── 힌트 텍스트 ──────────────────────────────────────── */}
-      <Animated.View style={[styles.hintContainer, { opacity: hintOpacity }]}>
+      <Animated.View style={[styles.hintContainer, { bottom: height * 0.2, opacity: hintOpacity }]}>
         <Text style={styles.hintText}>꾹 누르면{'\n'}오늘의 불씨가 켜집니다</Text>
       </Animated.View>
 
@@ -290,7 +292,6 @@ const styles = StyleSheet.create({
   // 열기 파티클 — 떠오르는 작은 불씨 점
   particle: {
     position: 'absolute',
-    bottom: height / 2,
     backgroundColor: '#FFAA00',
   },
   flameTouchArea: {
@@ -300,7 +301,6 @@ const styles = StyleSheet.create({
   },
   hintContainer: {
     position: 'absolute',
-    bottom: height * 0.20,
     alignItems: 'center',
   },
   hintText: {
