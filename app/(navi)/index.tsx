@@ -10,6 +10,7 @@
 //   - AdMob 배너 광고 (광고 제거 미구매 시)
 //   - 하루 1번 불씨 점화(Hold to Ignite) 화면
 //   - Android 오버레이 권한 최초 요청 (잠금 해제 자동 실행용)
+//   - 홈 화면 위젯(오늘의 명언·불씨 상태) 갱신
 // ─────────────────────────────────────────────────────────────
 
 import { Box, SafeAreaView } from "@/atom";
@@ -37,6 +38,7 @@ import { refreshDailyNotifications } from "@/store/notification";
 import { useCategoryStore } from "@/store/category";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { shuffle } from "@/utils/shuffle";
+import { refreshWidgets } from "@/widgets/refresh-widgets";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useRef, useState } from "react";
 import Toast from "react-native-toast-message";
@@ -103,11 +105,15 @@ export default function Index() {
   }, []);
 
   // 오늘의 명언을 정하는 후보(카테고리·즐겨찾기·명언 목록)가 바뀌면 알림 명언도 다시 예약한다.
+  // 홈 화면 위젯도 같은 명언과 불씨 상태(스트릭·오늘 점화 여부)로 다시 그린다.
   // 연달아 바뀌는 경우(즐겨찾기 여러 번 등)를 묶어서 한 번만 예약한다.
   useEffect(() => {
-    const timer = setTimeout(refreshDailyNotifications, 1000);
+    const timer = setTimeout(() => {
+      refreshDailyNotifications();
+      refreshWidgets();
+    }, 1000);
     return () => clearTimeout(timer);
-  }, [currentCategoryId, favorites, customQuotes, defaultQuotes]);
+  }, [currentCategoryId, favorites, customQuotes, defaultQuotes, currentStreak, isIgnited]);
 
   // 첫 명언 풀을 만든다. (명언이 추가되어도 보던 위치는 유지)
   useEffect(() => {

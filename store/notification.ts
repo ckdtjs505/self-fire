@@ -98,7 +98,7 @@ const waitForHydration = (store: PersistedStore) =>
   });
 
 // 홈 화면 '전체' 모드와 같은 후보 명언 (기본 + 동기화된 명언 + 나만의 명언, 카테고리·즐겨찾기 반영)
-async function loadDailyCandidates(): Promise<Quote[]> {
+export async function loadDailyCandidates(): Promise<Quote[]> {
   await Promise.all([waitForHydration(useFavoriteQuoteStore), waitForHydration(useCategoryStore)]);
   const synced = await loadSyncedQuotes();
   const bundledIds = new Set(bundledQuotes.map((q) => q.id));
