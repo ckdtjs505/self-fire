@@ -58,6 +58,7 @@
       "expo-font",
       "expo-web-browser",
       "./plugins/withAutoLaunch.js",
+      "./plugins/withAndroidUnlockOrientation.js",
       [
         "react-native-android-widget",
         {

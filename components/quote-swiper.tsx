@@ -13,7 +13,7 @@ import FeatherIcon from "@/components/icon";
 import QuoteItem from "@/components/quote-items";
 import { Quote } from "@/models";
 import { useRef } from "react";
-import { Animated, Dimensions } from "react-native";
+import { Animated, useWindowDimensions } from "react-native";
 import {
   NativeViewGestureHandler,
   PanGestureHandler,
@@ -22,13 +22,8 @@ import {
   type PanGestureHandlerGestureEvent,
 } from "react-native-gesture-handler";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
 // 다음/이전으로 넘어가기 위한 최소 이동 거리(px)와 속도(px/s)
-const SWIPE_DISTANCE_THRESHOLD = SCREEN_WIDTH * 0.2;
 const SWIPE_VELOCITY_THRESHOLD = 500;
-// 새 카드가 들어올 때 시작 위치 (화면 너비 대비)
-const ENTER_OFFSET = SCREEN_WIDTH * 0.25;
 // 카드 아래 '새 명언으로' 버튼 자리의 높이
 const REVISIT_SLOT_HEIGHT = 58;
 
@@ -47,6 +42,10 @@ type Props = {
 };
 
 const QuoteSwiper: React.FC<Props> = ({ quote, isCustom, isRevisit, canGoPrev, canGoNext, onNext, onPrev, onJumpToLatest }) => {
+  // 회전·창 크기 변경에 맞춰 스와이프 기준을 다시 계산한다.
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
+  const SWIPE_DISTANCE_THRESHOLD = SCREEN_WIDTH * 0.2;
+  const ENTER_OFFSET = SCREEN_WIDTH * 0.25;
   const slideX = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(1)).current;
 
