@@ -8,10 +8,15 @@ const BANNER_UNIT_ID = __DEV__ ? TestIds.BANNER : "ca-app-pub-3739053005473702/4
 
 /**
  * 화면 하단 AdMob 배너.
- * 광고 로드가 끝나기 전까지는 투명하게 두어 레이아웃 깜빡임을 막는다.
+ * 적응형 배너 크기는 로드 시점 너비로 고정되므로, 회전·창 크기 변경 시 새로 로드한다.
  */
 const BannerAd: React.FC = () => {
   const { width } = useWindowDimensions();
+  return <AdaptiveBanner key={Math.round(width)} width={width} />;
+};
+
+// 광고 로드가 끝나기 전까지는 투명하게 두어 레이아웃 깜빡임을 막는다.
+const AdaptiveBanner: React.FC<{ width: number }> = ({ width }) => {
   const [isLoaded, setIsLoaded] = useState(false);
 
   return (
