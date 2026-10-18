@@ -3,7 +3,8 @@
 // 앱 설정 화면.
 //   - 알림: 오늘의 명언 알림 ON/OFF, 알림 시간(시/분) 조정
 //   - 서비스: 나만의 명언 관리, 잠금 해제 시 자동 실행(Android),
-//             자주 묻는 질문, 광고 제거·구매 복원, 응원의 리뷰
+//             자주 묻는 질문, 응원의 리뷰
+//             (광고 제거 인앱 결제는 사업자 등록 전까지 미제공 — hooks/useRemoveAdsPurchase.ts)
 //   - 앱 정보: 개인정보 처리방침, 서비스 이용약관, 버전 정보
 // ─────────────────────────────────────────────────────────────
 
@@ -12,7 +13,6 @@ import ScreenHeader from "@/components/screen-header";
 import SettingItem, { SettingDivider, SettingSection, SettingSwitch } from "@/components/setting-item";
 import FeatherIcon from "@/components/icon";
 import { useAutoLaunch } from "@/hooks/useAutoLaunch";
-import { useRemoveAdsPurchase } from "@/hooks/useRemoveAdsPurchase";
 import { useNotificationStore } from "@/store/notification";
 import * as Application from "expo-application";
 import { useRouter } from "expo-router";
@@ -61,7 +61,6 @@ const TimeStepper: React.FC<{ value: number; onDecrease: () => void; onIncrease:
 export default function SettingScreen() {
   const router = useRouter();
   const autoLaunch = useAutoLaunch();
-  const { isAdFree, price, purchaseRemoveAds, restorePurchases } = useRemoveAdsPurchase();
   const {
     isEnabled: isNotificationEnabled,
     notificationHour: hour,
@@ -131,33 +130,6 @@ export default function SettingScreen() {
 
             <SettingItem icon="help-circle" title="자주 묻는 질문" onPress={() => Linking.openURL(FAQ_URL)} />
             <SettingDivider />
-
-            <SettingItem
-              icon="shopping-cart"
-              title="광고 제거"
-              onPress={purchaseRemoveAds}
-              rightElement={
-                isAdFree ? (
-                  <Box bg="$primarySoft" borderRadius="pill" px="s" style={{ paddingVertical: 3 }}>
-                    <Text fontSize={12} color="$primary" fontWeight="800">
-                      적용됨
-                    </Text>
-                  </Box>
-                ) : (
-                  <Text variant="caption" fontSize={14} fontWeight="600">
-                    {price}
-                  </Text>
-                )
-              }
-            />
-            <SettingDivider />
-
-            {!isAdFree && (
-              <>
-                <SettingItem icon="refresh-cw" title="구매 복원" onPress={restorePurchases} />
-                <SettingDivider />
-              </>
-            )}
 
             <SettingItem icon="star" title="응원의 리뷰 쓰기" onPress={openStoreReview} />
           </SettingSection>
