@@ -2,7 +2,7 @@
 // SettingScreen.tsx
 // 앱 설정 화면.
 //   - 알림: 오늘의 명언 알림 ON/OFF, 알림 시간(시/분) 조정
-//   - 서비스: 나만의 명언 관리, 잠금 해제 시 자동 실행(Android),
+//   - 서비스: 관심 주제, 나만의 명언 관리, 잠금 해제 시 자동 실행(Android),
 //             자주 묻는 질문, 응원의 리뷰
 //             (광고 제거 인앱 결제는 사업자 등록 전까지 미제공)
 //   - 앱 정보: 개인정보 처리방침, 서비스 이용약관, 버전 정보
@@ -12,11 +12,18 @@ import { Box, SafeAreaView, Text } from "@/atom";
 import ScreenHeader from "@/components/screen-header";
 import SettingItem, { SettingDivider, SettingSection, SettingSwitch } from "@/components/setting-item";
 import FeatherIcon from "@/components/icon";
+import InterestsSheet from "@/components/interests-sheet";
+import { PickerSheetHandle } from "@/components/picker-sheet";
+import { CATEGORIES } from "@/data/quote-categories";
 import { useAutoLaunch } from "@/hooks/useAutoLaunch";
+import { useCategoryStore } from "@/store/category";
 import { useNotificationStore } from "@/store/notification";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import * as Application from "expo-application";
 import { useRouter } from "expo-router";
+import { useRef } from "react";
 import { Linking, Pressable, ScrollView } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 const FAQ_URL = "https://workshop-code.tistory.com/107";
 const PACKAGE_NAME = Application.applicationId || "com.changsunoh.selfFire";
@@ -58,7 +65,7 @@ const TimeStepper: React.FC<{ value: number; onDecrease: () => void; onIncrease:
   </Box>
 );
 
-export default function SettingScreen() {
+function SettingContent() {
   const router = useRouter();
   const autoLaunch = useAutoLaunch();
   const {
@@ -68,6 +75,14 @@ export default function SettingScreen() {
     setEnabled: setNotificationEnabled,
     setTime,
   } = useNotificationStore();
+  const interestIds = useCategoryStore((s) => s.interestIds);
+  const interestsSheetRef = useRef<PickerSheetHandle>(null);
+  const interestsSummary =
+    interestIds.length === 0
+      ? "모든 주제"
+      : CATEGORIES.filter((c) => interestIds.includes(c.id))
+          .map((c) => c.label)
+          .join(", ");
 
   return (
     <SafeAreaView flex={1} bg="$background">
@@ -113,6 +128,17 @@ export default function SettingScreen() {
           </SettingSection>
 
           <SettingSection title="서비스">
+            <SettingItem
+              icon="compass"
+              title="관심 주제"
+              onPress={() => interestsSheetRef.current?.open()}
+              rightElement={
+                <Text variant="caption" fontSize={13} numberOfLines={1} style={{ maxWidth: 150 }}>
+                  {interestsSummary}
+                </Text>
+              }
+            />
+            <SettingDivider />
             <SettingItem icon="edit-3" title="나만의 명언 관리" onPress={() => router.push("/MyQuotesScreen")} />
             <SettingDivider />
 
@@ -157,6 +183,18 @@ export default function SettingScreen() {
           </Box>
         </ScrollView>
       </Box>
+      <InterestsSheet ref={interestsSheetRef} />
     </SafeAreaView>
+  );
+}
+
+// 관심 주제 바텀시트를 띄우기 위해 이 화면에도 제스처 루트와 시트 프로바이더를 둔다.
+export default function SettingScreen() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
+        <SettingContent />
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
