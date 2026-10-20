@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "10078333555",
+    "project_id": "selffire-12748",
+    "storage_bucket": "selffire-12748.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:10078333555:android:19618255b9a66c1a79d806",
+        "android_client_info": {
+          "package_name": "com.changsunoh.selfFire"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDyyEh_xErNwpa5iteNHBOoWtmdFVLAsm4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

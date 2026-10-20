@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // _layout.tsx
 // 앱 전체의 루트 레이아웃.
+// - Firebase Analytics·Crashlytics 초기화 / 화면 조회 기록
 // - AdMob 초기화 / 포그라운드 알림 핸들러 설정 / 오늘의 명언 알림 예약 갱신
 // - 구글 폰트 로드
 // - 강제 업데이트 체크
@@ -12,6 +13,7 @@ import StatusBar from "@/components/status-bar";
 import { toastConfig } from "@/components/simple-toast";
 import { refreshDailyNotifications } from "@/store/notification";
 import { useThemeStore } from "@/store/theme";
+import { initAnalytics, trackScreen } from "@/utils/analytics";
 import { GowunDodum_400Regular } from "@expo-google-fonts/gowun-dodum";
 import { Jua_400Regular } from "@expo-google-fonts/jua";
 import { NanumMyeongjo_400Regular, NanumMyeongjo_700Bold, NanumMyeongjo_800ExtraBold } from "@expo-google-fonts/nanum-myeongjo";
@@ -26,6 +28,9 @@ import mobileAds from "react-native-google-mobile-ads";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import SpInAppUpdates, { IAUUpdateKind, StartUpdateOptions } from "sp-react-native-in-app-updates";
+
+// ── 분석·크래시 리포트 초기화 ─────────────────────────────────
+initAnalytics();
 
 // ── AdMob 초기화 ──────────────────────────────────────────────
 // 개발 환경에서는 에뮬레이터를 테스트 기기로 등록한다.
@@ -88,6 +93,11 @@ export default function RootLayout() {
     Jua_400Regular,
     NanumPenScript_400Regular,
   });
+
+  // 화면 전환마다 screen_view를 기록한다.
+  useEffect(() => {
+    trackScreen(pathname === "/" ? "Home" : pathname.replace(/^\//, ""));
+  }, [pathname]);
 
   useEffect(() => {
     checkForcedUpdate();

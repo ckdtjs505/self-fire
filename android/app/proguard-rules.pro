@@ -12,3 +12,7 @@
 -keep class com.facebook.react.turbomodule.** { *; }
 
 # Add any project specific keep options here:
+
+# Firebase Crashlytics: 난독화된 스택트레이스를 매핑 파일로 복원하기 위해 줄 번호 유지
+-keepattributes SourceFile,LineNumberTable
+-keep public class * extends java.lang.Exception
