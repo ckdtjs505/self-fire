@@ -2,6 +2,7 @@
 // card-backgrounds.ts
 // 명언 카드 배경 이미지. 'none'이면 테마의 면 색을 그대로 쓴다.
 //   - tone: 이미지 밝기. 'dark'면 흰 글씨, 'light'면 어두운 글씨로 그린다.
+//   - unlockAt: 스트릭 마일스톤 보상. 최장 연속 점화가 이 일수에 닿으면 열린다.
 // ─────────────────────────────────────────────────────────────
 
 import { ImageSourcePropType } from "react-native";
@@ -15,13 +16,16 @@ export type CardBackgroundId =
   | "night"
   | "ember"
   | "paper"
-  | "aurora";
+  | "aurora"
+  | "campfire"
+  | "golden";
 
 export type CardBackground = {
   id: CardBackgroundId;
   label: string;
   source?: ImageSourcePropType;
   tone?: "dark" | "light";
+  unlockAt?: number;
 };
 
 export const CARD_BACKGROUNDS: CardBackground[] = [
@@ -34,6 +38,8 @@ export const CARD_BACKGROUNDS: CardBackground[] = [
   { id: "aurora", label: "오로라", source: require("@/assets/images/card-bg/aurora.jpg"), tone: "dark" },
   { id: "dawn", label: "새벽", source: require("@/assets/images/card-bg/dawn.jpg"), tone: "light" },
   { id: "paper", label: "종이", source: require("@/assets/images/card-bg/paper.jpg"), tone: "light" },
+  { id: "campfire", label: "모닥불", source: require("@/assets/images/card-bg/campfire.jpg"), tone: "dark", unlockAt: 7 },
+  { id: "golden", label: "황금빛", source: require("@/assets/images/card-bg/golden.jpg"), tone: "dark", unlockAt: 100 },
 ];
 
 export const getCardBackground = (id: CardBackgroundId): CardBackground =>

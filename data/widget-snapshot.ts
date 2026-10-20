@@ -8,6 +8,7 @@
 import { getDailyQuote } from "@/data/daily-quote";
 import { Quote } from "@/models";
 import { toDateString } from "@/utils/date";
+import { reconcileStreak } from "@/utils/streak";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const WIDGET_SNAPSHOT_KEY = "widget_snapshot";
@@ -20,11 +21,13 @@ export type WidgetDailyQuote = { date: string; text: string; author: string };
 export type WidgetSnapshot = {
   quotes: WidgetDailyQuote[];
   currentStreak: number;
-  lastOpenDate: string | null; // 마지막으로 앱을 연 날 (스트릭 기준)
+  lastStreakDate: string | null; // 스트릭에 들어간 마지막 날 (점화했거나 불씨 지키기로 지킨 날)
+  freezeUsedWeek: string | null; // 불씨 지키기를 쓴 주
   lastIgnitedDate: string | null; // 마지막으로 불씨를 지핀(Hold to Ignite) 날
+  lastOpenDate?: string | null; // 예전 버전 스냅샷 (앱을 연 날 기준 스트릭)
 };
 
-// lit: 오늘 불씨를 지폈다 / waiting: 스트릭은 살아 있지만 오늘은 아직 / out: 하루 이상 건너뛰어 꺼졌다
+// lit: 오늘 불씨를 지폈다 / waiting: 스트릭은 살아 있지만 오늘은 아직 / out: 꺼졌다 (불씨 지키기로도 못 지킴)
 export type FlameStatus = "lit" | "waiting" | "out";
 
 export type WidgetView = {
@@ -41,7 +44,8 @@ const addDays = (date: Date, days: number) =>
 export const buildWidgetSnapshot = (params: {
   candidates: Quote[];
   currentStreak: number;
-  lastOpenDate: string | null;
+  lastStreakDate: string | null;
+  freezeUsedWeek: string | null;
   lastIgnitedDate: string | null;
   now?: Date;
 }): WidgetSnapshot => {
@@ -60,15 +64,23 @@ export const resolveWidgetView = (snapshot: WidgetSnapshot | null, now: Date = n
   if (!snapshot) return { quote: null, flame: "out", streak: 0 };
 
   const today = toDateString(now);
-  const yesterday = toDateString(addDays(now, -1));
 
   // 저장된 기간이 지났으면(오래 앱을 열지 않음) 마지막 명언이라도 보여 준다.
   const pastOrToday = snapshot.quotes.filter((q) => q.date <= today);
   const daily = pastOrToday[pastOrToday.length - 1] ?? null;
   const quote = daily && { text: daily.text, author: daily.author };
 
-  const alive = snapshot.lastOpenDate === today || snapshot.lastOpenDate === yesterday;
-  const streak = alive ? snapshot.currentStreak : 0;
+  // 앱과 같은 규칙으로 계산한다. (어제 하루를 빠뜨렸어도 불씨 지키기가 남았으면 이어진 것으로 본다)
+  const { record } = reconcileStreak(
+    {
+      currentStreak: snapshot.currentStreak,
+      longestStreak: snapshot.currentStreak,
+      lastStreakDate: snapshot.lastStreakDate ?? snapshot.lastOpenDate ?? null,
+      freezeUsedWeek: snapshot.freezeUsedWeek ?? null,
+    },
+    today
+  );
+  const streak = record.currentStreak;
   const flame: FlameStatus =
     snapshot.lastIgnitedDate === today ? "lit" : streak > 0 ? "waiting" : "out";
 

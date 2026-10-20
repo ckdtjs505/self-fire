@@ -319,7 +319,7 @@ export default function Index() {
     <SafeAreaView flex={1} bg="$background">
       <Box flex={1} alignItems="center">
         {/* ── 상단 바 ──
-            왼쪽: 메뉴 + 연속 방문 스트릭 / 오른쪽: 테마 · 글꼴 */}
+            왼쪽: 메뉴 + 연속 점화 스트릭 / 오른쪽: 테마 · 글꼴 */}
         <Box
           width="100%"
           flexDirection="row"

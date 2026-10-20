@@ -4,13 +4,16 @@ import nature from "./nature";
 import ocean from "./ocean";
 import sunset from "./sunset";
 import sepia from "./sepia";
+import ember from "./ember";
+import gold from "./gold";
 
-export type ThemeId = "light" | "dark" | "nature" | "ocean" | "sunset" | "sepia";
+export type ThemeId = "light" | "dark" | "nature" | "ocean" | "sunset" | "sepia" | "ember" | "gold";
 
 export type ThemeMeta = {
   id: ThemeId;
   name: string;
   theme: Theme;
+  unlockAt?: number; // 스트릭 마일스톤 보상: 최장 연속 점화가 이 일수에 닿으면 열린다
 };
 
 export const themeList: ThemeMeta[] = [
@@ -20,6 +23,8 @@ export const themeList: ThemeMeta[] = [
   { id: "ocean", name: "바다", theme: ocean },
   { id: "sunset", name: "노을", theme: sunset },
   { id: "sepia", name: "세피아", theme: sepia },
+  { id: "ember", name: "잉걸불", theme: ember, unlockAt: 30 },
+  { id: "gold", name: "황금 불꽃", theme: gold, unlockAt: 100 },
 ];
 
 export const getTheme = (themeId: ThemeId): Theme =>
