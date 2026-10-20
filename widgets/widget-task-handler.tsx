@@ -6,11 +6,14 @@
 // ─────────────────────────────────────────────────────────────
 
 import { loadWidgetSnapshot, resolveWidgetView } from "@/data/widget-snapshot";
+import { trackEvent } from "@/utils/analytics";
 import type { WidgetTaskHandlerProps } from "react-native-android-widget";
 import { renderSelfFireWidget } from "./self-fire-widgets";
 
 export async function widgetTaskHandler({ widgetInfo, widgetAction, renderWidget }: WidgetTaskHandlerProps) {
   if (widgetAction === "WIDGET_DELETED") return;
+  // 위젯 추가 안내의 효과를 보기 위해 기록한다. (안내 없이 직접 놓은 경우도 포함)
+  if (widgetAction === "WIDGET_ADDED") trackEvent("widget_added", { widget: widgetInfo.widgetName });
 
   const view = resolveWidgetView(await loadWidgetSnapshot());
   renderWidget(renderSelfFireWidget(widgetInfo.widgetName, view, widgetInfo.width, widgetInfo.height));

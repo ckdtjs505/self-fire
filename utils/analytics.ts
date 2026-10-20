@@ -55,7 +55,11 @@ export type AnalyticsEvent =
   | "favorite_remove" // 불씨 보관함에서 해제
   | "favorite_undo" // 해제 직후 되돌리기
   | "notification_open" // 알림을 눌러 앱을 엶 (type: daily | streak)
-  | "onboarding_skip"; // 첫 실행 주제 고르기를 건너뜀
+  | "onboarding_skip" // 첫 실행 주제 고르기를 건너뜀
+  | "widget_prompt_shown" // 점화 완료 시트에서 위젯 추가 제안 (streak)
+  | "widget_prompt_dismiss" // 위젯 추가 제안을 닫음 (streak)
+  | "widget_pin_request" // 위젯 추가 창 요청 (widget, source, accepted)
+  | "widget_added" // 홈 화면에 위젯이 놓임 (widget)
 
 export const trackEvent = (name: AnalyticsEvent, params?: EventParams) => {
   safely(() => logEvent(getAnalytics(), name as string, params));
