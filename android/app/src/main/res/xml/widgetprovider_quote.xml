@@ -12,6 +12,7 @@
     android:description="@string/widget_quote_description"
 
     android:initialLayout="@layout/rn_widget"
+    android:previewImage="@drawable/quote_preview"
 
 
 
