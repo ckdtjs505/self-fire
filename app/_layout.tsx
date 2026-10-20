@@ -5,15 +5,16 @@
 // - AdMob 초기화 / 포그라운드 알림 핸들러 설정 / 오늘의 명언 알림 예약 갱신
 // - 구글 폰트 로드
 // - 강제 업데이트 체크
+// - 알림을 누르면 그 알림의 명언을 홈 화면에 보여 준다
 // - 백그라운드에 한동안 있다가 복귀 시 메인 화면으로 이동
 // - SafeAreaProvider / ThemeProvider / Toast 등 전역 래퍼 제공
 // ─────────────────────────────────────────────────────────────
 
 import StatusBar from "@/components/status-bar";
 import { toastConfig } from "@/components/simple-toast";
-import { refreshDailyNotifications } from "@/store/notification";
+import { NotificationData, refreshDailyNotifications, usePendingQuoteStore } from "@/store/notification";
 import { useThemeStore } from "@/store/theme";
-import { initAnalytics, trackScreen } from "@/utils/analytics";
+import { initAnalytics, trackEvent, trackScreen } from "@/utils/analytics";
 import { GowunDodum_400Regular } from "@expo-google-fonts/gowun-dodum";
 import { Jua_400Regular } from "@expo-google-fonts/jua";
 import { NanumMyeongjo_400Regular, NanumMyeongjo_700Bold, NanumMyeongjo_800ExtraBold } from "@expo-google-fonts/nanum-myeongjo";
@@ -80,6 +81,8 @@ export default function RootLayout() {
   const pathnameRef = useRef(pathname);
   pathnameRef.current = pathname;
   const backgroundedAt = useRef<number | null>(null);
+  // 앱을 열게 한(또는 실행 중에 누른) 알림. 처음 실행할 때 누른 알림도 함께 받는다.
+  const notificationResponse = Notifications.useLastNotificationResponse();
 
   // 폰트 로드가 끝나기 전에는 아무것도 렌더링하지 않는다.
   const [fontsLoaded] = useFonts({
@@ -120,6 +123,22 @@ export default function RootLayout() {
 
     return () => subscription.remove();
   }, []);
+
+  // 알림을 누르면 홈으로 가서 그 알림의 명언을 보여 준다. (불씨 알림은 홈으로만)
+  // 처리한 알림은 비워서 다음 실행 때 다시 처리하지 않는다.
+  useEffect(() => {
+    if (!notificationResponse) return;
+    if (notificationResponse.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
+    Notifications.clearLastNotificationResponse();
+
+    const data = notificationResponse.notification.request.content.data as Partial<NotificationData> | null;
+    trackEvent("notification_open", { type: data?.type ?? "unknown" });
+    if (data?.type === "daily" && data.quoteId && data.text) {
+      usePendingQuoteStore.getState().setQuote({ id: data.quoteId, text: data.text, author: data.author ?? "" });
+    }
+    // 명언을 작성 중이면 화면을 유지한다. (홈으로 돌아가면 그때 보여 준다)
+    if (pathnameRef.current !== "/" && !KEEP_SCREEN_PATHS.includes(pathnameRef.current)) router.replace("/(navi)");
+  }, [notificationResponse]);
 
   if (!fontsLoaded) {
     return null;

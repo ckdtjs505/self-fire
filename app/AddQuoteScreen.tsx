@@ -4,6 +4,8 @@
 // - URL 파라미터(id, text, author)가 있으면 수정 모드로 동작
 // - 없으면 신규 추가 모드로 동작
 // - KeyboardAvoidingView로 iOS 키보드 가림 현상 방지
+// - 작성자를 비워 두면 '나'로 저장한다
+// - 고친 내용이 있는데 닫으면(닫기 버튼·뒤로 가기·아래로 쓸어내리기) 버릴지 한 번 묻는다
 // ─────────────────────────────────────────────────────────────
 
 import { Box, SafeAreaView, Text } from "@/atom";
@@ -11,9 +13,11 @@ import ScreenHeader from "@/components/screen-header";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { useThemeStore } from "@/store/theme";
 import { trackEvent } from "@/utils/analytics";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { usePreventRemove } from "@react-navigation/native";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { useRef, useState } from "react";
 import {
+  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -25,8 +29,12 @@ import {
 } from "react-native";
 import Toast from "react-native-toast-message";
 
+// 작성자를 비워 두면 저장하는 이름
+const DEFAULT_AUTHOR = "나";
+
 export default function AddQuoteScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
 
   // URL 파라미터에서 수정 대상 명언 정보를 받아온다.
   // id가 존재하면 수정 모드, 없으면 추가 모드.
@@ -43,6 +51,21 @@ export default function AddQuoteScreen() {
   // 수정 모드이면 기존 값으로 초기화한다.
   const [text, setText] = useState(params.text || "");
   const [author, setAuthor] = useState(params.author || "");
+  // 저장 버튼으로 닫을 때는 버릴지 묻지 않는다.
+  const isSaving = useRef(false);
+  const isDirty = text !== (params.text || "") || author !== (params.author || "");
+
+  // 고친 내용이 있으면 화면을 닫기 전에 버릴지 묻는다. (iOS 모달을 쓸어내릴 때도 막는다)
+  usePreventRemove(isDirty, ({ data }) => {
+    if (isSaving.current) {
+      navigation.dispatch(data.action);
+      return;
+    }
+    Alert.alert("작성 중인 내용이 있어요", "저장하지 않고 닫을까요?", [
+      { text: "계속 쓰기", style: "cancel" },
+      { text: "버리기", style: "destructive", onPress: () => navigation.dispatch(data.action) },
+    ]);
+  });
 
   // ── handleSave ────────────────────────────────────────────
   // 저장 버튼 클릭 시 호출된다.
@@ -53,20 +76,18 @@ export default function AddQuoteScreen() {
       Toast.show({ type: "error", text1: "알림", text2: "명언 내용을 입력해주세요." });
       return;
     }
-    // 작성자/출처 필수 입력 검사
-    if (!author.trim()) {
-      Toast.show({ type: "error", text1: "알림", text2: "작성자(또는 출처)를 입력해주세요." });
-      return;
-    }
+    // 작성자/출처는 비워 두면 '나'로 저장한다.
+    const savedAuthor = author.trim() || DEFAULT_AUTHOR;
+    isSaving.current = true;
 
     if (params.id) {
       // 수정 모드: 기존 명언 업데이트
-      updateCustomQuote(params.id, text, author);
+      updateCustomQuote(params.id, text, savedAuthor);
       trackEvent("quote_edit");
       Toast.show({ type: "success", text1: "성공", text2: "명언이 수정되었습니다." });
     } else {
       // 추가 모드: 새 명언 등록
-      addCustomQuote(text, author);
+      addCustomQuote(text, savedAuthor);
       trackEvent("quote_add");
       Toast.show({ type: "success", text1: "성공", text2: "새로운 명언이 등록되었습니다." });
     }
@@ -137,7 +158,7 @@ export default function AddQuoteScreen() {
               {/* ── 작성자/출처 입력 영역 ──────────────────── */}
               <Box marginBottom="xl">
                 <Text variant="overline" marginBottom="s" marginLeft="xs">
-                  작성자 / 출처
+                  작성자 / 출처 (선택)
                 </Text>
                 <Box
                   bg="$surface"
@@ -149,7 +170,7 @@ export default function AddQuoteScreen() {
                   borderColor={focused === "author" ? "$primary" : "$border"}
                 >
                   <TextInput
-                    placeholder="이름 또는 출처를 입력하세요."
+                    placeholder="비워 두면 '나'로 저장돼요"
                     placeholderTextColor={colors.$muted}
                     selectionColor={colors.$primary}
                     value={author}

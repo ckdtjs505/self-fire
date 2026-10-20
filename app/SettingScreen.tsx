@@ -1,8 +1,8 @@
 // ─────────────────────────────────────────────────────────────
 // SettingScreen.tsx
 // 앱 설정 화면.
-//   - 알림: 오늘의 명언 알림 ON/OFF, 알림 시간(시/분) 조정
-//   - 서비스: 관심 주제, 나만의 명언 관리, 잠금 해제 시 자동 실행(Android),
+//   - 알림: 오늘의 명언 알림 ON/OFF, 알림 시간(시/분) 조정, 불씨가 꺼지기 전 저녁 알림 ON/OFF
+//   - 서비스: 관심 주제, 나만의 명언 관리, 홈 화면 위젯(Android), 잠금 해제 시 자동 실행(Android),
 //             자주 묻는 질문, 응원의 리뷰
 //             (광고 제거 인앱 결제는 사업자 등록 전까지 미제공)
 //   - 앱 정보: 개인정보 처리방침, 서비스 이용약관, 버전 정보
@@ -13,11 +13,13 @@ import ScreenHeader from "@/components/screen-header";
 import SettingItem, { SettingDivider, SettingSection, SettingSwitch } from "@/components/setting-item";
 import FeatherIcon from "@/components/icon";
 import InterestsSheet from "@/components/interests-sheet";
+import WidgetSheet from "@/components/widget-sheet";
 import { PickerSheetHandle } from "@/components/picker-sheet";
 import { CATEGORIES } from "@/data/quote-categories";
 import { useAutoLaunch } from "@/hooks/useAutoLaunch";
 import { useCategoryStore } from "@/store/category";
-import { useNotificationStore } from "@/store/notification";
+import { STREAK_REMINDER_HOUR, STREAK_REMINDER_MINUTE, useNotificationStore } from "@/store/notification";
+import { isWidgetSupported } from "@/widgets/widget-pin";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import * as Application from "expo-application";
 import { useRouter } from "expo-router";
@@ -74,9 +76,12 @@ function SettingContent() {
     notificationMinute: minute,
     setEnabled: setNotificationEnabled,
     setTime,
+    streakReminderEnabled,
+    setStreakReminderEnabled,
   } = useNotificationStore();
   const interestIds = useCategoryStore((s) => s.interestIds);
   const interestsSheetRef = useRef<PickerSheetHandle>(null);
+  const widgetSheetRef = useRef<PickerSheetHandle>(null);
   const interestsSummary =
     interestIds.length === 0
       ? "모든 주제"
@@ -123,6 +128,13 @@ function SettingContent() {
                     />
                   </Box>
                 </Box>
+                <SettingDivider />
+                <SettingItem
+                  icon="moon"
+                  title={`불씨 꺼짐 알림 (밤 ${STREAK_REMINDER_HOUR - 12}:${pad2(STREAK_REMINDER_MINUTE)})`}
+                  onPress={() => setStreakReminderEnabled(!streakReminderEnabled)}
+                  rightElement={<SettingSwitch value={streakReminderEnabled} onValueChange={setStreakReminderEnabled} />}
+                />
               </>
             )}
           </SettingSection>
@@ -141,6 +153,12 @@ function SettingContent() {
             <SettingDivider />
             <SettingItem icon="edit-3" title="나만의 명언 관리" onPress={() => router.push("/MyQuotesScreen")} />
             <SettingDivider />
+            {isWidgetSupported && (
+              <>
+                <SettingItem icon="grid" title="홈 화면 위젯 추가" onPress={() => widgetSheetRef.current?.open()} />
+                <SettingDivider />
+              </>
+            )}
 
             {autoLaunch.isSupported && (
               <>
@@ -184,6 +202,7 @@ function SettingContent() {
         </ScrollView>
       </Box>
       <InterestsSheet ref={interestsSheetRef} />
+      <WidgetSheet ref={widgetSheetRef} />
     </SafeAreaView>
   );
 }

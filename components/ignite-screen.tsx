@@ -7,6 +7,8 @@
 //   - 열기 파티클 6개가 위로 떠오름
 //   - 홀드 진행 시 색상이 어두운 적색 → 밝은 황금빛으로 변화
 //   - 완료 시 강렬한 플래시 + 스파크 터짐
+//   - 누르는 동안 점점 세지는 진동, 점화 순간 완료 진동
+//   - 스크린리더: 두 번 탭(activate)하면 바로 점화
 // ─────────────────────────────────────────────────────────────
 
 import React, { useRef, useEffect } from 'react';
@@ -14,8 +16,10 @@ import { Animated, StyleSheet, Easing, useWindowDimensions } from 'react-native'
 import { Text } from '@/atom';
 // 테마를 거치지 않고 직접 Ionicons를 사용 → hex 색상이 그대로 적용됨
 import { Ionicons } from '@expo/vector-icons';
+import { pulseHaptic, successHaptic } from '@/utils/haptics';
 
 const HOLD_DURATION = 1500; // 점화까지 필요한 홀드 시간 (ms)
+const HAPTIC_INTERVAL = 250; // 누르는 동안 진동 간격 (ms)
 
 // ── 파티클 설정 ────────────────────────────────────────────────
 // 위로 떠오르는 열기 파티클의 초기 위치 오프셋 목록
@@ -54,6 +58,12 @@ export const IgniteScreen: React.FC<Props> = ({ onIgnited }) => {
   const idleLoopRef  = useRef<Animated.CompositeAnimation | null>(null);
   const flickerRef   = useRef<Animated.CompositeAnimation | null>(null);
   const particleRefs = useRef<Animated.CompositeAnimation[]>([]);
+  const hapticTimer  = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopHaptics = () => {
+    if (hapticTimer.current) clearInterval(hapticTimer.current);
+    hapticTimer.current = null;
+  };
 
   // ── progress 파생 애니메이션 ────────────────────────────────
   // 불씨 크기: 1x → 3x
@@ -82,6 +92,7 @@ export const IgniteScreen: React.FC<Props> = ({ onIgnited }) => {
       idleLoopRef.current?.stop();
       flickerRef.current?.stop();
       particleAnims.forEach(a => a.stop());
+      stopHaptics();
     };
     // 마운트 시 한 번만 루프를 시작한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -151,6 +162,14 @@ export const IgniteScreen: React.FC<Props> = ({ onIgnited }) => {
     idleLoopRef.current?.stop(); // idle 맥박 정지
     idlePulse.setValue(1);
 
+    // 누르고 있는 동안 진동이 점점 세진다.
+    const startedAt = Date.now();
+    pulseHaptic(0);
+    stopHaptics();
+    hapticTimer.current = setInterval(() => {
+      pulseHaptic((Date.now() - startedAt) / HOLD_DURATION);
+    }, HAPTIC_INTERVAL);
+
     Animated.timing(progress, {
       toValue: 1,
       duration: HOLD_DURATION,
@@ -158,8 +177,7 @@ export const IgniteScreen: React.FC<Props> = ({ onIgnited }) => {
       easing: Easing.out(Easing.quad), // 끝에 가까울수록 느려지며 긴장감 상승
     }).start(({ finished }) => {
       if (finished && !isCompleted.current) {
-        isCompleted.current = true;
-        triggerReveal();
+        complete();
       }
     });
   };
@@ -167,6 +185,7 @@ export const IgniteScreen: React.FC<Props> = ({ onIgnited }) => {
   // ── cancelHold: 손가락을 뗐을 때 ────────────────────────────
   const cancelHold = () => {
     if (isCompleted.current) return;
+    stopHaptics();
     progress.stopAnimation();
     Animated.spring(progress, {
       toValue: 0,
@@ -174,6 +193,15 @@ export const IgniteScreen: React.FC<Props> = ({ onIgnited }) => {
       tension: 50,
       friction: 7,
     }).start(() => startIdlePulse()); // idle 재시작
+  };
+
+  // ── complete: 점화 완료 (홀드 끝 또는 스크린리더의 두 번 탭) ──
+  const complete = () => {
+    if (isCompleted.current) return;
+    isCompleted.current = true;
+    stopHaptics();
+    successHaptic();
+    triggerReveal();
   };
 
   // ── triggerReveal: 점화 완료 애니메이션 ─────────────────────
@@ -232,6 +260,12 @@ export const IgniteScreen: React.FC<Props> = ({ onIgnited }) => {
           onTouchStart/End 사용: 손가락이 미세하게 움직여도
           홀드가 끊기지 않도록 Pressable 대신 Animated.View 터치 이벤트 사용 */}
       <Animated.View
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel="오늘의 불씨 켜기"
+        accessibilityHint="꾹 누르거나 두 번 탭하면 오늘의 불씨가 켜집니다"
+        accessibilityActions={[{ name: 'activate' }]}
+        onAccessibilityAction={(e) => { if (e.nativeEvent.actionName === 'activate') complete(); }}
         onTouchStart={startHold}
         onTouchEnd={cancelHold}
         onTouchCancel={cancelHold}
@@ -247,7 +281,7 @@ export const IgniteScreen: React.FC<Props> = ({ onIgnited }) => {
       </Animated.View>
 
       {/* ── 힌트 텍스트 ──────────────────────────────────────── */}
-      <Animated.View style={[styles.hintContainer, { bottom: height * 0.2, opacity: hintOpacity }]}>
+      <Animated.View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={[styles.hintContainer, { bottom: height * 0.2, opacity: hintOpacity }]}>
         <Text style={styles.hintText}>꾹 누르면{'\n'}오늘의 불씨가 켜집니다</Text>
       </Animated.View>
 
@@ -304,7 +338,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   hintText: {
-    color: 'rgba(255, 190, 120, 0.5)',
+    color: 'rgba(255, 190, 120, 0.8)',
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 26,
