@@ -22,7 +22,7 @@ const candidates: Quote[] = Array.from({ length: 100 }, (_, i) => ({
 const now = new Date(2026, 9, 18, 9, 0);
 
 const snapshotWith = (flame: Partial<WidgetSnapshot>): WidgetSnapshot => ({
-  ...buildWidgetSnapshot({ candidates, currentStreak: 3, lastOpenDate: null, lastIgnitedDate: null, now }),
+  ...buildWidgetSnapshot({ candidates, currentStreak: 3, lastStreakDate: null, freezeUsedWeek: null, lastIgnitedDate: null, now }),
   ...flame,
 });
 
@@ -31,7 +31,8 @@ describe("buildWidgetSnapshot", () => {
     const { quotes } = buildWidgetSnapshot({
       candidates,
       currentStreak: 3,
-      lastOpenDate: "2026-10-18",
+      lastStreakDate: "2026-10-18",
+      freezeUsedWeek: null,
       lastIgnitedDate: "2026-10-18",
       now,
     });
@@ -49,7 +50,8 @@ describe("buildWidgetSnapshot", () => {
     const snapshot = buildWidgetSnapshot({
       candidates: [],
       currentStreak: 0,
-      lastOpenDate: null,
+      lastStreakDate: null,
+      freezeUsedWeek: null,
       lastIgnitedDate: null,
       now,
     });
@@ -72,23 +74,37 @@ describe("resolveWidgetView", () => {
   });
 
   it("오늘 불씨를 지폈으면 lit", () => {
-    const view = resolveWidgetView(snapshotWith({ lastOpenDate: "2026-10-18", lastIgnitedDate: "2026-10-18" }), now);
+    const view = resolveWidgetView(snapshotWith({ lastStreakDate: "2026-10-18", lastIgnitedDate: "2026-10-18" }), now);
     expect(view).toMatchObject({ flame: "lit", streak: 3 });
   });
 
   it("어제까지 이어 왔고 오늘은 아직이면 waiting", () => {
-    const view = resolveWidgetView(snapshotWith({ lastOpenDate: "2026-10-17", lastIgnitedDate: "2026-10-17" }), now);
+    const view = resolveWidgetView(snapshotWith({ lastStreakDate: "2026-10-17", lastIgnitedDate: "2026-10-17" }), now);
     expect(view).toMatchObject({ flame: "waiting", streak: 3 });
   });
 
-  it("오늘 앱은 열었지만 점화하지 않았으면 waiting", () => {
-    const view = resolveWidgetView(snapshotWith({ lastOpenDate: "2026-10-18", lastIgnitedDate: "2026-10-17" }), now);
+  it("어제 하루를 빠뜨렸어도 이번 주 불씨 지키기가 남았으면 waiting", () => {
+    const view = resolveWidgetView(snapshotWith({ lastStreakDate: "2026-10-16", lastIgnitedDate: "2026-10-16" }), now);
     expect(view).toMatchObject({ flame: "waiting", streak: 3 });
   });
 
-  it("하루 이상 건너뛰었으면 꺼진(out) 상태로 연속 일수 0", () => {
-    const view = resolveWidgetView(snapshotWith({ lastOpenDate: "2026-10-16", lastIgnitedDate: "2026-10-16" }), now);
+  it("어제 하루를 빠뜨렸고 그 주 불씨 지키기를 이미 썼으면 out", () => {
+    // 2026-10-17(토)은 2026-10-12(월)로 시작하는 주
+    const view = resolveWidgetView(
+      snapshotWith({ lastStreakDate: "2026-10-16", freezeUsedWeek: "2026-10-12", lastIgnitedDate: "2026-10-16" }),
+      now
+    );
     expect(view).toMatchObject({ flame: "out", streak: 0 });
+  });
+
+  it("이틀 이상 건너뛰었으면 꺼진(out) 상태로 연속 일수 0", () => {
+    const view = resolveWidgetView(snapshotWith({ lastStreakDate: "2026-10-15", lastIgnitedDate: "2026-10-15" }), now);
+    expect(view).toMatchObject({ flame: "out", streak: 0 });
+  });
+
+  it("예전 버전 스냅샷(lastOpenDate)도 읽는다", () => {
+    const legacy = { ...snapshotWith({}), lastStreakDate: undefined, lastOpenDate: "2026-10-17" } as unknown as WidgetSnapshot;
+    expect(resolveWidgetView(legacy, now)).toMatchObject({ flame: "waiting", streak: 3 });
   });
 
   it("스냅샷이 없으면(앱을 아직 열지 않음) 명언 없이 꺼진 상태", () => {
@@ -98,7 +114,7 @@ describe("resolveWidgetView", () => {
 
 describe("save/loadWidgetSnapshot", () => {
   it("저장한 스냅샷을 그대로 읽는다", async () => {
-    const snapshot = snapshotWith({ lastOpenDate: "2026-10-18" });
+    const snapshot = snapshotWith({ lastStreakDate: "2026-10-18" });
     await saveWidgetSnapshot(snapshot);
     expect(await loadWidgetSnapshot()).toEqual(snapshot);
   });

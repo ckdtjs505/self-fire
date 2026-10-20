@@ -1,8 +1,10 @@
 import { Box, Text } from "@/atom";
 import { CARD_BACKGROUNDS } from "@/data/card-backgrounds";
 import { useCardBackgroundStore } from "@/store/card-background";
+import { useStreakStore } from "@/store/streak";
 import { useThemeStore } from "@/store/theme";
 import { themeList } from "@/themes";
+import { isUnlocked } from "@/utils/streak";
 import { forwardRef } from "react";
 import { useWindowDimensions } from "react-native";
 import CardBackgroundItem from "./card-background-item";
@@ -17,16 +19,23 @@ const GAP = 10;
 const ThemePicker = forwardRef<PickerSheetHandle>(function ThemePicker(_props, ref) {
   const { currentThemeId } = useThemeStore();
   const { currentBackgroundId } = useCardBackgroundStore();
+  const longestStreak = useStreakStore((s) => s.longestStreak);
   const { width } = useWindowDimensions();
   const contentWidth = width - SHEET_SIDE_PADDING * 2;
   const itemWidth = (contentWidth - GAP * (COLUMNS - 1)) / COLUMNS;
   const backgroundItemWidth = (contentWidth - GAP * (BACKGROUND_COLUMNS - 1)) / BACKGROUND_COLUMNS;
 
   return (
-    <PickerSheet ref={ref} title="테마" description="오늘의 분위기에 맞는 색과 카드 배경을 골라 보세요">
+    <PickerSheet ref={ref} title="테마" description="오늘의 분위기에 맞는 색과 카드 배경을 골라 보세요. 🔒은 연속 점화로 열려요">
       <Box flexDirection="row" flexWrap="wrap" style={{ gap: GAP, rowGap: 16 }}>
         {themeList.map((item) => (
-          <ThemeItem key={item.id} item={item} width={itemWidth} isActive={item.id === currentThemeId} />
+          <ThemeItem
+            key={item.id}
+            item={item}
+            width={itemWidth}
+            isActive={item.id === currentThemeId}
+            isLocked={!isUnlocked(item.unlockAt, longestStreak)}
+          />
         ))}
       </Box>
 
@@ -40,6 +49,7 @@ const ThemePicker = forwardRef<PickerSheetHandle>(function ThemePicker(_props, r
             item={item}
             width={backgroundItemWidth}
             isActive={item.id === currentBackgroundId}
+            isLocked={!isUnlocked(item.unlockAt, longestStreak)}
           />
         ))}
       </Box>

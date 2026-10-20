@@ -1,28 +1,41 @@
 import { Box, Text } from "@/atom";
+import { lockedRewardMessage } from "@/data/streak-rewards";
 import { ThemeMeta } from "@/themes";
 import { useThemeStore } from "@/store/theme";
 import { Pressable } from "react-native";
+import Toast from "react-native-toast-message";
 import FeatherIcon from "./icon";
+import LockedOverlay from "./locked-overlay";
 
 type Props = {
   item: ThemeMeta;
   width: number;
   isActive: boolean;
+  isLocked: boolean;
 };
 
 // 테마 미리보기 타일: 그 테마의 바탕 위에 작은 명언 카드를 그려 보여주고, 누르면 테마를 적용한다.
-const ThemeItem: React.FC<Props> = ({ item, width, isActive }) => {
+// 아직 해금되지 않은 보상 테마는 자물쇠를 덮고, 누르면 해금 조건을 알려 준다.
+const ThemeItem: React.FC<Props> = ({ item, width, isActive, isLocked }) => {
   const { updateThemeId, currentTheme } = useThemeStore();
   const { colors } = item.theme;
   const activeColor = currentTheme.colors.$primary;
 
+  const onPress = () => {
+    if (isLocked && item.unlockAt) {
+      Toast.show({ type: "info", text2: lockedRewardMessage(item.unlockAt) });
+      return;
+    }
+    updateThemeId(item.id);
+  };
+
   return (
     <Pressable
-      onPress={() => updateThemeId(item.id)}
+      onPress={onPress}
       style={{ width }}
       accessibilityRole="button"
-      accessibilityLabel={`${item.name} 테마`}
-      accessibilityState={{ selected: isActive }}
+      accessibilityLabel={isLocked ? `${item.name} 테마, ${item.unlockAt}일 연속 점화 시 해금` : `${item.name} 테마`}
+      accessibilityState={{ selected: isActive, disabled: isLocked }}
     >
       {/* 선택되면 바깥 테두리를 강조색으로 두른다 */}
       <Box
@@ -81,6 +94,8 @@ const ThemeItem: React.FC<Props> = ({ item, width, isActive }) => {
               <FeatherIcon name="check" size={12} color="$onPrimary" />
             </Box>
           )}
+
+          {isLocked && item.unlockAt && <LockedOverlay unlockAt={item.unlockAt} borderRadius={15} />}
         </Box>
       </Box>
 

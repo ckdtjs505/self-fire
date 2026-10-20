@@ -7,7 +7,7 @@
 import { buildWidgetSnapshot, resolveWidgetView, saveWidgetSnapshot } from "@/data/widget-snapshot";
 import { LAST_IGNITED_DATE_KEY } from "@/hooks/useDailyIgnite";
 import { loadDailyCandidates } from "@/store/notification";
-import { useStreakStore } from "@/store/streak";
+import { useStreakStore, whenStreakHydrated } from "@/store/streak";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 import { requestWidgetUpdate } from "react-native-android-widget";
@@ -24,12 +24,13 @@ export const refreshWidgets = () => {
 
 const refreshNow = async () => {
   try {
-    await waitForStreakHydration();
-    const { currentStreak, lastOpenDate } = useStreakStore.getState();
+    await whenStreakHydrated();
+    const { currentStreak, lastStreakDate, freezeUsedWeek } = useStreakStore.getState();
     const snapshot = buildWidgetSnapshot({
       candidates: await loadDailyCandidates(),
       currentStreak,
-      lastOpenDate,
+      lastStreakDate,
+      freezeUsedWeek,
       lastIgnitedDate: await AsyncStorage.getItem(LAST_IGNITED_DATE_KEY),
     });
     await saveWidgetSnapshot(snapshot);
@@ -47,12 +48,3 @@ const refreshNow = async () => {
     console.warn("Failed to refresh widgets:", e);
   }
 };
-
-const waitForStreakHydration = () =>
-  new Promise<void>((resolve) => {
-    if (useStreakStore.persist.hasHydrated()) return resolve();
-    const unsubscribe = useStreakStore.persist.onFinishHydration(() => {
-      unsubscribe();
-      resolve();
-    });
-  });
