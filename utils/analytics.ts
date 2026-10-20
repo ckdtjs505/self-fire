@@ -46,6 +46,7 @@ export type AnalyticsEvent =
   | "ignite_complete" // 하루 첫 점화 완료
   | "streak_freeze_used" // 불씨 지키기로 빠진 하루를 지킴
   | "streak_milestone" // 7/30/100일 마일스톤 도달 (보상 해금)
+  | "reminder_offer" // 점화 후 알림 받기 제안에 응답 (accepted, granted, hour)
   | "quote_share" // 명언 공유
   | "quote_add" // 내 명언 추가
   | "quote_edit"; // 내 명언 수정

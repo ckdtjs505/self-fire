@@ -1,11 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Box, Text } from "@/atom";
 import { Ionicon } from "@/components/icon";
-import { useStreakStore } from "@/store/streak";
-import { toDateString } from "@/utils/date";
-import { isFreezeAvailable, nextMilestone } from "@/utils/streak";
 import { Pressable } from "react-native";
-import Toast from "react-native-toast-message";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -15,21 +11,12 @@ import Animated, {
 
 type Props = {
   streak: number;
-};
-
-// 누르면 보여 줄 안내: 불씨 지키기 남은 횟수 + 다음 보상까지 남은 일수
-const streakInfoMessage = () => {
-  const state = useStreakStore.getState();
-  const freeze = isFreezeAvailable(state, toDateString())
-    ? "🛡️ 이번 주 불씨 지키기 1회 남음"
-    : "🛡️ 이번 주 불씨 지키기 사용함";
-  const next = nextMilestone(state.currentStreak);
-  const reward = next ? `다음 보상까지 ${next.daysLeft}일` : "모든 보상을 열었어요";
-  return `${freeze} · ${reward}`;
+  onPress: () => void;
 };
 
 // 헤더 아이콘 버튼과 같은 높이의 알약 모양으로 연속 점화 일수를 보여준다.
-const StreakBadge: React.FC<Props> = ({ streak }) => {
+// 누르면 나의 모닥불(streak-sheet)을 연다. 불이 꺼졌으면(0일) 흐린 불꽃으로 보여 준다.
+const StreakBadge: React.FC<Props> = ({ streak, onPress }) => {
   const scale = useSharedValue(1);
   const prevStreak = useRef(streak);
 
@@ -48,15 +35,13 @@ const StreakBadge: React.FC<Props> = ({ streak }) => {
     transform: [{ scale: scale.value }],
   }));
 
-  if (streak <= 0) return null;
-
   return (
     <Animated.View style={animStyle}>
       <Pressable
-        onPress={() => Toast.show({ type: "info", text2: streakInfoMessage() })}
+        onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={`${streak}일 연속 점화`}
-        accessibilityHint="불씨 지키기와 다음 보상을 알려 줍니다"
+        accessibilityHint="나의 모닥불을 엽니다"
       >
         <Box
           flexDirection="row"
@@ -68,7 +53,7 @@ const StreakBadge: React.FC<Props> = ({ streak }) => {
           height={42}
           style={{ gap: 5, paddingLeft: 12, paddingRight: 14 }}
         >
-          <Ionicon name="flame" size={17} color="$flame" />
+          <Ionicon name={streak > 0 ? "flame" : "flame-outline"} size={17} color={streak > 0 ? "$flame" : "$muted"} />
           <Text fontSize={15} fontWeight="800">
             {streak}
           </Text>

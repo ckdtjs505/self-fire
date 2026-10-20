@@ -99,3 +99,28 @@ export const nextMilestone = (currentStreak: number) => {
 
 export const isUnlocked = (unlockAt: number | undefined, longestStreak: number) =>
   !unlockAt || longestStreak >= unlockAt;
+
+// ── 모닥불 단계 ───────────────────────────────────────────────
+// 연속 일수가 쌓일수록 장작 위 불이 커지고 늘어난다. (나의 모닥불 시트)
+export type CampfireStage = {
+  level: 0 | 1 | 2 | 3 | 4 | 5;
+  name: string;
+  flames: number; // 장작 위 불꽃 개수
+  minDays: number; // 이 단계가 시작되는 일수
+};
+
+export const CAMPFIRE_STAGES: CampfireStage[] = [
+  { level: 0, name: "꺼진 장작", flames: 0, minDays: 0 },
+  { level: 1, name: "불씨", flames: 1, minDays: 1 },
+  { level: 2, name: "작은 불", flames: 3, minDays: 3 },
+  { level: 3, name: "모닥불", flames: 5, minDays: 7 },
+  { level: 4, name: "큰 모닥불", flames: 7, minDays: 30 },
+  { level: 5, name: "황금 불꽃", flames: 9, minDays: 100 },
+];
+
+export const getCampfireStage = (streak: number): CampfireStage =>
+  [...CAMPFIRE_STAGES].reverse().find((stage) => streak >= stage.minDays) ?? CAMPFIRE_STAGES[0];
+
+// 불의 세기 0~1. 단계 안에서도 하루하루 조금씩 커지도록 연속 일수에 따라 부드럽게 늘린다. (100일에 최대)
+export const campfireIntensity = (streak: number) =>
+  streak <= 0 ? 0 : Math.min(1, Math.log(streak + 1) / Math.log(101));

@@ -5,7 +5,9 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 import { useStreakStore } from "@/store/streak";
 import { toDateString } from "@/utils/date";
 import {
+  campfireIntensity,
   daysBetween,
+  getCampfireStage,
   igniteStreak,
   isUnlocked,
   nextMilestone,
@@ -161,5 +163,27 @@ describe("useStreakStore", () => {
     const migrate = useStreakStore.persist.getOptions().migrate!;
     const migrated = await migrate({ currentStreak: 5, longestStreak: 9, lastOpenDate: "2026-10-20" }, 0);
     expect(migrated).toEqual({ currentStreak: 5, longestStreak: 9, lastStreakDate: "2026-10-20", freezeUsedWeek: null });
+  });
+});
+
+describe("모닥불 단계", () => {
+  it("연속 일수에 따라 단계가 오르고 불꽃이 늘어난다", () => {
+    expect(getCampfireStage(0)).toMatchObject({ level: 0, flames: 0 });
+    expect(getCampfireStage(1)).toMatchObject({ level: 1, flames: 1 });
+    expect(getCampfireStage(2).level).toBe(1);
+    expect(getCampfireStage(3).level).toBe(2);
+    expect(getCampfireStage(7).level).toBe(3);
+    expect(getCampfireStage(29).level).toBe(3);
+    expect(getCampfireStage(30).level).toBe(4);
+    expect(getCampfireStage(100)).toMatchObject({ level: 5, name: "황금 불꽃" });
+    expect(getCampfireStage(365).level).toBe(5);
+  });
+
+  it("불의 세기는 0~1 사이에서 일수가 늘수록 커진다", () => {
+    expect(campfireIntensity(0)).toBe(0);
+    expect(campfireIntensity(1)).toBeGreaterThan(0);
+    expect(campfireIntensity(10)).toBeGreaterThan(campfireIntensity(5));
+    expect(campfireIntensity(100)).toBe(1);
+    expect(campfireIntensity(500)).toBe(1);
   });
 });
