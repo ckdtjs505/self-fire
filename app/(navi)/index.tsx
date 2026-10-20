@@ -33,6 +33,7 @@ import { CategoryId } from "@/data/quote-categories";
 import { quotes as bundledQuotes, loadSyncedQuotes, syncNewQuotes } from "@/data/quotes";
 import { useDailyIgnite } from "@/hooks/useDailyIgnite";
 import { useStreak } from "@/hooks/useStreak";
+import { useSwipeHint } from "@/hooks/useSwipeHint";
 import { Quote } from "@/models";
 import { useAdStore } from "@/store/ad-store";
 import { refreshDailyNotifications } from "@/store/notification";
@@ -41,6 +42,7 @@ import { useFavoriteQuoteStore } from "@/store/quote";
 import { shuffle } from "@/utils/shuffle";
 import { refreshWidgets } from "@/widgets/refresh-widgets";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import Toast from "react-native-toast-message";
 
@@ -74,6 +76,10 @@ export default function Index() {
   const { isIgnited, isFirstVisit, markIgnited } = useDailyIgnite();
   // 처음 설치한 사용자에게만 점화 화면보다 먼저 주제 고르기를 보여 준다.
   const showOnboarding = isFirstVisit && isCategoryHydrated && !hasPickedInterests;
+  // 아직 한 번도 넘겨 보지 않았으면 오늘의 불씨를 켠 뒤 넘기기 힌트를 보여 준다.
+  const { needsHint, markSwiped } = useSwipeHint();
+  // 사이드바에서 '불씨 보관함 열기'를 누르면 view=favorites로 들어온다.
+  const { view, at } = useLocalSearchParams<{ view?: string; at?: string }>();
 
   const themePickerRef = useRef<PickerSheetHandle>(null);
   const fontPickerRef = useRef<PickerSheetHandle>(null);
@@ -300,6 +306,11 @@ export default function Index() {
     changeCategory(selection);
   };
 
+  useEffect(() => {
+    if (view === "favorites" && at) selectCategory("favorites");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [at]);
+
   // ── loadMoreQuotes ────────────────────────────────────────
   // '전체' 모드에서 목록 끝에 가까워지면 로컬 명언에서 더 뽑아 뒤에 붙인다.
   const loadMoreQuotes = () => {
@@ -316,6 +327,7 @@ export default function Index() {
   const showNextQuote = () => {
     const { quotes, currentIndex } = pager;
     if (quotes.length === 0) return;
+    markSwiped();
 
     // 내 명언·불씨 보관함은 마지막 명언에서 멈춘다. 전체 모드는 끝까지 보면 처음으로 돌아간다.
     if (filterMode !== "all" && currentIndex + 1 >= quotes.length) return;
@@ -401,6 +413,7 @@ export default function Index() {
           onNext={showNextQuote}
           onPrev={showPrevQuote}
           onJumpToLatest={showLatestQuote}
+          showSwipeHint={needsHint && isIgnited && !showOnboarding}
         />
       </Box>
 
