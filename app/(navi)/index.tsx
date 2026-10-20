@@ -6,10 +6,9 @@
 //   - 필터 모드: 전체 / 내가 쓴 명언 / 즐겨찾기 (모드별로 보던 위치 유지, 수정·삭제 즉시 반영)
 //   - 카테고리: '전체' 모드에서 고른 카테고리의 명언만 보여준다
 //   - 명언 풀(pool) 관리: 번들 명언에서 50개씩 샘플링(첫 50개는 날짜 시드로 고정 = 오늘의 명언), 새 명언은 백그라운드 동기화
-//   - 테마/폰트 변경 바텀시트
+//   - 테마/폰트 변경 바텀시트, 스트릭 배지를 누르면 나의 모닥불 시트
 //   - AdMob 배너 광고 (광고 제거 미구매 시)
-//   - 하루 1번 불씨 점화(Hold to Ignite) 화면
-//   - Android 오버레이 권한 최초 요청 (잠금 해제 자동 실행용)
+//   - 하루 1번 불씨 점화(Hold to Ignite) 화면 → 점화 완료 시트 (모닥불 + 첫 알림 제안)
 //   - 홈 화면 위젯(오늘의 명언·불씨 상태) 갱신
 // ─────────────────────────────────────────────────────────────
 
@@ -19,18 +18,19 @@ import CategoryTabs, { CategorySelection } from "@/components/category-tabs";
 import FontPicker from "@/components/font-picker";
 import HeaderIconButton from "@/components/header-icon-button";
 import FeatherIcon from "@/components/icon";
+import IgniteResultSheet, { IgniteResultSheetHandle } from "@/components/ignite-result-sheet";
 import { IgniteScreen } from "@/components/ignite-screen";
 import MenuButton from "@/components/menu-button";
 import { PickerSheetHandle } from "@/components/picker-sheet";
 import QuoteSwiper from "@/components/quote-swiper";
 import StreakBadge from "@/components/streak-badge";
+import StreakSheet from "@/components/streak-sheet";
 import ThemePicker from "@/components/theme-picker";
 import { QUOTE_BATCH_SIZE } from "@/data/quote-api";
 import { getAllModeCandidates, orderQuotesForDay } from "@/data/daily-quote";
 import { CategoryId } from "@/data/quote-categories";
 import { quotes as bundledQuotes, loadSyncedQuotes, syncNewQuotes } from "@/data/quotes";
 import { useDailyIgnite } from "@/hooks/useDailyIgnite";
-import { useOverlayPermissionPrompt } from "@/hooks/useOverlayPermissionPrompt";
 import { useStreak } from "@/hooks/useStreak";
 import { Quote } from "@/models";
 import { useAdStore } from "@/store/ad-store";
@@ -70,10 +70,17 @@ export default function Index() {
   const { currentCategoryId, updateCategoryId } = useCategoryStore();
   const { currentStreak } = useStreak();
   const { isIgnited, markIgnited } = useDailyIgnite();
-  useOverlayPermissionPrompt();
 
   const themePickerRef = useRef<PickerSheetHandle>(null);
   const fontPickerRef = useRef<PickerSheetHandle>(null);
+  const streakSheetRef = useRef<PickerSheetHandle>(null);
+  const igniteResultRef = useRef<IgniteResultSheetHandle>(null);
+
+  // 점화 애니메이션이 끝나면 오늘의 모닥불을 보여 준다.
+  const handleIgnited = async () => {
+    const result = await markIgnited();
+    igniteResultRef.current?.open(result);
+  };
 
   // 기본 명언: 앱에 번들된 전체 명언 + 동기화로 추가된 명언
   const [defaultQuotes, setDefaultQuotes] = useState<Quote[]>(bundledQuotes);
@@ -330,7 +337,7 @@ export default function Index() {
         >
           <Box flexDirection="row" alignItems="center" style={{ gap: 8 }}>
             <MenuButton />
-            <StreakBadge streak={currentStreak} />
+            <StreakBadge streak={currentStreak} onPress={() => streakSheetRef.current?.open()} />
           </Box>
 
           <Box
@@ -379,9 +386,11 @@ export default function Index() {
 
       <ThemePicker ref={themePickerRef} />
       <FontPicker ref={fontPickerRef} />
+      <StreakSheet ref={streakSheetRef} />
+      <IgniteResultSheet ref={igniteResultRef} />
 
       {/* 불씨를 직접 켜는 오버레이. 오늘 아직 점화하지 않았을 때만 표시 */}
-      {!isIgnited && <IgniteScreen onIgnited={markIgnited} />}
+      {!isIgnited && <IgniteScreen onIgnited={handleIgnited} />}
     </SafeAreaView>
   );
 }

@@ -12,7 +12,11 @@ interface NotificationState {
   isEnabled: boolean;
   notificationHour: number;
   notificationMinute: number;
-  setEnabled: (enabled: boolean) => Promise<void>;
+  // 첫 점화 후 '알림 받기'를 한 번 제안했는지 (ignite-result-sheet.tsx)
+  hasOfferedReminder: boolean;
+  // 켜기에 성공하면 true (알림 권한을 거부하면 false)
+  setEnabled: (enabled: boolean) => Promise<boolean>;
+  markReminderOffered: () => void;
   setTime: (hour: number, minute: number) => Promise<void>;
 }
 
@@ -53,13 +57,14 @@ export const useNotificationStore = create<NotificationState>()(
       isEnabled: false,
       notificationHour: 8,
       notificationMinute: 0,
+      hasOfferedReminder: false,
 
       setEnabled: async (enabled: boolean) => {
         if (enabled) {
           const { granted } = await Notifications.requestPermissionsAsync();
           if (!granted) {
             set({ isEnabled: false });
-            return;
+            return false;
           }
           const { notificationHour, notificationMinute } = get();
           await scheduleUpcoming(notificationHour, notificationMinute, await loadDailyCandidates());
@@ -67,7 +72,10 @@ export const useNotificationStore = create<NotificationState>()(
           await Notifications.cancelAllScheduledNotificationsAsync();
         }
         set({ isEnabled: enabled });
+        return enabled;
       },
+
+      markReminderOffered: () => set({ hasOfferedReminder: true }),
 
       setTime: async (hour: number, minute: number) => {
         set({ notificationHour: hour, notificationMinute: minute });
