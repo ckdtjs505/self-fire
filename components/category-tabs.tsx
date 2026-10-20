@@ -34,11 +34,15 @@ type Props = {
   favoritesCount: number;
   // 이 값이 바뀌면 펼친 탭을 접는다 (예: 명언을 넘겼을 때)
   collapseKey?: unknown;
+  // 관심 주제를 골랐으면 '전체' 대신 '내 주제'로 보여 준다
+  hasInterests?: boolean;
 };
 
 const ALL_ITEMS: Item[] = [...MODE_ITEMS, ...CATEGORIES];
 
-const CategoryTabs: React.FC<Props> = ({ selectedId, onSelect, favoritesCount, collapseKey }) => {
+const CategoryTabs: React.FC<Props> = ({ selectedId, onSelect, favoritesCount, collapseKey, hasInterests }) => {
+  const labelOf = (item: Item) => (item.id === null && hasInterests ? "내 주제" : item.label);
+
   const [expanded, setExpanded] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   // 탭별 x 위치·너비 (선택된 탭을 가운데로 스크롤할 때 사용)
@@ -86,7 +90,7 @@ const CategoryTabs: React.FC<Props> = ({ selectedId, onSelect, favoritesCount, c
         >
           <Text fontSize={13}>{item.emoji}</Text>
           <Text fontSize={13} fontWeight={isActive ? "700" : "500"} color={isActive ? "$onPrimary" : "$foreground"}>
-            {item.label}
+            {labelOf(item)}
           </Text>
           {item.id === "favorites" && favoritesCount > 0 && (
             <Text fontSize={12} fontWeight="700" color={isActive ? "$onPrimary" : "$muted"}>
@@ -119,7 +123,7 @@ const CategoryTabs: React.FC<Props> = ({ selectedId, onSelect, favoritesCount, c
           >
             <Text fontSize={13}>{current.emoji}</Text>
             <Text fontSize={13} fontWeight="700">
-              {current.label}
+              {labelOf(current)}
             </Text>
             <FeatherIcon name="chevron-down" size={14} color="$muted" />
           </Box>

@@ -112,7 +112,8 @@ export async function loadDailyCandidates(): Promise<Quote[]> {
   const bundledIds = new Set(bundledQuotes.map((q) => q.id));
   const { customQuotes, favorites } = useFavoriteQuoteStore.getState();
   const all = [...bundledQuotes, ...synced.filter((q) => !bundledIds.has(q.id)), ...customQuotes];
-  return getAllModeCandidates(all, useCategoryStore.getState().currentCategoryId, new Set(favorites));
+  const { currentCategoryId, interestIds } = useCategoryStore.getState();
+  return getAllModeCandidates(all, currentCategoryId, new Set(favorites), interestIds);
 }
 
 // 예약 작업이 겹치면 취소·예약이 뒤섞여 알림이 중복될 수 있으므로 한 번에 하나씩 실행한다.

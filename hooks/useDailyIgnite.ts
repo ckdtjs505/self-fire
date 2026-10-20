@@ -20,10 +20,13 @@ export type IgniteResult = {
 export const useDailyIgnite = () => {
   // 초기값 true: 저장값을 읽는 동안 불씨 화면이 깜빡이는 것을 방지
   const [isIgnited, setIsIgnited] = useState(true);
+  // 한 번도 점화한 적이 없음 = 처음 설치한 사용자 (첫 실행 주제 고르기에 사용)
+  const [isFirstVisit, setIsFirstVisit] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem(LAST_IGNITED_DATE_KEY).then((lastDate) => {
       setIsIgnited(lastDate === toDateString());
+      setIsFirstVisit(lastDate === null);
     });
   }, []);
 
@@ -39,5 +42,5 @@ export const useDailyIgnite = () => {
     return { streak, unlockedMilestone };
   };
 
-  return { isIgnited, markIgnited };
+  return { isIgnited, isFirstVisit, markIgnited };
 };

@@ -8,7 +8,7 @@
 //   - 명언 풀(pool) 관리: 번들 명언에서 50개씩 샘플링(첫 50개는 날짜 시드로 고정 = 오늘의 명언), 새 명언은 백그라운드 동기화
 //   - 테마/폰트 변경 바텀시트, 스트릭 배지를 누르면 나의 모닥불 시트
 //   - AdMob 배너 광고 (광고 제거 미구매 시)
-//   - 하루 1번 불씨 점화(Hold to Ignite) 화면 → 점화 완료 시트 (모닥불 + 첫 알림 제안)
+//   - 첫 실행 주제 고르기 → 하루 1번 불씨 점화(Hold to Ignite) 화면 → 점화 완료 시트 (모닥불 + 첫 알림 제안)
 //   - 홈 화면 위젯(오늘의 명언·불씨 상태) 갱신
 // ─────────────────────────────────────────────────────────────
 
@@ -20,6 +20,7 @@ import HeaderIconButton from "@/components/header-icon-button";
 import FeatherIcon from "@/components/icon";
 import IgniteResultSheet, { IgniteResultSheetHandle } from "@/components/ignite-result-sheet";
 import { IgniteScreen } from "@/components/ignite-screen";
+import OnboardingTopics from "@/components/onboarding-topics";
 import MenuButton from "@/components/menu-button";
 import { PickerSheetHandle } from "@/components/picker-sheet";
 import QuoteSwiper from "@/components/quote-swiper";
@@ -67,9 +68,12 @@ const isCustomQuoteId = (id: string) => id.startsWith("custom-");
 export default function Index() {
   const { isAdFree } = useAdStore();
   const { customQuotes, favorites, favoritesData } = useFavoriteQuoteStore();
-  const { currentCategoryId, updateCategoryId } = useCategoryStore();
+  const { currentCategoryId, updateCategoryId, interestIds, hasPickedInterests } = useCategoryStore();
+  const [isCategoryHydrated, setIsCategoryHydrated] = useState(useCategoryStore.persist.hasHydrated());
   const { currentStreak } = useStreak();
-  const { isIgnited, markIgnited } = useDailyIgnite();
+  const { isIgnited, isFirstVisit, markIgnited } = useDailyIgnite();
+  // 처음 설치한 사용자에게만 점화 화면보다 먼저 주제 고르기를 보여 준다.
+  const showOnboarding = isFirstVisit && isCategoryHydrated && !hasPickedInterests;
 
   const themePickerRef = useRef<PickerSheetHandle>(null);
   const fontPickerRef = useRef<PickerSheetHandle>(null);
@@ -120,7 +124,7 @@ export default function Index() {
       refreshWidgets();
     }, 1000);
     return () => clearTimeout(timer);
-  }, [currentCategoryId, favorites, customQuotes, defaultQuotes, currentStreak, isIgnited]);
+  }, [currentCategoryId, interestIds, favorites, customQuotes, defaultQuotes, currentStreak, isIgnited]);
 
   // 첫 명언 풀을 만든다. (명언이 추가되어도 보던 위치는 유지)
   useEffect(() => {
@@ -141,7 +145,7 @@ export default function Index() {
 
   // '전체' 모드의 후보 명언 (기본 + 커스텀, data/daily-quote.ts 참고)
   const getCandidates = (categoryId: CategoryId | null = currentCategoryId): Quote[] =>
-    getAllModeCandidates([...defaultQuotes, ...customQuotes], categoryId, new Set(favorites));
+    getAllModeCandidates([...defaultQuotes, ...customQuotes], categoryId, new Set(favorites), interestIds);
 
   // ── buildPool ─────────────────────────────────────────────
   // 필터 모드에 맞는 명언 풀을 무작위 순서로 만든다.
@@ -245,6 +249,7 @@ export default function Index() {
   };
 
   // 저장된 카테고리를 늦게 불러오면 첫 명언 풀을 그 카테고리로 다시 만든다.
+  // (관심 주제는 아래 effect가 다시 만든다)
   useEffect(() => {
     const rebuild = (categoryId: CategoryId | null) => {
       if (categoryId) setPager(createPager(buildPool("all", categoryId)));
@@ -252,9 +257,25 @@ export default function Index() {
     // 첫 렌더와 이 effect 사이에 불러오기가 끝났으면 바로 반영한다.
     const hydrated = useCategoryStore.getState().currentCategoryId;
     if (useCategoryStore.persist.hasHydrated() && hydrated !== currentCategoryId) rebuild(hydrated);
-    return useCategoryStore.persist.onFinishHydration((state) => rebuild(state.currentCategoryId));
+    return useCategoryStore.persist.onFinishHydration((state) => {
+      setIsCategoryHydrated(true);
+      rebuild(state.currentCategoryId);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 관심 주제가 바뀌면(불러오기·주제 고르기·설정) '전체' 목록을 새로 만들고 '전체' 모드로 돌아간다.
+  const prevInterestKey = useRef(interestIds.join(","));
+  useEffect(() => {
+    const key = interestIds.join(",");
+    if (key === prevInterestKey.current) return;
+    prevInterestKey.current = key;
+    savedPagers.current.all = createPager();
+    if (filterMode !== "all") savedPagers.current[filterMode] = pager;
+    setPager(createPager(buildPool("all")));
+    setFilterMode("all");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interestIds]);
 
   // 카테고리 탭에서 고른 항목: 불씨 보관함·내 명언이면 그 모드로, 아니면 그 카테고리의 전체 모드로 전환한다.
   const selectCategory = (selection: CategorySelection) => {
@@ -365,6 +386,7 @@ export default function Index() {
             onSelect={selectCategory}
             favoritesCount={favorites.length}
             collapseKey={currentQuote?.id}
+            hasInterests={interestIds.length > 0}
           />
         </Box>
 
@@ -391,6 +413,9 @@ export default function Index() {
 
       {/* 불씨를 직접 켜는 오버레이. 오늘 아직 점화하지 않았을 때만 표시 */}
       {!isIgnited && <IgniteScreen onIgnited={handleIgnited} />}
+
+      {/* 처음 설치했을 때 한 번: 주제 고르기 (고르면 아래 점화 화면으로 이어진다) */}
+      {showOnboarding && <OnboardingTopics />}
     </SafeAreaView>
   );
 }
