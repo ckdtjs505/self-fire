@@ -1,9 +1,18 @@
+import { toDateString } from "@/utils/date";
 import { igniteStreak, reconcileStreak, StreakRecord } from "@/utils/streak";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-interface StreakState extends StreakRecord {
+// 나의 모닥불 주간 기록에 쓰는 최근 점화 날짜 수
+const IGNITED_DATES_LIMIT = 35;
+
+type PersistedStreak = StreakRecord & {
+  // 최근 불씨를 점화한 날짜들 ("YYYY-MM-DD", 오래된 순)
+  ignitedDates: string[];
+};
+
+interface StreakState extends PersistedStreak {
   // 앱을 열 때 호출. 불씨 지키기로 지킨 날이 있으면 그 날짜를 돌려준다.
   reconcile: () => string | null;
   // 오늘 불씨를 점화했을 때 호출. 새로 해금된 마일스톤이 있으면 돌려준다.
@@ -19,12 +28,13 @@ const pickRecord = (state: StreakRecord): StreakRecord => ({
 
 // 불씨 점화 일수(스트릭) 관리. 규칙은 utils/streak.ts 참고.
 export const useStreakStore = create<StreakState>()(
-  persist<StreakState, [], [], StreakRecord>(
+  persist<StreakState, [], [], PersistedStreak>(
     (set, get) => ({
       currentStreak: 0,
       longestStreak: 0,
       lastStreakDate: null,
       freezeUsedWeek: null,
+      ignitedDates: [],
 
       reconcile: () => {
         const { record, frozenDate } = reconcileStreak(pickRecord(get()));
@@ -34,7 +44,11 @@ export const useStreakStore = create<StreakState>()(
 
       ignite: () => {
         const { record, unlockedMilestone } = igniteStreak(pickRecord(get()));
-        set(record);
+        const today = toDateString();
+        const ignitedDates = get().ignitedDates.includes(today)
+          ? get().ignitedDates
+          : [...get().ignitedDates, today].slice(-IGNITED_DATES_LIMIT);
+        set({ ...record, ignitedDates });
         return unlockedMilestone;
       },
     }),
@@ -42,7 +56,7 @@ export const useStreakStore = create<StreakState>()(
       name: "streak-storage",
       storage: createJSONStorage(() => AsyncStorage),
       version: 1,
-      partialize: pickRecord,
+      partialize: (state) => ({ ...pickRecord(state), ignitedDates: state.ignitedDates }),
       // v0: 앱을 연 날(lastOpenDate) 기준 스트릭. 이어 오던 기록은 그대로 넘겨 준다.
       migrate: (persisted, version) => {
         const state = (persisted ?? {}) as Partial<StreakRecord> & { lastOpenDate?: string | null };
@@ -53,7 +67,7 @@ export const useStreakStore = create<StreakState>()(
             lastStreakDate: state.lastOpenDate ?? null,
             freezeUsedWeek: null,
           };
-          return record as StreakState;
+          return { ...record, ignitedDates: [] } as unknown as StreakState;
         }
         return state as StreakState;
       },

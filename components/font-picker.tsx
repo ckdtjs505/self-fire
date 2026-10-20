@@ -26,7 +26,14 @@ const FontSizeButton: React.FC<{ icon: "minus" | "plus"; disabled: boolean; onPr
   disabled,
   onPress,
 }) => (
-  <Pressable onPress={onPress} disabled={disabled} hitSlop={6}>
+  <Pressable
+    onPress={onPress}
+    disabled={disabled}
+    hitSlop={6}
+    accessibilityRole="button"
+    accessibilityLabel={icon === "minus" ? "글자 작게" : "글자 크게"}
+    accessibilityState={{ disabled }}
+  >
     <Box
       width={38}
       height={38}

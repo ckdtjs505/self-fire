@@ -65,10 +65,10 @@ const theme = createTheme({
     surface: "#FFFFFF",
     surfaceMuted: "#EFEAE3",
     foreground: "#1F1B17",
-    muted: "#857C72",
+    muted: "#6E655C",
     border: "rgba(31,27,23,0.09)",
-    primary: "#E2531B",
-    primarySoft: "rgba(226,83,27,0.10)",
+    primary: "#C9461A",
+    primarySoft: "rgba(201,70,26,0.10)",
     onPrimary: "#FFFFFF",
     flame: "#F0521F",
   }),
@@ -80,10 +80,19 @@ const theme = createTheme({
     xl: 32,
     pill: 999,
   },
+  // 글자 크기 단계: display 34 · title 26 · heading 19 · stat 15 · body 15 · label 13 · caption 13 · overline 12 · micro 11
+  // 새 화면은 fontSize를 직접 쓰지 말고 이 variant를 쓴다.
   textVariants: {
     defaults: {
       color: "$foreground",
       fontSize: 16,
+    },
+    // 큰 숫자 (나의 모닥불 일수 등)
+    display: {
+      color: "$foreground",
+      fontSize: 34,
+      fontWeight: "900",
+      letterSpacing: -0.8,
     },
     // 화면 제목
     title: {
@@ -107,6 +116,24 @@ const theme = createTheme({
     caption: {
       color: "$muted",
       fontSize: 13,
+    },
+    // 작은 버튼·칩·라벨 글자
+    label: {
+      color: "$foreground",
+      fontSize: 13,
+      fontWeight: "700",
+    },
+    // 통계 칸·배지의 숫자
+    stat: {
+      color: "$foreground",
+      fontSize: 15,
+      fontWeight: "800",
+    },
+    // 아주 작은 보조 글자 (요일, 워터마크 등)
+    micro: {
+      color: "$muted",
+      fontSize: 11,
+      fontWeight: "600",
     },
     // 섹션 머리말 (작은 대문자 느낌)
     overline: {

@@ -91,6 +91,30 @@ export const igniteStreak = (
   };
 };
 
+// ── 최근 며칠의 불씨 (나의 모닥불 시트의 주간 기록) ──────────────
+// 점화 기록(ignitedDates)을 저장하기 전에 쌓인 날은 기록이 없으므로,
+// 가장 오래된 기록보다 앞선 날은 현재 스트릭 구간(마지막 날부터 거꾸로 N일)으로 어림한다.
+export type RecentDay = { date: string; lit: boolean; isToday: boolean };
+
+export const getRecentDays = (
+  record: Pick<StreakRecord, "currentStreak" | "lastStreakDate">,
+  ignitedDates: string[],
+  today: string = toDateString(),
+  count = 7
+): RecentDay[] => {
+  const earliest = ignitedDates.length > 0 ? [...ignitedDates].sort()[0] : null;
+  const inStreakRange = (date: string) => {
+    if (!record.lastStreakDate || record.currentStreak <= 0) return false;
+    const back = daysBetween(date, record.lastStreakDate);
+    return back >= 0 && back < record.currentStreak;
+  };
+  return Array.from({ length: count }, (_, i) => {
+    const date = addDays(today, i - (count - 1));
+    const lit = ignitedDates.includes(date) || ((!earliest || date < earliest) && inStreakRange(date));
+    return { date, lit, isToday: date === today };
+  });
+};
+
 // 다음 마일스톤까지 남은 일수 (모두 달성했으면 null)
 export const nextMilestone = (currentStreak: number) => {
   const next = STREAK_MILESTONES.find((m) => m > currentStreak);
