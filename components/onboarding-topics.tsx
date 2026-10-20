@@ -22,6 +22,7 @@ const OnboardingTopics: React.FC = () => {
 
   const finish = (ids: CategoryId[]) => {
     trackEvent("interests_set", { source: "onboarding", count: ids.length, topics: ids.join(",") });
+    if (ids.length === 0) trackEvent("onboarding_skip");
     setInterests(ids);
   };
 

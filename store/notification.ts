@@ -7,6 +7,8 @@ import { quotes as bundledQuotes, loadSyncedQuotes } from "@/data/quotes";
 import { Quote } from "@/models";
 import { useCategoryStore } from "@/store/category";
 import { useFavoriteQuoteStore } from "@/store/quote";
+import { useStreakStore, whenStreakHydrated } from "@/store/streak";
+import { toDateString } from "@/utils/date";
 
 interface NotificationState {
   isEnabled: boolean;
@@ -14,11 +16,47 @@ interface NotificationState {
   notificationMinute: number;
   // 첫 점화 후 '알림 받기'를 한 번 제안했는지 (ignite-result-sheet.tsx)
   hasOfferedReminder: boolean;
+  // 불씨가 꺼지기 전 저녁 알림 (오늘의 명언 알림이 켜져 있을 때만 보낸다)
+  streakReminderEnabled: boolean;
   // 켜기에 성공하면 true (알림 권한을 거부하면 false)
   setEnabled: (enabled: boolean) => Promise<boolean>;
   markReminderOffered: () => void;
   setTime: (hour: number, minute: number) => Promise<void>;
+  setStreakReminderEnabled: (enabled: boolean) => Promise<void>;
 }
+
+// 알림을 눌렀을 때 앱이 할 일을 알 수 있도록 알림에 담아 두는 데이터
+export type NotificationData =
+  | { type: "daily"; quoteId: string; text: string; author: string }
+  | { type: "streak" };
+
+// 저녁 불씨 알림에 필요한 스트릭 상태
+export type StreakReminderInput = {
+  currentStreak: number;
+  // 오늘 이미 불씨를 점화했는지
+  ignitedToday: boolean;
+};
+
+// 불씨가 꺼지기 전 알림 시각. 오늘의 명언 알림(정각 단위)과 겹치지 않게 30분에 보낸다.
+export const STREAK_REMINDER_HOUR = 21;
+export const STREAK_REMINDER_MINUTE = 30;
+
+// 오늘·내일 저녁에 보낼 불씨 알림.
+//   - 오늘: 아직 점화하지 않았고 이어 온 불씨가 있으면 오늘 저녁에 알린다.
+//   - 내일: 오늘 점화했으면 내일 저녁에 알린다. (내일 앱을 열어 점화하면 다시 예약하며 사라진다)
+// 그 뒤로는 스트릭이 이미 끊겼을 수 있어 예약하지 않는다.
+export const getStreakReminders = (
+  { currentStreak, ignitedToday }: StreakReminderInput,
+  now: Date = new Date(),
+): { date: Date; body: string }[] => {
+  if (currentStreak <= 0) return [];
+  const at = (dayOffset: number) =>
+    new Date(now.getFullYear(), now.getMonth(), now.getDate() + dayOffset, STREAK_REMINDER_HOUR, STREAK_REMINDER_MINUTE);
+
+  const date = ignitedToday ? at(1) : at(0);
+  if (date <= now) return [];
+  return [{ date, body: `${currentStreak}일째 이어 온 불씨가 오늘 밤 꺼질 수 있어요. 지금 지펴 주세요 🔥` }];
+};
 
 // 반복(DAILY) 알림은 내용이 고정되므로, 앞으로 며칠치를 날짜별로 그날의 '오늘의 명언'으로 예약한다.
 // 앱을 열 때마다 다시 채우므로 이 기간 안에 한 번이라도 앱을 열면 알림이 끊기지 않는다.
@@ -31,6 +69,7 @@ export const scheduleUpcoming = async (
   minute: number,
   candidates: Quote[],
   now: Date = new Date(),
+  streak: StreakReminderInput | null = null,
 ) => {
   await Notifications.cancelAllScheduledNotificationsAsync();
 
@@ -44,11 +83,37 @@ export const scheduleUpcoming = async (
         title: "🔥 오늘의 명언",
         body: `"${quote.text}" - ${quote.author}`,
         sound: true,
+        data: { type: "daily", quoteId: quote.id, text: quote.text, author: quote.author } satisfies NotificationData,
       },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
     });
   }
+
+  for (const reminder of streak ? getStreakReminders(streak, now) : []) {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "🔥 불씨가 꺼지기 전에",
+        body: reminder.body,
+        sound: true,
+        data: { type: "streak" } satisfies NotificationData,
+      },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: reminder.date },
+    });
+  }
 };
+
+// 저녁 불씨 알림을 꺼 두었으면 null
+const loadStreakReminderInput = async (): Promise<StreakReminderInput | null> => {
+  await waitForHydration(useNotificationStore);
+  if (!useNotificationStore.getState().streakReminderEnabled) return null;
+  await whenStreakHydrated();
+  const { currentStreak, lastStreakDate } = useStreakStore.getState();
+  return { currentStreak, ignitedToday: lastStreakDate === toDateString() };
+};
+
+// 지금 설정으로 알림을 다시 예약한다.
+const scheduleWithCurrentState = async (hour: number, minute: number) =>
+  scheduleUpcoming(hour, minute, await loadDailyCandidates(), new Date(), await loadStreakReminderInput());
 
 // '오늘의 명언' 알림 설정 (켜짐 여부, 알림 시각)
 export const useNotificationStore = create<NotificationState>()(
@@ -58,6 +123,7 @@ export const useNotificationStore = create<NotificationState>()(
       notificationHour: 8,
       notificationMinute: 0,
       hasOfferedReminder: false,
+      streakReminderEnabled: true,
 
       setEnabled: async (enabled: boolean) => {
         if (enabled) {
@@ -67,7 +133,7 @@ export const useNotificationStore = create<NotificationState>()(
             return false;
           }
           const { notificationHour, notificationMinute } = get();
-          await scheduleUpcoming(notificationHour, notificationMinute, await loadDailyCandidates());
+          await scheduleWithCurrentState(notificationHour, notificationMinute);
         } else {
           await Notifications.cancelAllScheduledNotificationsAsync();
         }
@@ -81,7 +147,15 @@ export const useNotificationStore = create<NotificationState>()(
         set({ notificationHour: hour, notificationMinute: minute });
         const { isEnabled } = get();
         if (isEnabled) {
-          await scheduleUpcoming(hour, minute, await loadDailyCandidates());
+          await scheduleWithCurrentState(hour, minute);
+        }
+      },
+
+      setStreakReminderEnabled: async (enabled: boolean) => {
+        set({ streakReminderEnabled: enabled });
+        const { isEnabled, notificationHour, notificationMinute } = get();
+        if (isEnabled) {
+          await scheduleWithCurrentState(notificationHour, notificationMinute);
         }
       },
     }),
@@ -140,8 +214,16 @@ const refreshNow = async () => {
       useNotificationStore.setState({ isEnabled: false });
       return;
     }
-    await scheduleUpcoming(notificationHour, notificationMinute, await loadDailyCandidates());
+    await scheduleWithCurrentState(notificationHour, notificationMinute);
   } catch (e) {
     console.warn("Failed to refresh notifications:", e);
   }
 };
+
+// 알림을 눌러 앱을 열었을 때 홈 화면에 보여 줄 명언. 홈 화면이 꺼내 쓰고 비운다.
+export const usePendingQuoteStore = create<{ quote: Quote | null; setQuote: (quote: Quote | null) => void }>()(
+  (set) => ({
+    quote: null,
+    setQuote: (quote) => set({ quote }),
+  }),
+);

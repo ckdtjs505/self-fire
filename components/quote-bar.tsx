@@ -10,6 +10,8 @@
 import { Box } from "@/atom";
 import { Quote } from "@/models";
 import { useFavoriteQuoteStore } from "@/store/quote";
+import { trackEvent } from "@/utils/analytics";
+import { tapHaptic } from "@/utils/haptics";
 import { useRef } from "react";
 import { NativeViewGestureHandler } from "react-native-gesture-handler";
 import Toast from "react-native-toast-message";
@@ -30,12 +32,26 @@ const QuoteBar: React.FC<Props> = ({ id, text, author, viewShotRef }) => {
   const shareSheetRef = useRef<PickerSheetHandle>(null);
 
   // 불씨 보관함 추가/제거. 사이드바에서 바로 보여줄 수 있게 명언 내용도 함께 저장한다.
+  // 실수로 꺼도 토스트의 '되돌리기'로 바로 다시 보관할 수 있다.
   const toggleFavorite = () => {
+    tapHaptic();
     if (isFavorite) {
       removeFavorite(id);
-      Toast.show({ type: "info", text1: "불씨가 꺼졌습니다" });
+      trackEvent("favorite_remove");
+      Toast.show({
+        type: "undo",
+        text1: "불씨가 꺼졌습니다",
+        props: {
+          onUndo: () => {
+            addFavorite(id, { id, text, author });
+            trackEvent("favorite_undo");
+            Toast.hide();
+          },
+        },
+      });
     } else {
       addFavorite(id, { id, text, author });
+      trackEvent("favorite_add");
       Toast.show({ type: "success", text1: "불씨 보관함에 저장되었습니다 🔥" });
     }
   };

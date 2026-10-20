@@ -50,7 +50,12 @@ export type AnalyticsEvent =
   | "interests_set" // 관심 주제 저장 (source: onboarding | settings, count, topics)
   | "quote_share" // 명언 공유
   | "quote_add" // 내 명언 추가
-  | "quote_edit"; // 내 명언 수정
+  | "quote_edit" // 내 명언 수정
+  | "favorite_add" // 불씨 보관함에 저장
+  | "favorite_remove" // 불씨 보관함에서 해제
+  | "favorite_undo" // 해제 직후 되돌리기
+  | "notification_open" // 알림을 눌러 앱을 엶 (type: daily | streak)
+  | "onboarding_skip"; // 첫 실행 주제 고르기를 건너뜀
 
 export const trackEvent = (name: AnalyticsEvent, params?: EventParams) => {
   safely(() => logEvent(getAnalytics(), name as string, params));

@@ -10,6 +10,7 @@
 //   - AdMob 배너 광고 (광고 제거 미구매 시)
 //   - 첫 실행 주제 고르기 → 하루 1번 불씨 점화(Hold to Ignite) 화면 → 점화 완료 시트 (모닥불 + 첫 알림 제안)
 //   - 홈 화면 위젯(오늘의 명언·불씨 상태) 갱신
+//   - 알림을 눌러 들어오면 그 알림의 명언을 맨 앞에 보여 준다
 // ─────────────────────────────────────────────────────────────
 
 import { Box, SafeAreaView } from "@/atom";
@@ -36,7 +37,7 @@ import { useStreak } from "@/hooks/useStreak";
 import { useSwipeHint } from "@/hooks/useSwipeHint";
 import { Quote } from "@/models";
 import { useAdStore } from "@/store/ad-store";
-import { refreshDailyNotifications } from "@/store/notification";
+import { refreshDailyNotifications, usePendingQuoteStore } from "@/store/notification";
 import { useCategoryStore } from "@/store/category";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { shuffle } from "@/utils/shuffle";
@@ -78,6 +79,8 @@ export default function Index() {
   const showOnboarding = isFirstVisit && isCategoryHydrated && !hasPickedInterests;
   // 아직 한 번도 넘겨 보지 않았으면 오늘의 불씨를 켠 뒤 넘기기 힌트를 보여 준다.
   const { needsHint, markSwiped } = useSwipeHint();
+  // 알림을 눌러 앱을 열었으면 그 알림의 명언 (app/_layout.tsx에서 넣어 준다)
+  const pendingQuote = usePendingQuoteStore((s) => s.quote);
   // 사이드바에서 '불씨 보관함 열기'를 누르면 view=favorites로 들어온다.
   const { view, at } = useLocalSearchParams<{ view?: string; at?: string }>();
 
@@ -310,6 +313,18 @@ export default function Index() {
     if (view === "favorites" && at) selectCategory("favorites");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [at]);
+
+  // 알림의 명언을 맨 앞에 두고 '전체' 목록을 이어 붙인다.
+  // 저장된 카테고리·관심 주제로 목록을 다시 만드는 effect들보다 뒤에 두어, 불러오기가 끝난 뒤 덮어쓴다.
+  useEffect(() => {
+    if (!pendingQuote || !isCategoryHydrated) return;
+    usePendingQuoteStore.getState().setQuote(null);
+    if (filterMode !== "all") savedPagers.current[filterMode] = pager;
+    const rest = buildPool("all").filter((q) => q.id !== pendingQuote.id);
+    setPager(createPager([pendingQuote, ...rest]));
+    setFilterMode("all");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingQuote, isCategoryHydrated]);
 
   // ── loadMoreQuotes ────────────────────────────────────────
   // '전체' 모드에서 목록 끝에 가까워지면 로컬 명언에서 더 뽑아 뒤에 붙인다.
