@@ -22,8 +22,10 @@ const ThemePicker = forwardRef<PickerSheetHandle>(function ThemePicker(_props, r
   const longestStreak = useStreakStore((s) => s.longestStreak);
   const { width } = useWindowDimensions();
   const contentWidth = width - SHEET_SIDE_PADDING * 2;
-  const itemWidth = (contentWidth - GAP * (COLUMNS - 1)) / COLUMNS;
-  const backgroundItemWidth = (contentWidth - GAP * (BACKGROUND_COLUMNS - 1)) / BACKGROUND_COLUMNS;
+  // 소수점 너비가 반올림되며 한 줄 합이 폭을 살짝 넘으면 마지막 칸이 다음 줄로 밀린다.
+  // 그래서 너비는 내림한다.
+  const itemWidth = Math.floor((contentWidth - GAP * (COLUMNS - 1)) / COLUMNS);
+  const backgroundItemWidth = Math.floor((contentWidth - GAP * (BACKGROUND_COLUMNS - 1)) / BACKGROUND_COLUMNS);
 
   return (
     <PickerSheet ref={ref} title="테마" description="오늘의 분위기에 맞는 색과 카드 배경을 골라 보세요. 🔒은 연속 점화로 열려요">

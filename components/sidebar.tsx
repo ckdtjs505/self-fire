@@ -3,7 +3,7 @@ import { Quote } from "@/models";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { Href, useRouter } from "expo-router";
-import { Alert, Image, ScrollView } from "react-native";
+import { Image, ScrollView } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FeatherIcon, { IconNames, Ionicon } from "./icon";
@@ -42,17 +42,13 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, title, onPress }) => (
   </Pressable>
 );
 
-// 불씨 보관함에 저장된 명언 카드. 누르면 삭제 여부를 묻는다.
-const FavoriteQuoteCard: React.FC<{ quote: Quote; onRemove: () => void }> = ({ quote, onRemove }) => (
-  <Pressable
-    onPress={() =>
-      Alert.alert("삭제하시겠습니까?", "불씨 보관함에서 제거됩니다.", [
-        { text: "삭제", style: "destructive", onPress: onRemove },
-        { text: "취소", style: "cancel" },
-      ])
-    }
-    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-  >
+// 사이드바에서 보여 줄 최근 불씨 개수 (전체 목록은 홈의 불씨 보관함에서 본다)
+const RECENT_FAVORITES = 3;
+
+// 불씨 보관함에 저장된 명언 카드. 누르면 홈의 불씨 보관함으로 이동한다.
+// (보관 해제는 홈에서 카드 아래 불씨 버튼으로 — 홈과 같은 방식 하나로 맞춘다)
+const FavoriteQuoteCard: React.FC<{ quote: Quote; onPress: () => void }> = ({ quote, onPress }) => (
+  <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
     <Box
       bg="$surface"
       borderWidth={1}
@@ -84,7 +80,6 @@ const Sidebar = ({ navigation }: DrawerContentComponentProps) => {
   const favorites = useFavoriteQuoteStore((state) => state.favorites);
   const favoritesData = useFavoriteQuoteStore((state) => state.favoritesData) || [];
   const customQuotes = useFavoriteQuoteStore((state) => state.customQuotes);
-  const removeFavorite = useFavoriteQuoteStore((state) => state.removeFavorite);
 
   // 즐겨찾기 ID 순서대로 명언 내용을 찾는다. (저장된 데이터 → 나만의 명언 순)
   const favoriteQuotes = favorites
@@ -95,6 +90,15 @@ const Sidebar = ({ navigation }: DrawerContentComponentProps) => {
     navigation.closeDrawer();
     router.push(href);
   };
+
+  // 홈 화면을 불씨 보관함 보기로 바꾼다. (at: 같은 요청을 다시 보내도 반영되도록)
+  const openFavorites = () => {
+    navigation.closeDrawer();
+    navigation.navigate("index", { view: "favorites", at: String(Date.now()) });
+  };
+
+  // 최근에 보관한 순서로 몇 개만
+  const recentFavorites = favoriteQuotes.slice(-RECENT_FAVORITES).reverse();
 
   return (
     <Box flex={1} backgroundColor="$background" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
@@ -138,9 +142,19 @@ const Sidebar = ({ navigation }: DrawerContentComponentProps) => {
             </Text>
           </Box>
         ) : (
-          favoriteQuotes.map((quote) => (
-            <FavoriteQuoteCard key={quote.id} quote={quote} onRemove={() => removeFavorite(quote.id)} />
-          ))
+          <>
+            {recentFavorites.map((quote) => (
+              <FavoriteQuoteCard key={quote.id} quote={quote} onPress={openFavorites} />
+            ))}
+            <Pressable onPress={openFavorites} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+              <Box flexDirection="row" alignItems="center" justifyContent="center" py="md" style={{ gap: 4 }}>
+                <Text fontSize={14} fontWeight="700" color="$primary">
+                  불씨 보관함 열기 ({favoriteQuotes.length})
+                </Text>
+                <FeatherIcon name="chevron-right" size={16} color="$primary" />
+              </Box>
+            </Pressable>
+          </>
         )}
       </ScrollView>
     </Box>

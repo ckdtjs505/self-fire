@@ -5,6 +5,7 @@
 //   - 임계값 이상 스와이프: 새 카드가 반대편에서 슬라이드 + 페이드 인
 //   - 임계값 미달: 스프링으로 원위치
 //   - 이전에 본 명언을 보는 중이면 카드 아래에 '새 명언으로' 버튼을 띄워 마지막 위치로 바로 돌아간다
+//   - 아직 한 번도 넘겨 보지 않은 사용자에게는 카드를 왼쪽으로 살짝 밀었다 놓으며 넘길 수 있다고 알려 준다
 // PanGestureHandler 기반이라 Drawer 제스처와 충돌하지 않는다.
 // ─────────────────────────────────────────────────────────────
 
@@ -12,7 +13,7 @@ import { Box, Text } from "@/atom";
 import FeatherIcon from "@/components/icon";
 import QuoteItem from "@/components/quote-items";
 import { Quote } from "@/models";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Animated, useWindowDimensions } from "react-native";
 import {
   NativeViewGestureHandler,
@@ -39,15 +40,45 @@ type Props = {
   onPrev: () => void;
   // 가장 멀리 본 명언으로 돌아간다
   onJumpToLatest: () => void;
+  // 아직 한 번도 넘겨 보지 않았으면 true (넘기기 힌트)
+  showSwipeHint?: boolean;
 };
 
-const QuoteSwiper: React.FC<Props> = ({ quote, isCustom, isRevisit, canGoPrev, canGoNext, onNext, onPrev, onJumpToLatest }) => {
+// 넘기기 힌트: 카드를 왼쪽으로 이만큼 밀었다가 되돌린다
+const HINT_NUDGE_X = -42;
+
+const QuoteSwiper: React.FC<Props> = ({
+  quote,
+  isCustom,
+  isRevisit,
+  canGoPrev,
+  canGoNext,
+  onNext,
+  onPrev,
+  onJumpToLatest,
+  showSwipeHint = false,
+}) => {
   // 회전·창 크기 변경에 맞춰 스와이프 기준을 다시 계산한다.
   const { width: SCREEN_WIDTH } = useWindowDimensions();
   const SWIPE_DISTANCE_THRESHOLD = SCREEN_WIDTH * 0.2;
   const ENTER_OFFSET = SCREEN_WIDTH * 0.25;
   const slideX = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(1)).current;
+
+  // 넘기기 힌트: 잠시 뒤 카드를 왼쪽으로 두 번 살짝 밀었다 놓는다. (손가락이 닿으면 멈춤)
+  const hintActive = showSwipeHint && canGoNext;
+  const hintAnim = useRef<Animated.CompositeAnimation | null>(null);
+  useEffect(() => {
+    if (!hintActive) return;
+    const nudge = Animated.sequence([
+      Animated.timing(slideX, { toValue: HINT_NUDGE_X, duration: 380, useNativeDriver: true }),
+      Animated.spring(slideX, { toValue: 0, useNativeDriver: true, tension: 60, friction: 7 }),
+    ]);
+    const hint = Animated.sequence([Animated.delay(1500), nudge, Animated.delay(700), nudge]);
+    hintAnim.current = hint;
+    hint.start();
+    return () => hint.stop();
+  }, [hintActive, slideX]);
 
   // 새 카드를 fromX 위치에서 가운데로 슬라이드 + 페이드 인
   const playEnter = (fromX: number) => {
@@ -66,6 +97,7 @@ const QuoteSwiper: React.FC<Props> = ({ quote, isCustom, isRevisit, canGoPrev, c
   };
 
   const onGestureEvent = (event: PanGestureHandlerGestureEvent) => {
+    hintAnim.current?.stop();
     const dx = event.nativeEvent.translationX;
     slideX.setValue(dx * 0.45);
     fade.setValue(1 - Math.min(Math.abs(dx) / (SCREEN_WIDTH * 0.9), 0.25));
@@ -122,6 +154,11 @@ const QuoteSwiper: React.FC<Props> = ({ quote, isCustom, isRevisit, canGoPrev, c
         {/* 이전에 본 명언을 보는 중이면 '새 명언으로' 버튼을 띄운다.
             버튼이 생겨도 카드가 움직이지 않도록 자리를 항상 비워 둔다. */}
         <Box height={REVISIT_SLOT_HEIGHT} alignItems="center" justifyContent="center">
+          {!isRevisit && hintActive && (
+            <Text variant="caption" fontSize={13}>
+              ← 넘겨서 다음 명언 보기
+            </Text>
+          )}
           {isRevisit && (
             // 부모 PanGestureHandler가 탭을 가로채지 않도록 감싼다 (quote-bar.tsx 참고)
             <NativeViewGestureHandler>

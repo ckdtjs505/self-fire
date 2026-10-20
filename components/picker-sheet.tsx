@@ -4,6 +4,7 @@
 // 현재 테마의 면 색을 쓰고, 제목·설명을 받아 같은 모양의 머리말을 그린다.
 // ref.current.open() / close()로 열고 닫는다. 높이는 내용에 맞추되,
 // 화면보다 길면 상단 안전 영역 아래까지만 올라오고 안쪽을 스크롤한다.
+// 열려 있는 동안 Android 뒤로 가기는 앱을 나가지 않고 시트를 닫는다.
 // ─────────────────────────────────────────────────────────────
 
 import { Box, Text } from "@/atom";
@@ -14,8 +15,8 @@ import {
   BottomSheetModal,
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
-import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
-import { useWindowDimensions } from "react-native";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { BackHandler, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export type PickerSheetHandle = {
@@ -40,9 +41,22 @@ const PickerSheet = forwardRef<PickerSheetHandle, Props>(function PickerSheet({ 
   const { colors } = useThemeStore().currentTheme;
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      modalRef.current?.dismiss();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [isOpen]);
 
   useImperativeHandle(ref, () => ({
-    open: () => modalRef.current?.present(),
+    open: () => {
+      setIsOpen(true);
+      modalRef.current?.present();
+    },
     close: () => modalRef.current?.dismiss(),
   }));
 
@@ -58,6 +72,7 @@ const PickerSheet = forwardRef<PickerSheetHandle, Props>(function PickerSheet({ 
     <BottomSheetModal
       ref={modalRef}
       index={0}
+      onDismiss={() => setIsOpen(false)}
       maxDynamicContentSize={height - insets.top - SHEET_TOP_GAP}
       backdropComponent={renderBackdrop}
       backgroundStyle={{ backgroundColor: colors.$surface, borderRadius: 28 }}
