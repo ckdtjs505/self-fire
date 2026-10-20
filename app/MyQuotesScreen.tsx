@@ -43,7 +43,12 @@ type QuoteRowProps = {
 
 // 명언 한 장: 누르면 수정, 휴지통 버튼으로 삭제
 const QuoteRow: React.FC<QuoteRowProps> = ({ quote, onEdit, onDelete }) => (
-  <Pressable onPress={onEdit} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+  <Pressable
+    onPress={onEdit}
+    accessibilityRole="button"
+    accessibilityHint="눌러서 명언을 수정합니다"
+    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+  >
     <Box
       bg="$surface"
       borderWidth={1}
@@ -65,7 +70,7 @@ const QuoteRow: React.FC<QuoteRowProps> = ({ quote, onEdit, onDelete }) => (
         </Text>
       </Box>
 
-      <Pressable onPress={onDelete} hitSlop={8} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
+      <Pressable onPress={onDelete} hitSlop={8} accessibilityRole="button" accessibilityLabel="명언 삭제" style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
         <Box width={34} height={34} borderRadius="pill" bg="$surfaceMuted" justifyContent="center" alignItems="center">
           <FeatherIcon name="trash-2" size={15} color="$muted" />
         </Box>

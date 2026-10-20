@@ -8,7 +8,7 @@
 //   - 명언 풀(pool) 관리: 번들 명언에서 50개씩 샘플링(첫 50개는 날짜 시드로 고정 = 오늘의 명언), 새 명언은 백그라운드 동기화
 //   - 테마/폰트 변경 바텀시트, 스트릭 배지를 누르면 나의 모닥불 시트
 //   - AdMob 배너 광고 (광고 제거 미구매 시)
-//   - 첫 실행 주제 고르기 → 하루 1번 불씨 점화(Hold to Ignite) 화면 → 점화 완료 시트 (모닥불 + 첫 알림 제안)
+//   - 첫 실행 주제 고르기 → 하루 1번 불씨 점화(Hold to Ignite) 화면(오늘의 명언 첫머리 미리보기) → 점화 완료 시트 (모닥불 + 첫 알림 제안)
 //   - 홈 화면 위젯(오늘의 명언·불씨 상태) 갱신
 //   - 알림을 눌러 들어오면 그 알림의 명언을 맨 앞에 보여 준다
 // ─────────────────────────────────────────────────────────────
@@ -440,7 +440,7 @@ export default function Index() {
       <IgniteResultSheet ref={igniteResultRef} />
 
       {/* 불씨를 직접 켜는 오버레이. 오늘 아직 점화하지 않았을 때만 표시 */}
-      {!isIgnited && <IgniteScreen onIgnited={handleIgnited} />}
+      {!isIgnited && <IgniteScreen onIgnited={handleIgnited} previewText={currentQuote?.text} />}
 
       {/* 처음 설치했을 때 한 번: 주제 고르기 (고르면 아래 점화 화면으로 이어진다) */}
       {showOnboarding && <OnboardingTopics />}

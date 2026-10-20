@@ -8,6 +8,7 @@ import {
   campfireIntensity,
   daysBetween,
   getCampfireStage,
+  getRecentDays,
   igniteStreak,
   isUnlocked,
   nextMilestone,
@@ -159,10 +160,23 @@ describe("useStreakStore", () => {
     expect(useStreakStore.getState()).toMatchObject({ currentStreak: 7, longestStreak: 7, lastStreakDate: daysAgo(0) });
   });
 
+  it("점화한 날짜를 주간 기록에 한 번만 남긴다", () => {
+    useStreakStore.setState({ currentStreak: 1, longestStreak: 1, lastStreakDate: daysAgo(1), freezeUsedWeek: null, ignitedDates: [daysAgo(1)] });
+    useStreakStore.getState().ignite();
+    useStreakStore.getState().ignite();
+    expect(useStreakStore.getState().ignitedDates).toEqual([daysAgo(1), daysAgo(0)]);
+  });
+
   it("v0(앱 열기 기준) 저장값을 이어받는다", async () => {
     const migrate = useStreakStore.persist.getOptions().migrate!;
     const migrated = await migrate({ currentStreak: 5, longestStreak: 9, lastOpenDate: "2026-10-20" }, 0);
-    expect(migrated).toEqual({ currentStreak: 5, longestStreak: 9, lastStreakDate: "2026-10-20", freezeUsedWeek: null });
+    expect(migrated).toEqual({
+      currentStreak: 5,
+      longestStreak: 9,
+      lastStreakDate: "2026-10-20",
+      freezeUsedWeek: null,
+      ignitedDates: [],
+    });
   });
 });
 
@@ -185,5 +199,32 @@ describe("모닥불 단계", () => {
     expect(campfireIntensity(10)).toBeGreaterThan(campfireIntensity(5));
     expect(campfireIntensity(100)).toBe(1);
     expect(campfireIntensity(500)).toBe(1);
+  });
+});
+
+describe("getRecentDays — 최근 7일 불씨", () => {
+  const litDates = (days: ReturnType<typeof getRecentDays>) => days.filter((d) => d.lit).map((d) => d.date);
+
+  it("오늘까지 7일을 오래된 순으로 돌려주고 마지막 날이 오늘이다", () => {
+    const days = getRecentDays(record({}), [], TODAY);
+    expect(days).toHaveLength(7);
+    expect(days[0].date).toBe("2026-10-15");
+    expect(days[6]).toMatchObject({ date: TODAY, isToday: true });
+  });
+
+  it("점화 기록이 있으면 기록한 날만 불이 켜진다", () => {
+    const days = getRecentDays(record({}), ["2026-10-16", "2026-10-18", TODAY], TODAY);
+    expect(litDates(days)).toEqual(["2026-10-16", "2026-10-18", TODAY]);
+  });
+
+  it("기록이 없던 예전 날은 현재 스트릭 구간으로 어림한다", () => {
+    // 3일 연속, 마지막 날 10-20 → 10-18·19·20. 기록은 10-20부터 쌓였다.
+    const days = getRecentDays(record({}), ["2026-10-20"], TODAY);
+    expect(litDates(days)).toEqual(["2026-10-18", "2026-10-19", "2026-10-20"]);
+  });
+
+  it("스트릭이 꺼졌고 기록도 없으면 아무 날도 켜지지 않는다", () => {
+    const days = getRecentDays(record({ currentStreak: 0, lastStreakDate: null }), [], TODAY);
+    expect(litDates(days)).toEqual([]);
   });
 });

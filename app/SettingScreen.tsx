@@ -49,19 +49,20 @@ const pad2 = (value: number) => String(value).padStart(2, "0");
 const openStoreReview = () => Linking.openURL(STORE_REVIEW_URL).catch(() => Linking.openURL(STORE_WEB_URL));
 
 // ‹ 값 › 형태의 시간 조절 버튼
-const TimeStepper: React.FC<{ value: number; onDecrease: () => void; onIncrease: () => void }> = ({
+const TimeStepper: React.FC<{ value: number; unit: string; onDecrease: () => void; onIncrease: () => void }> = ({
   value,
+  unit,
   onDecrease,
   onIncrease,
 }) => (
   <Box flexDirection="row" alignItems="center" bg="$surfaceMuted" borderRadius="sm" style={{ padding: 2 }}>
-    <Pressable onPress={onDecrease} hitSlop={6} style={({ pressed }) => ({ padding: 6, opacity: pressed ? 0.5 : 1 })}>
+    <Pressable onPress={onDecrease} hitSlop={6} accessibilityRole="button" accessibilityLabel={`${unit} 줄이기`} style={({ pressed }) => ({ padding: 6, opacity: pressed ? 0.5 : 1 })}>
       <FeatherIcon name="chevron-left" size={16} color="$muted" />
     </Pressable>
     <Text fontSize={16} fontWeight="800" style={{ minWidth: 24, textAlign: "center", fontVariant: ["tabular-nums"] }}>
       {pad2(value)}
     </Text>
-    <Pressable onPress={onIncrease} hitSlop={6} style={({ pressed }) => ({ padding: 6, opacity: pressed ? 0.5 : 1 })}>
+    <Pressable onPress={onIncrease} hitSlop={6} accessibilityRole="button" accessibilityLabel={`${unit} 늘리기`} style={({ pressed }) => ({ padding: 6, opacity: pressed ? 0.5 : 1 })}>
       <FeatherIcon name="chevron-right" size={16} color="$muted" />
     </Pressable>
   </Box>
@@ -117,12 +118,14 @@ function SettingContent() {
                   <Box flexDirection="row" alignItems="center" style={{ gap: 4 }}>
                     <TimeStepper
                       value={hour}
+                      unit="시"
                       onDecrease={() => setTime(stepWithWrap(hour, -1, 23), minute)}
                       onIncrease={() => setTime(stepWithWrap(hour, 1, 23), minute)}
                     />
                     <Text fontSize={16} fontWeight="800" color="$muted">:</Text>
                     <TimeStepper
                       value={minute}
+                      unit="분"
                       onDecrease={() => setTime(hour, stepWithWrap(minute, -MINUTE_STEP, 60 - MINUTE_STEP))}
                       onIncrease={() => setTime(hour, stepWithWrap(minute, MINUTE_STEP, 60 - MINUTE_STEP))}
                     />

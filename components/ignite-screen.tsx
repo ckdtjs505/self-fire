@@ -9,6 +9,8 @@
 //   - 완료 시 강렬한 플래시 + 스파크 터짐
 //   - 누르는 동안 점점 세지는 진동, 점화 순간 완료 진동
 //   - 스크린리더: 두 번 탭(activate)하면 바로 점화
+//   - 기기의 '동작 줄이기'가 켜져 있으면 깜빡임·맥박·파티클·플래시 없이 홀드 진행과 페이드만 보여 준다
+//   - 오늘의 명언 첫머리를 흐릿하게 미리 보여 주어, 불씨를 켜면 무엇이 기다리는지 알려 준다
 // ─────────────────────────────────────────────────────────────
 
 import React, { useRef, useEffect } from 'react';
@@ -17,6 +19,7 @@ import { Text } from '@/atom';
 // 테마를 거치지 않고 직접 Ionicons를 사용 → hex 색상이 그대로 적용됨
 import { Ionicons } from '@expo/vector-icons';
 import { pulseHaptic, successHaptic } from '@/utils/haptics';
+import { useReduceMotion } from '@/hooks/useReduceMotion';
 
 const HOLD_DURATION = 1500; // 점화까지 필요한 홀드 시간 (ms)
 const HAPTIC_INTERVAL = 250; // 누르는 동안 진동 간격 (ms)
@@ -32,13 +35,22 @@ const PARTICLES = [
   { x:  20, size: 8, delay: 100, dur: 2400 },
 ];
 
+// 미리 보여 줄 명언 첫머리 글자 수
+const PREVIEW_LENGTH = 14;
+
 type Props = {
   onIgnited: () => void;
+  // 불씨를 켜면 보게 될 오늘의 명언 (첫머리만 흐릿하게 보여 준다)
+  previewText?: string;
 };
 
-export const IgniteScreen: React.FC<Props> = ({ onIgnited }) => {
+export const IgniteScreen: React.FC<Props> = ({ onIgnited, previewText }) => {
   // 회전·창 크기 변경에 맞춰 다시 계산되도록 렌더 시점에 읽는다.
   const { width, height } = useWindowDimensions();
+  const reduceMotion = useReduceMotion();
+  // 홀드 취소 콜백 등에서 최신 값을 읽기 위한 ref
+  const reduceMotionRef = useRef(reduceMotion);
+  reduceMotionRef.current = reduceMotion;
   // ── 핵심 애니메이션 값 ──────────────────────────────────────
   const progress   = useRef(new Animated.Value(0)).current; // 홀드 진행도 (0→1)
   const revealAnim = useRef(new Animated.Value(1)).current; // 오버레이 불투명도 (1→0)
@@ -82,25 +94,33 @@ export const IgniteScreen: React.FC<Props> = ({ onIgnited }) => {
   // 힌트 텍스트: 홀드 시작 시 빠르게 사라짐
   const hintOpacity  = progress.interpolate({ inputRange: [0, 0.12], outputRange: [1, 0] });
 
-  // ── 컴포넌트 마운트 시 루프 애니메이션 시작 ──────────────────
+  // ── 루프 애니메이션 시작 (동작 줄이기 설정이 바뀌면 다시 맞춘다) ──
   useEffect(() => {
-    startIdlePulse();
-    startFlicker();
-    startParticles();
+    if (!reduceMotion) {
+      startIdlePulse();
+      startFlicker();
+      startParticles();
+    }
     const particleAnims = particleRefs.current;
     return () => {
       idleLoopRef.current?.stop();
       flickerRef.current?.stop();
       particleAnims.forEach(a => a.stop());
-      stopHaptics();
+      // 멈춘 자리에 남지 않도록 기본값으로 되돌린다.
+      idlePulse.setValue(1);
+      flicker.setValue(1);
+      particles.forEach(p => p.opacity.setValue(0));
     };
-    // 마운트 시 한 번만 루프를 시작한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [reduceMotion]);
+
+  // 화면이 사라질 때 진동을 멈춘다.
+  useEffect(() => stopHaptics, []);
 
   // ── Idle Pulse: 은은한 숨쉬기 ──────────────────────────────
   const startIdlePulse = () => {
     idlePulse.setValue(1);
+    if (reduceMotionRef.current) return;
     idleLoopRef.current = Animated.loop(
       Animated.sequence([
         Animated.timing(idlePulse, { toValue: 1.2,  duration: 750, useNativeDriver: true, easing: Easing.inOut(Easing.sin) }),
@@ -207,6 +227,11 @@ export const IgniteScreen: React.FC<Props> = ({ onIgnited }) => {
   // ── triggerReveal: 점화 완료 애니메이션 ─────────────────────
   const triggerReveal = () => {
     flickerRef.current?.stop();
+    // 동작 줄이기: 플래시 없이 오버레이만 천천히 걷어 낸다.
+    if (reduceMotionRef.current) {
+      Animated.timing(revealAnim, { toValue: 0, duration: 500, useNativeDriver: true }).start(() => onIgnited());
+      return;
+    }
     // 1) 강렬한 화이트 플래시 (빠르게 빵!)
     // 2) 플래시 천천히 빠지면서 동시에 오버레이 전체 페이드 아웃
     Animated.sequence([
@@ -280,6 +305,21 @@ export const IgniteScreen: React.FC<Props> = ({ onIgnited }) => {
         <Ionicons name="flame" size={92} color="#FF4500" />
       </Animated.View>
 
+      {/* ── 오늘의 명언 미리보기 (첫머리만 흐릿하게) ─────────── */}
+      {!!previewText && (
+        <Animated.View
+          pointerEvents="none"
+          importantForAccessibility="no-hide-descendants"
+          accessibilityElementsHidden
+          style={[styles.previewContainer, { top: height * 0.16, opacity: hintOpacity }]}
+        >
+          <Text style={styles.previewLabel}>오늘의 문장</Text>
+          <Text style={styles.previewText} numberOfLines={1}>
+            {`“${previewText.slice(0, PREVIEW_LENGTH).trim()}${previewText.length > PREVIEW_LENGTH ? '…' : '”'}`}
+          </Text>
+        </Animated.View>
+      )}
+
       {/* ── 힌트 텍스트 ──────────────────────────────────────── */}
       <Animated.View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={[styles.hintContainer, { bottom: height * 0.2, opacity: hintOpacity }]}>
         <Text style={styles.hintText}>꾹 누르면{'\n'}오늘의 불씨가 켜집니다</Text>
@@ -336,6 +376,25 @@ const styles = StyleSheet.create({
   hintContainer: {
     position: 'absolute',
     alignItems: 'center',
+  },
+  previewContainer: {
+    position: 'absolute',
+    left: 40,
+    right: 40,
+    alignItems: 'center',
+  },
+  previewLabel: {
+    color: 'rgba(255, 190, 120, 0.55)',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 2,
+    marginBottom: 10,
+  },
+  previewText: {
+    color: 'rgba(255, 236, 214, 0.42)',
+    fontSize: 20,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   hintText: {
     color: 'rgba(255, 190, 120, 0.8)',

@@ -9,7 +9,7 @@ const theme = createTheme({
     surface: "#F9FBF6",
     surfaceMuted: "#E2E8DA",
     foreground: "#1D2A1E",
-    muted: "#66745F",
+    muted: "#5C6A55",
     border: "rgba(29,42,30,0.09)",
     primary: "#2F7A4B",
     primarySoft: "rgba(47,122,75,0.11)",

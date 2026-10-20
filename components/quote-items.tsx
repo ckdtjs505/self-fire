@@ -72,104 +72,119 @@ const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom }) => {
           fitToArea();
         }}
       >
-        {/* ViewShot 영역: 공유/저장 시 이 카드만 이미지로 캡처된다. */}
-        <ViewShot
-          ref={viewShotRef}
-          options={{ format: "png", quality: 1.0 }}
-          style={{
-            width: "100%",
-            backgroundColor: colors.$surface,
-            paddingHorizontal: 36,
-            paddingTop: 28,
-            paddingBottom: 22,
-            borderRadius: 28,
-            alignItems: "center",
-            borderColor: colors.$border,
-            borderWidth: 1,
-            overflow: "hidden",
-          }}
-        >
-          {background.source && (
-            <>
-              <Image source={background.source} resizeMode="cover" style={StyleSheet.absoluteFill} />
-              {/* 글씨가 잘 읽히도록 살짝 덮는 막 */}
-              <View style={[StyleSheet.absoluteFill, { backgroundColor: imageColors?.scrim }]} />
-            </>
-          )}
-
-          {isCustom ? (
-            <Box
-              flexDirection="row"
-              alignItems="center"
-              bg="$primarySoft"
-              borderRadius="pill"
-              px="md"
-              style={{ gap: 5, paddingVertical: 5 }}
-            >
-              <FeatherIcon name="edit-2" size={12} color="$primary" />
-              <Text color="$primary" fontSize={12} fontWeight="700">
-                나만의 명언
-              </Text>
-            </Box>
-          ) : (
-            // 장식용 여는 따옴표
-            <Text
-              style={{
-                color: accentColor,
-                fontSize: 52,
-                lineHeight: 52,
-                height: 30,
-                fontWeight: "900",
-                fontFamily: "NanumMyeongjo_800ExtraBold",
-              }}
-            >
-              {"“"}
-            </Text>
-          )}
-
-          <Text
-            fontSize={fontSize}
-            fontWeight={isSystemFont ? "700" : undefined}
-            textAlign="center"
-            lineHeight={fontSize * LINE_HEIGHT_RATIO}
-            style={{ letterSpacing: -0.4, fontFamily, marginTop: 16, color: foregroundColor }}
-            onLayout={(e) => {
-              textHeight.current = e.nativeEvent.layout.height;
+        {/* 카드를 바탕에서 살짝 띄우는 그림자. 공유 이미지에는 들어가지 않도록 ViewShot 바깥에 둔다. */}
+        <View style={[styles.cardShadow, { backgroundColor: colors.$surface }]}>
+          {/* ViewShot 영역: 공유/저장 시 이 카드만 이미지로 캡처된다. */}
+          <ViewShot
+            ref={viewShotRef}
+            options={{ format: "png", quality: 1.0 }}
+            style={{
+              width: "100%",
+              backgroundColor: colors.$surface,
+              paddingHorizontal: 36,
+              paddingTop: 28,
+              paddingBottom: 22,
+              borderRadius: 28,
+              alignItems: "center",
+              borderColor: colors.$border,
+              borderWidth: 1,
+              overflow: "hidden",
             }}
           >
-            {text}
-          </Text>
+            {background.source && (
+              <>
+                <Image source={background.source} resizeMode="cover" style={StyleSheet.absoluteFill} />
+                {/* 글씨가 잘 읽히도록 살짝 덮는 막 */}
+                <View style={[StyleSheet.absoluteFill, { backgroundColor: imageColors?.scrim }]} />
+              </>
+            )}
 
-          <Box
-            width={24}
-            height={2}
-            borderRadius="pill"
-            style={{ marginTop: 20, opacity: 0.7, backgroundColor: accentColor }}
-          />
+            {isCustom ? (
+              <Box
+                flexDirection="row"
+                alignItems="center"
+                bg="$primarySoft"
+                borderRadius="pill"
+                px="md"
+                style={{ gap: 5, paddingVertical: 5 }}
+              >
+                <FeatherIcon name="edit-2" size={12} color="$primary" />
+                <Text variant="label" color="$primary" fontSize={12}>
+                  나만의 명언
+                </Text>
+              </Box>
+            ) : (
+              // 장식용 여는 따옴표
+              <Text
+                style={{
+                  color: accentColor,
+                  fontSize: 52,
+                  lineHeight: 52,
+                  height: 30,
+                  fontWeight: "900",
+                  fontFamily: "NanumMyeongjo_800ExtraBold",
+                }}
+              >
+                {"“"}
+              </Text>
+            )}
 
-          <Text
-            variant="caption"
-            fontSize={15}
-            fontWeight={isSystemFont ? "600" : undefined}
-            textAlign="center"
-            style={{ marginTop: 14, fontFamily, color: mutedColor }}
-          >
-            {author}
-          </Text>
-
-          {/* 저장·공유 이미지에 남는 워터마크 */}
-          <Box flexDirection="row" alignItems="center" style={{ marginTop: 22, gap: 4, opacity: imageColors ? 0.6 : 0.4 }}>
-            <Ionicons name="flame" size={11} color={mutedColor} />
-            <Text fontSize={10} fontWeight="800" style={{ letterSpacing: 2.5, color: mutedColor }}>
-              SELF FIRE
+            <Text
+              fontSize={fontSize}
+              fontWeight={isSystemFont ? "700" : undefined}
+              textAlign="center"
+              lineHeight={fontSize * LINE_HEIGHT_RATIO}
+              style={{ letterSpacing: -0.4, fontFamily, marginTop: 16, color: foregroundColor }}
+              onLayout={(e) => {
+                textHeight.current = e.nativeEvent.layout.height;
+              }}
+            >
+              {text}
             </Text>
-          </Box>
-        </ViewShot>
+
+            <Box
+              width={24}
+              height={2}
+              borderRadius="pill"
+              style={{ marginTop: 20, opacity: 0.7, backgroundColor: accentColor }}
+            />
+
+            <Text
+              variant="caption"
+              fontSize={15}
+              fontWeight={isSystemFont ? "600" : undefined}
+              textAlign="center"
+              style={{ marginTop: 14, fontFamily, color: mutedColor }}
+            >
+              {author}
+            </Text>
+
+            {/* 저장·공유 이미지에 남는 워터마크 */}
+            <Box flexDirection="row" alignItems="center" style={{ marginTop: 22, gap: 4, opacity: imageColors ? 0.6 : 0.4 }}>
+              <Ionicons name="flame" size={11} color={mutedColor} />
+              <Text fontSize={10} fontWeight="800" style={{ letterSpacing: 2.5, color: mutedColor }}>
+                SELF FIRE
+              </Text>
+            </Box>
+          </ViewShot>
+        </View>
 
         <QuoteBar id={id} text={text} author={author} viewShotRef={viewShotRef} />
       </Box>
     </Box>
   );
 };
+
+const styles = StyleSheet.create({
+  cardShadow: {
+    width: "100%",
+    borderRadius: 28,
+    shadowColor: "#000",
+    shadowOpacity: 0.07,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3,
+  },
+});
 
 export default QuoteItem;

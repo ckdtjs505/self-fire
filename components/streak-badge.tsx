@@ -54,7 +54,7 @@ const StreakBadge: React.FC<Props> = ({ streak, onPress }) => {
           style={{ gap: 5, paddingLeft: 12, paddingRight: 14 }}
         >
           <Ionicon name={streak > 0 ? "flame" : "flame-outline"} size={17} color={streak > 0 ? "$flame" : "$muted"} />
-          <Text fontSize={15} fontWeight="800">
+          <Text variant="stat">
             {streak}
           </Text>
           <Text variant="caption" fontSize={12}>

@@ -6,12 +6,14 @@
 //   - 임계값 미달: 스프링으로 원위치
 //   - 이전에 본 명언을 보는 중이면 카드 아래에 '새 명언으로' 버튼을 띄워 마지막 위치로 바로 돌아간다
 //   - 아직 한 번도 넘겨 보지 않은 사용자에게는 카드를 왼쪽으로 살짝 밀었다 놓으며 넘길 수 있다고 알려 준다
+//   - 기기의 '동작 줄이기'가 켜져 있으면 슬라이드·밀기 힌트 없이 페이드로만 바꾼다
 // PanGestureHandler 기반이라 Drawer 제스처와 충돌하지 않는다.
 // ─────────────────────────────────────────────────────────────
 
 import { Box, Text } from "@/atom";
 import FeatherIcon from "@/components/icon";
 import QuoteItem from "@/components/quote-items";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { Quote } from "@/models";
 import { useEffect, useRef } from "react";
 import { Animated, useWindowDimensions } from "react-native";
@@ -61,7 +63,8 @@ const QuoteSwiper: React.FC<Props> = ({
   // 회전·창 크기 변경에 맞춰 스와이프 기준을 다시 계산한다.
   const { width: SCREEN_WIDTH } = useWindowDimensions();
   const SWIPE_DISTANCE_THRESHOLD = SCREEN_WIDTH * 0.2;
-  const ENTER_OFFSET = SCREEN_WIDTH * 0.25;
+  const reduceMotion = useReduceMotion();
+  const ENTER_OFFSET = reduceMotion ? 0 : SCREEN_WIDTH * 0.25;
   const slideX = useRef(new Animated.Value(0)).current;
   const fade = useRef(new Animated.Value(1)).current;
 
@@ -69,7 +72,7 @@ const QuoteSwiper: React.FC<Props> = ({
   const hintActive = showSwipeHint && canGoNext;
   const hintAnim = useRef<Animated.CompositeAnimation | null>(null);
   useEffect(() => {
-    if (!hintActive) return;
+    if (!hintActive || reduceMotion) return;
     const nudge = Animated.sequence([
       Animated.timing(slideX, { toValue: HINT_NUDGE_X, duration: 380, useNativeDriver: true }),
       Animated.spring(slideX, { toValue: 0, useNativeDriver: true, tension: 60, friction: 7 }),
@@ -78,7 +81,7 @@ const QuoteSwiper: React.FC<Props> = ({
     hintAnim.current = hint;
     hint.start();
     return () => hint.stop();
-  }, [hintActive, slideX]);
+  }, [hintActive, reduceMotion, slideX]);
 
   // 새 카드를 fromX 위치에서 가운데로 슬라이드 + 페이드 인
   const playEnter = (fromX: number) => {
@@ -155,7 +158,7 @@ const QuoteSwiper: React.FC<Props> = ({
             버튼이 생겨도 카드가 움직이지 않도록 자리를 항상 비워 둔다. */}
         <Box height={REVISIT_SLOT_HEIGHT} alignItems="center" justifyContent="center">
           {!isRevisit && hintActive && (
-            <Text variant="caption" fontSize={13}>
+            <Text variant="caption">
               ← 넘겨서 다음 명언 보기
             </Text>
           )}
@@ -164,6 +167,9 @@ const QuoteSwiper: React.FC<Props> = ({
             <NativeViewGestureHandler>
               <Pressable
                 hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="새 명언으로"
+                accessibilityHint="가장 최근에 본 명언으로 돌아갑니다"
                 onPress={() => {
                   onJumpToLatest();
                   playEnter(ENTER_OFFSET);
@@ -177,7 +183,7 @@ const QuoteSwiper: React.FC<Props> = ({
                   borderRadius="pill"
                   style={{ gap: 4, paddingLeft: 16, paddingRight: 12 }}
                 >
-                  <Text color="$onPrimary" fontSize={13} fontWeight="700">
+                  <Text variant="label" color="$onPrimary">
                     새 명언으로
                   </Text>
                   <FeatherIcon name="chevron-right" size={15} color="$onPrimary" />

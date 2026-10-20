@@ -29,7 +29,7 @@ type MenuItemProps = {
 };
 
 const MenuItem: React.FC<MenuItemProps> = ({ icon, title, onPress }) => (
-  <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+  <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={title} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
     <Box flexDirection="row" alignItems="center" paddingVertical="s" paddingHorizontal="md" style={{ gap: 12 }}>
       <Box width={34} height={34} borderRadius="sm" bg="$surfaceMuted" justifyContent="center" alignItems="center">
         <FeatherIcon name={icon} size={17} />
