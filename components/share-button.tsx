@@ -1,3 +1,4 @@
+import { trackEvent } from "@/utils/analytics";
 import { Share } from "react-native";
 import ViewShot from "react-native-view-shot";
 import ActionButton from "./action-button";
@@ -15,12 +16,14 @@ const ShareButton: React.FC<Props> = ({ text, viewShotRef }) => {
       const uri = await viewShotRef?.current?.capture?.();
       if (uri) {
         await Share.share({ url: uri, message: text });
+        trackEvent("quote_share", { with_image: true });
         return;
       }
     } catch {
       // 아래에서 텍스트 공유로 대체
     }
     await Share.share({ message: text });
+    trackEvent("quote_share", { with_image: false });
   };
 
   return (

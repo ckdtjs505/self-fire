@@ -10,6 +10,7 @@ import { Box, SafeAreaView, Text } from "@/atom";
 import ScreenHeader from "@/components/screen-header";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { useThemeStore } from "@/store/theme";
+import { trackEvent } from "@/utils/analytics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -61,10 +62,12 @@ export default function AddQuoteScreen() {
     if (params.id) {
       // 수정 모드: 기존 명언 업데이트
       updateCustomQuote(params.id, text, author);
+      trackEvent("quote_edit");
       Toast.show({ type: "success", text1: "성공", text2: "명언이 수정되었습니다." });
     } else {
       // 추가 모드: 새 명언 등록
       addCustomQuote(text, author);
+      trackEvent("quote_add");
       Toast.show({ type: "success", text1: "성공", text2: "새로운 명언이 등록되었습니다." });
     }
     router.back(); // 저장 완료 후 이전 화면으로 이동

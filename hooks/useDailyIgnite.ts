@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { trackEvent } from "@/utils/analytics";
 import { toDateString } from "@/utils/date";
 
 export const LAST_IGNITED_DATE_KEY = "last_ignited_date";
@@ -21,6 +22,7 @@ export const useDailyIgnite = () => {
   const markIgnited = async () => {
     await AsyncStorage.setItem(LAST_IGNITED_DATE_KEY, toDateString());
     setIsIgnited(true);
+    trackEvent("ignite_complete");
   };
 
   return { isIgnited, markIgnited };
