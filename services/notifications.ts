@@ -6,7 +6,7 @@
 // 알림 스토어가 다른 스토어를 직접 알지 않게 한다.
 // ─────────────────────────────────────────────────────────────
 
-import { getDailyQuote } from "@/data/daily-quote";
+import { orderQuotesForDay } from "@/data/daily-quote";
 import { notificationDataSchema } from "@/data/schemas";
 import { Quote } from "@/models";
 import { loadDailyCandidates } from "@/services/daily-candidates";
@@ -46,35 +46,61 @@ export const getStreakReminders = (
   return [{ date, body: `${currentStreak}일째 이어 온 불씨가 오늘 밤 꺼질 수 있어요. 지금 지펴 주세요 🔥` }];
 };
 
-// 반복(DAILY) 알림은 내용이 고정되므로, 앞으로 며칠치를 날짜별로 그날의 '오늘의 명언'으로 예약한다.
+// 하루에 받을 수 있는 알림 횟수
+export const MAX_NOTIFICATION_TIMES = 3;
+
+export type NotificationTime = { hour: number; minute: number };
+
+// 시각 순으로 정렬하고 같은 시각은 하나만 남긴다.
+export const normalizeTimes = (times: NotificationTime[]): NotificationTime[] =>
+  times
+    .slice()
+    .sort((a, b) => a.hour * 60 + a.minute - (b.hour * 60 + b.minute))
+    .filter((t, i, arr) => i === 0 || t.hour !== arr[i - 1].hour || t.minute !== arr[i - 1].minute)
+    .slice(0, MAX_NOTIFICATION_TIMES);
+
+// 반복(DAILY) 알림은 내용이 고정되므로, 앞으로 며칠치를 날짜별로 그날의 명언으로 예약한다.
 // 앱을 열 때마다 다시 채우므로 이 기간 안에 한 번이라도 앱을 열면 알림이 끊기지 않는다.
 const DAYS_AHEAD = 30;
+// iOS는 예약 알림을 64개까지만 들고 있으므로, 하루 알림이 여러 번이면 예약 기간을 줄인다.
+// (저녁 불씨 알림 몫을 남겨 둔다)
+const MAX_SCHEDULED_DAILY = 60;
 
-// 기존 예약을 지우고, 앞으로 DAYS_AHEAD일 동안 매일 hour:minute에 그날의 '오늘의 명언' 알림을 예약한다.
-// candidates는 홈 화면 '전체' 모드와 같은 후보여야 알림 명언과 그날 홈 화면의 첫 명언이 같아진다.
+export const daysAheadFor = (timesPerDay: number) =>
+  Math.min(DAYS_AHEAD, Math.floor(MAX_SCHEDULED_DAILY / Math.max(1, timesPerDay)));
+
+// 기존 예약을 지우고, 앞으로 며칠 동안 매일 정한 시각마다 그날의 명언 알림을 예약한다.
+// 하루 n번째 알림에는 그날 홈 화면의 n번째 명언을 보낸다. (첫 알림 = '오늘의 명언')
+// candidates는 홈 화면 '전체' 모드와 같은 후보여야 알림 명언과 그날 홈 화면의 명언 순서가 같아진다.
 export const scheduleUpcoming = async (
-  hour: number,
-  minute: number,
+  times: NotificationTime[],
   candidates: Quote[],
   now: Date = new Date(),
   streak: StreakReminderInput | null = null,
 ) => {
   await Notifications.cancelAllScheduledNotificationsAsync();
 
-  for (let day = 0; day <= DAYS_AHEAD; day++) {
-    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + day, hour, minute);
-    const quote = getDailyQuote(candidates, date);
-    if (date <= now || !quote) continue;
+  const slots = normalizeTimes(times);
+  const daysAhead = daysAheadFor(slots.length);
+  for (let day = 0; day <= daysAhead; day++) {
+    const dayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + day);
+    const ordered = orderQuotesForDay(candidates, dayDate);
 
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "🔥 오늘의 명언",
-        body: `"${quote.text}" - ${quote.author}`,
-        sound: true,
-        data: { type: "daily", quoteId: quote.id, text: quote.text, author: quote.author } satisfies NotificationData,
-      },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
-    });
+    for (const [index, { hour, minute }] of slots.entries()) {
+      const date = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate(), hour, minute);
+      const quote = ordered[index % Math.max(1, ordered.length)];
+      if (date <= now || !quote) continue;
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: index === 0 ? "🔥 오늘의 명언" : "🔥 불씨 한 줄 더",
+          body: `"${quote.text}" - ${quote.author}`,
+          sound: true,
+          data: { type: "daily", quoteId: quote.id, text: quote.text, author: quote.author } satisfies NotificationData,
+        },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date },
+      });
+    }
   }
 
   for (const reminder of streak ? getStreakReminders(streak, now) : []) {
@@ -99,16 +125,14 @@ const loadStreakReminderInput = async (enabled: boolean): Promise<StreakReminder
 };
 
 export type ReminderSettings = {
-  notificationHour: number;
-  notificationMinute: number;
+  notificationTimes: NotificationTime[];
   streakReminderEnabled: boolean;
 };
 
 /** 지금 명언 후보·스트릭으로 알림을 다시 예약한다. */
-export const rescheduleNotifications = async ({ notificationHour, notificationMinute, streakReminderEnabled }: ReminderSettings) =>
+export const rescheduleNotifications = async ({ notificationTimes, streakReminderEnabled }: ReminderSettings) =>
   scheduleUpcoming(
-    notificationHour,
-    notificationMinute,
+    notificationTimes,
     await loadDailyCandidates(),
     new Date(),
     await loadStreakReminderInput(streakReminderEnabled),

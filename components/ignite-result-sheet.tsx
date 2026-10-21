@@ -60,7 +60,7 @@ const IgniteResultSheet = forwardRef<IgniteResultSheetHandle>(function IgniteRes
       const shouldOffer = !notification.isEnabled && !notification.hasOfferedReminder;
       if (shouldOffer) notification.markReminderOffered();
       setOfferReminder(shouldOffer);
-      setReminderHour(notification.notificationHour);
+      setReminderHour(notification.notificationTimes[0]?.hour ?? 8);
 
       // 알림 제안과 겹치지 않을 때만 위젯 추가를 제안한다.
       // 이미 놓은 위젯이 없다는 것을 확인한 뒤에 보여 준다. (제안이 잠깐 보였다 사라지지 않도록)
@@ -88,8 +88,8 @@ const IgniteResultSheet = forwardRef<IgniteResultSheetHandle>(function IgniteRes
   // 시트는 바로 닫고, 권한 요청·30일치 예약은 뒤에서 마친 뒤 결과를 토스트로 알려 준다.
   const acceptReminder = async () => {
     close();
-    const { setTime, setEnabled } = useNotificationStore.getState();
-    await setTime(reminderHour, 0);
+    const { setTimes, setEnabled } = useNotificationStore.getState();
+    await setTimes([{ hour: reminderHour, minute: 0 }]);
     const granted = await setEnabled(true);
     trackEvent("reminder_offer", { accepted: true, granted, hour: reminderHour });
     Toast.show({
