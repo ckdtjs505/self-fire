@@ -1,8 +1,10 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { z } from "zod";
 import * as Notifications from "expo-notifications";
 import { getAllModeCandidates, getDailyQuote } from "@/data/daily-quote";
+import { notificationDataSchema } from "@/data/schemas";
 import { quotes as bundledQuotes, loadSyncedQuotes } from "@/data/quotes";
 import { Quote } from "@/models";
 import { useCategoryStore } from "@/store/category";
@@ -26,9 +28,7 @@ interface NotificationState {
 }
 
 // 알림을 눌렀을 때 앱이 할 일을 알 수 있도록 알림에 담아 두는 데이터
-export type NotificationData =
-  | { type: "daily"; quoteId: string; text: string; author: string }
-  | { type: "streak" };
+export type NotificationData = z.infer<typeof notificationDataSchema>;
 
 // 저녁 불씨 알림에 필요한 스트릭 상태
 export type StreakReminderInput = {

@@ -55,7 +55,7 @@ export const SettingSwitch: React.FC<{ value: boolean; onValueChange: (value: bo
   value,
   onValueChange,
 }) => {
-  const { colors } = useThemeStore().currentTheme;
+  const colors = useThemeStore((s) => s.currentTheme.colors);
   return (
     <Switch
       value={value}

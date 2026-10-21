@@ -26,6 +26,7 @@ import { useRouter } from "expo-router";
 import { useRef } from "react";
 import { Linking, Pressable, ScrollView } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useShallow } from "zustand/react/shallow";
 
 const FAQ_URL = "https://workshop-code.tistory.com/107";
 const PACKAGE_NAME = Application.applicationId || "com.changsunoh.selfFire";
@@ -79,7 +80,17 @@ function SettingContent() {
     setTime,
     streakReminderEnabled,
     setStreakReminderEnabled,
-  } = useNotificationStore();
+  } = useNotificationStore(
+    useShallow((s) => ({
+      isEnabled: s.isEnabled,
+      notificationHour: s.notificationHour,
+      notificationMinute: s.notificationMinute,
+      setEnabled: s.setEnabled,
+      setTime: s.setTime,
+      streakReminderEnabled: s.streakReminderEnabled,
+      setStreakReminderEnabled: s.setStreakReminderEnabled,
+    }))
+  );
   const interestIds = useCategoryStore((s) => s.interestIds);
   const interestsSheetRef = useRef<PickerSheetHandle>(null);
   const widgetSheetRef = useRef<PickerSheetHandle>(null);

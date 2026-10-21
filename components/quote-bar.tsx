@@ -20,6 +20,7 @@ import ActionButton from "./action-button";
 import FeatherIcon, { Ionicon } from "./icon";
 import { PickerSheetHandle } from "./picker-sheet";
 import ShareSheet from "./share-sheet";
+import { useShallow } from "zustand/react/shallow";
 
 type Props = Quote & {
   // 이미지 캡처 대상 카드
@@ -27,7 +28,13 @@ type Props = Quote & {
 };
 
 const QuoteBar: React.FC<Props> = ({ id, text, author, viewShotRef }) => {
-  const { addFavorite, removeFavorite, favorites } = useFavoriteQuoteStore();
+  const { addFavorite, removeFavorite, favorites } = useFavoriteQuoteStore(
+    useShallow((s) => ({
+      addFavorite: s.addFavorite,
+      removeFavorite: s.removeFavorite,
+      favorites: s.favorites,
+    }))
+  );
   const isFavorite = favorites.includes(id);
   const shareSheetRef = useRef<PickerSheetHandle>(null);
 

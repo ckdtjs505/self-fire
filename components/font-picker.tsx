@@ -4,6 +4,7 @@ import { Pressable, useWindowDimensions } from "react-native";
 import { useFontStore, FontId, toFontFamily } from "@/store/font-store";
 import FeatherIcon from "./icon";
 import PickerSheet, { PickerSheetHandle, SHEET_SIDE_PADDING } from "./picker-sheet";
+import { useShallow } from "zustand/react/shallow";
 
 const FONT_SIZE_MIN = 16;
 const FONT_SIZE_MAX = 48;
@@ -53,7 +54,14 @@ const FontSizeButton: React.FC<{ icon: "minus" | "plus"; disabled: boolean; onPr
 // 폰트 선택 바텀시트: 위쪽은 글자 크기 조절, 아래쪽은 폰트 미리보기 목록. 높이는 내용에 맞춘다.
 const FontPicker = forwardRef<PickerSheetHandle>(function FontPicker(_props, ref) {
   const sheetRef = useRef<PickerSheetHandle>(null);
-  const { currentFontId, updateFontId, currentFontSize, updateFontSize } = useFontStore();
+  const { currentFontId, updateFontId, currentFontSize, updateFontSize } = useFontStore(
+    useShallow((s) => ({
+      currentFontId: s.currentFontId,
+      updateFontId: s.updateFontId,
+      currentFontSize: s.currentFontSize,
+      updateFontSize: s.updateFontSize,
+    }))
+  );
   const { width } = useWindowDimensions();
   const itemWidth = (width - SHEET_SIDE_PADDING * 2 - GAP) / 2;
 

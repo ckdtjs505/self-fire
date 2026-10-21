@@ -23,6 +23,7 @@ import { forwardRef } from "react";
 import Campfire from "./campfire";
 import FeatherIcon, { Ionicon } from "./icon";
 import PickerSheet, { PickerSheetHandle } from "./picker-sheet";
+import { useShallow } from "zustand/react/shallow";
 
 // 작은 통계 칸 (최장 기록 / 불씨 지키기 / 다음 단계)
 const StatCell: React.FC<{ label: string; value: string }> = ({ label, value }) => (
@@ -122,7 +123,15 @@ const MilestoneRow: React.FC<{ milestone: number; currentStreak: number; unlocke
 };
 
 const StreakSheet = forwardRef<PickerSheetHandle>(function StreakSheet(_props, ref) {
-  const record = useStreakStore();
+  const record = useStreakStore(
+    useShallow((s) => ({
+      currentStreak: s.currentStreak,
+      longestStreak: s.longestStreak,
+      lastStreakDate: s.lastStreakDate,
+      freezeUsedWeek: s.freezeUsedWeek,
+      ignitedDates: s.ignitedDates,
+    }))
+  );
   const { currentStreak, longestStreak, lastStreakDate, ignitedDates } = record;
   const today = toDateString();
   const ignitedToday = lastStreakDate === today;

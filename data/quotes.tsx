@@ -11,9 +11,11 @@ import { Quote } from "@/models";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchQuotesSince } from "./quote-api";
 import { cleanQuotes } from "./quote-cleaner";
+import { parseQuotes } from "./schemas";
 import bundledQuotes from "./quotes.json";
 
-export const quotes: Quote[] = bundledQuotes as Quote[];
+// 형식이 어긋난 항목은 빼고 쓴다. (quotes.json은 빌드 때 서버 데이터로 만든다)
+export const quotes: Quote[] = parseQuotes(bundledQuotes);
 
 const SYNCED_KEY = "synced_quotes"; // 번들 이후 추가된 명언
 const LAST_SYNC_KEY = "quotes_last_sync"; // 마지막 동기화 시각 (ms)
@@ -26,7 +28,7 @@ const maxId = (list: Quote[]) => list.reduce((max, q) => Math.max(max, Number(q.
 export const loadSyncedQuotes = async (): Promise<Quote[]> => {
   try {
     const str = await AsyncStorage.getItem(SYNCED_KEY);
-    return str ? JSON.parse(str) : [];
+    return str ? parseQuotes(JSON.parse(str)) : [];
   } catch {
     return [];
   }

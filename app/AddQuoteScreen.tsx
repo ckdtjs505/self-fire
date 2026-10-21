@@ -28,6 +28,7 @@ import {
   TouchableWithoutFeedback,
 } from "react-native";
 import Toast from "react-native-toast-message";
+import { useShallow } from "zustand/react/shallow";
 
 // 작성자를 비워 두면 저장하는 이름
 const DEFAULT_AUTHOR = "나";
@@ -42,8 +43,13 @@ export default function AddQuoteScreen() {
   const isEditing = !!params.id;
 
   // 명언 추가/수정 함수를 전역 스토어에서 가져온다.
-  const { addCustomQuote, updateCustomQuote } = useFavoriteQuoteStore();
-  const { colors } = useThemeStore().currentTheme;
+  const { addCustomQuote, updateCustomQuote } = useFavoriteQuoteStore(
+    useShallow((s) => ({
+      addCustomQuote: s.addCustomQuote,
+      updateCustomQuote: s.updateCustomQuote,
+    }))
+  );
+  const colors = useThemeStore((s) => s.currentTheme.colors);
   // 지금 입력 중인 칸 (테두리를 강조색으로 표시)
   const [focused, setFocused] = useState<"text" | "author" | null>(null);
 
