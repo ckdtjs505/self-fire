@@ -47,6 +47,12 @@ SelfFire는 사용자의 동기부여를 돕는 명언 및 목표 달성(스트�
 * 네이티브 라이브러리(예: `react-native-mmkv`, `react-native-nitro-modules`)는 autolinking으로 연결되므로 `android/`를 고칠 필요는 없지만, 추가·업데이트한 뒤에는 개발 빌드를 다시 만들어야 합니다.
 * 버전 코드는 EAS 원격 버전 관리(`eas.json`의 `appVersionSource: remote`, `autoIncrement`)가 빌드할 때 정하므로 `app.json`에 적지 않습니다.
 
+## 🧪 테스트와 빌드
+
+* `npm test`: Jest + React Native Testing Library 단위·화면 테스트. PR마다 CI(`.github/workflows/ci.yml`)가 lint·타입 검사와 함께 돌립니다.
+* `npm run e2e`: [Maestro](https://maestro.mobile.dev) E2E 흐름(`.maestro/`). 에뮬레이터나 기기에 개발 빌드 또는 preview 빌드를 설치한 뒤 실행합니다. 첫 흐름이 앱 데이터를 지우고 시작합니다.
+* EAS 빌드: GitHub Actions의 **EAS Build** 워크플로를 수동 실행하거나 `v*` 태그를 푸시하면 Android 빌드를 맡깁니다. 저장소 Secrets에 `EXPO_TOKEN`이 필요합니다.
+
 ## 🏗 아키텍처
 
 <picture>

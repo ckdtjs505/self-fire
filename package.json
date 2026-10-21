@@ -9,6 +9,7 @@
     "web": "expo start --web",
     "test": "jest",
     "test:watch": "jest --watchAll",
+    "e2e": "maestro test .maestro",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "update-quotes": "node scripts/update-quotes.js",
