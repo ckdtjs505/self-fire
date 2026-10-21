@@ -44,6 +44,7 @@ SelfFire는 사용자의 동기부여를 돕는 명언 및 목표 달성(스트�
 
 * R8·리소스 축소, Crashlytics proguard 규칙, AD_ID 권한, 미디어 권한 제거, arm64 전용 빌드, gradle 메모리 설정은 `android/`에 직접 들어 있고 `app.json`으로는 다시 만들 수 없습니다. **`npx expo prebuild --clean`을 실행하면 이 설정이 사라지므로 실행하지 마세요.**
 * `app.json`의 Android 관련 설정(scheme, 권한, config plugin 등)을 바꾸면 같은 내용을 `android/`에도 직접 반영해야 합니다.
+* 네이티브 라이브러리(예: `react-native-mmkv`, `react-native-nitro-modules`)는 autolinking으로 연결되므로 `android/`를 고칠 필요는 없지만, 추가·업데이트한 뒤에는 개발 빌드를 다시 만들어야 합니다.
 * 버전 코드는 EAS 원격 버전 관리(`eas.json`의 `appVersionSource: remote`, `autoIncrement`)가 빌드할 때 정하므로 `app.json`에 적지 않습니다.
 
 ## 🏗 아키텍처
@@ -54,7 +55,7 @@ SelfFire는 사용자의 동기부여를 돕는 명언 및 목표 달성(스트�
 </picture>
 
 * **명언 데이터**: 빌드 시 `npm run update-quotes`로 서버의 전체 명언을 `data/quotes.json`에 번들하고, 실행 중에는 `since_id` 이후의 새 명언만 동기화합니다.
-* **상태 관리**: 화면은 Zustand 스토어를 읽고 쓰며, 스토어는 `persist`로 AsyncStorage에 저장되고 알림 스토어가 푸시 알림을 예약합니다.
+* **상태 관리**: 화면은 Zustand 스토어를 읽고 쓰며, 스토어는 `persist`로 MMKV(`utils/storage.ts`)에 저장되고 알림 스토어가 푸시 알림을 예약합니다. 예전 버전이 AsyncStorage에 남긴 값은 처음 실행할 때 MMKV로 옮깁니다.
 * **잠금 해제 자동 실행 (Android)**: `plugins/withAutoLaunch.js`가 네이티브 `AutoLaunchService`를 생성해 잠금 해제 시 앱을 띄웁니다.
 
 > 다이어그램 원본은 [`docs/architecture.html`](docs/architecture.html)입니다.

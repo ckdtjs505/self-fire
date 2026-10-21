@@ -1,7 +1,7 @@
 import { loadSyncedQuotes, quotes as bundledQuotes, syncNewQuotes } from "@/data/quotes";
 import { Quote } from "@/models";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
+import { appStorage } from "@/utils/storage";
 
 // 예전 버전에서 쓰던 랜덤 50개 캐시 키 (정리용)
 const LEGACY_QUOTE_CACHE_KEY = "cached_recent_quotes";
@@ -24,7 +24,7 @@ export const useDefaultQuotes = (): Quote[] => {
     (async () => {
       appendQuotes(await loadSyncedQuotes());
       appendQuotes(await syncNewQuotes());
-      AsyncStorage.removeItem(LEGACY_QUOTE_CACHE_KEY);
+      appStorage.removeItem(LEGACY_QUOTE_CACHE_KEY);
     })();
   }, []);
 

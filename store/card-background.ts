@@ -1,7 +1,7 @@
 import { CARD_BACKGROUNDS, CardBackgroundId } from "@/data/card-backgrounds";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { stateStorage } from "@/utils/storage";
 
 interface CardBackgroundStore {
   currentBackgroundId: CardBackgroundId;
@@ -20,7 +20,7 @@ export const useCardBackgroundStore = create<CardBackgroundStore>()(
     }),
     {
       name: "card-background-storage",
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => stateStorage),
       partialize: (state) => ({ currentBackgroundId: state.currentBackgroundId }),
       merge: (persisted, current) => {
         const savedId = (persisted as Partial<CardBackgroundStore> | undefined)?.currentBackgroundId;

@@ -9,7 +9,7 @@ import { getDailyQuote } from "@/data/daily-quote";
 import { Quote } from "@/models";
 import { toDateString } from "@/utils/date";
 import { reconcileStreak } from "@/utils/streak";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { appStorage } from "@/utils/storage";
 
 export const WIDGET_SNAPSHOT_KEY = "widget_snapshot";
 
@@ -88,11 +88,11 @@ export const resolveWidgetView = (snapshot: WidgetSnapshot | null, now: Date = n
 };
 
 export const saveWidgetSnapshot = (snapshot: WidgetSnapshot) =>
-  AsyncStorage.setItem(WIDGET_SNAPSHOT_KEY, JSON.stringify(snapshot));
+  appStorage.setItem(WIDGET_SNAPSHOT_KEY, JSON.stringify(snapshot));
 
 export const loadWidgetSnapshot = async (): Promise<WidgetSnapshot | null> => {
   try {
-    const str = await AsyncStorage.getItem(WIDGET_SNAPSHOT_KEY);
+    const str = await appStorage.getItem(WIDGET_SNAPSHOT_KEY);
     return str ? JSON.parse(str) : null;
   } catch {
     return null;

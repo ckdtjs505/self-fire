@@ -1,4 +1,3 @@
-jest.mock("react-native-worklets", () => require("react-native-worklets/src/mock"));
 jest.mock("@/utils/haptics", () => ({ pulseHaptic: jest.fn(), successHaptic: jest.fn() }));
 
 import { IgniteScreen } from "@/components/ignite-screen";

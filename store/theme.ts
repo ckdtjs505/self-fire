@@ -1,7 +1,7 @@
 import { getTheme, Theme, ThemeId, themeList } from "@/themes";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { stateStorage } from "@/utils/storage";
 
 interface ThemeStore {
   currentThemeId: ThemeId;
@@ -27,7 +27,7 @@ export const useThemeStore = create<ThemeStore>()(
     }),
     {
       name: "theme-storage",
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => stateStorage),
       partialize: (state) => ({ currentThemeId: state.currentThemeId }),
       merge: (persisted, current) => {
         const savedId = (persisted as Partial<ThemeStore> | undefined)?.currentThemeId;

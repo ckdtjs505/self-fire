@@ -6,7 +6,7 @@ jest.mock("@/data/quotes.json", () => [
   { id: "2", text: "b", author: "y" },
 ]);
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { appStorage, mmkv } from "@/utils/storage";
 import { loadSyncedQuotes, syncNewQuotes } from "@/data/quotes";
 
 const mockFetch = (data: unknown[], { ok = true, status = 200 } = {}) => {
@@ -17,7 +17,7 @@ const mockFetch = (data: unknown[], { ok = true, status = 200 } = {}) => {
 
 describe("syncNewQuotes", () => {
   beforeEach(async () => {
-    await AsyncStorage.clear();
+    mmkv.clearAll();
     jest.spyOn(console, "warn").mockImplementation(() => {});
   });
 
@@ -69,10 +69,10 @@ describe("syncNewQuotes", () => {
 });
 
 describe("loadSyncedQuotes", () => {
-  beforeEach(() => AsyncStorage.clear());
+  beforeEach(() => mmkv.clearAll());
 
   it("저장된 값에서 형식이 맞는 명언만 돌려준다", async () => {
-    await AsyncStorage.setItem(
+    await appStorage.setItem(
       "synced_quotes",
       JSON.stringify([{ id: "3", text: "시작이 반이다.", author: "z" }, { id: 4 }, "broken"])
     );
@@ -80,7 +80,7 @@ describe("loadSyncedQuotes", () => {
   });
 
   it("저장된 값이 목록이 아니면 빈 목록", async () => {
-    await AsyncStorage.setItem("synced_quotes", JSON.stringify({ id: "3" }));
+    await appStorage.setItem("synced_quotes", JSON.stringify({ id: "3" }));
     expect(await loadSyncedQuotes()).toEqual([]);
   });
 });

@@ -1,6 +1,5 @@
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { z } from "zod";
 import * as Notifications from "expo-notifications";
 import { getAllModeCandidates, getDailyQuote } from "@/data/daily-quote";
@@ -11,6 +10,7 @@ import { useCategoryStore } from "@/store/category";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { useStreakStore, whenStreakHydrated } from "@/store/streak";
 import { toDateString } from "@/utils/date";
+import { stateStorage } from "@/utils/storage";
 
 interface NotificationState {
   isEnabled: boolean;
@@ -161,7 +161,7 @@ export const useNotificationStore = create<NotificationState>()(
     }),
     {
       name: "notification-storage",
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => stateStorage),
     }
   )
 );

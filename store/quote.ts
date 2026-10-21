@@ -1,7 +1,7 @@
 import { Quote } from "@/models";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { stateStorage } from "@/utils/storage";
 
 interface FavoritesQuoteStore {
   // 즐겨찾기(불씨 보관함)한 명언 ID 목록
@@ -58,7 +58,7 @@ export const useFavoriteQuoteStore = create<FavoritesQuoteStore>()(
     }),
     {
       name: "favorites",
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => stateStorage),
     }
   )
 );

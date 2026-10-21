@@ -1,8 +1,8 @@
 import { toDateString } from "@/utils/date";
 import { igniteStreak, reconcileStreak, StreakRecord } from "@/utils/streak";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { stateStorage } from "@/utils/storage";
 
 // 나의 모닥불 주간 기록에 쓰는 최근 점화 날짜 수
 const IGNITED_DATES_LIMIT = 35;
@@ -54,7 +54,7 @@ export const useStreakStore = create<StreakState>()(
     }),
     {
       name: "streak-storage",
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => stateStorage),
       version: 1,
       partialize: (state) => ({ ...pickRecord(state), ignitedDates: state.ignitedDates }),
       // v0: 앱을 연 날(lastOpenDate) 기준 스트릭. 이어 오던 기록은 그대로 넘겨 준다.
