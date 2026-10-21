@@ -110,4 +110,18 @@ describe("useQuotePager", () => {
     rerender({ defaultQuotes: quotes, openFavoritesKey: "123" });
     expect(result.current.filterMode).toBe("favorites");
   });
+
+  it("openQuoteId가 있으면 최근 보관순으로 그 명언부터 연다", () => {
+    act(() => {
+      quotes.slice(0, 3).forEach((q) => useFavoriteQuoteStore.getState().addFavorite(q.id, q));
+    });
+    const { result, rerender } = render();
+    rerender({ defaultQuotes: quotes, openFavoritesKey: "1", openQuoteId: "2" });
+    expect(result.current.filterMode).toBe("favorites");
+    expect(result.current.currentQuote?.id).toBe("2");
+    // 최근 보관순: 3 → 2 → 1
+    expect(result.current.canGoPrev).toBe(true);
+    act(() => result.current.showNextQuote());
+    expect(result.current.currentQuote?.id).toBe("1");
+  });
 });

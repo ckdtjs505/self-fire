@@ -42,10 +42,10 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, title, onPress }) => (
   </Pressable>
 );
 
-// 사이드바에서 보여 줄 최근 불씨 개수 (전체 목록은 홈의 불씨 보관함에서 본다)
+// 사이드바에서 보여 줄 최근 불씨 개수 (전체 목록·검색은 불씨 보관함 화면에서)
 const RECENT_FAVORITES = 3;
 
-// 불씨 보관함에 저장된 명언 카드. 누르면 홈의 불씨 보관함으로 이동한다.
+// 불씨 보관함에 저장된 명언 카드. 누르면 홈의 불씨 보관함 보기에서 그 명언부터 보여 준다.
 // (보관 해제는 홈에서 카드 아래 불씨 버튼으로 — 홈과 같은 방식 하나로 맞춘다)
 const FavoriteQuoteCard: React.FC<{ quote: Quote; onPress: () => void }> = ({ quote, onPress }) => (
   <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
@@ -91,10 +91,10 @@ const Sidebar = ({ navigation }: DrawerContentComponentProps) => {
     router.push(href);
   };
 
-  // 홈 화면을 불씨 보관함 보기로 바꾼다. (at: 같은 요청을 다시 보내도 반영되도록)
-  const openFavorites = () => {
+  // 홈 화면을 불씨 보관함 보기로 바꾸고 누른 명언부터 보여 준다. (at: 같은 요청을 다시 보내도 반영되도록)
+  const openFavorite = (quote: Quote) => {
     navigation.closeDrawer();
-    navigation.navigate("index", { view: "favorites", at: String(Date.now()) });
+    navigation.navigate("index", { view: "favorites", at: String(Date.now()), quote: quote.id });
   };
 
   // 최근에 보관한 순서로 몇 개만
@@ -120,6 +120,7 @@ const Sidebar = ({ navigation }: DrawerContentComponentProps) => {
         <Box marginBottom="xl">
           <SectionTitle>메뉴</SectionTitle>
           <Box bg="$surface" borderWidth={1} borderColor="$border" borderRadius="md" paddingVertical="xs">
+            <MenuItem icon="archive" title="불씨 보관함" onPress={() => navigateTo("/favorites")} />
             <MenuItem icon="edit-3" title="나만의 명언" onPress={() => navigateTo("/my-quotes")} />
             <MenuItem icon="settings" title="설정" onPress={() => navigateTo("/settings")} />
           </Box>
@@ -144,12 +145,12 @@ const Sidebar = ({ navigation }: DrawerContentComponentProps) => {
         ) : (
           <>
             {recentFavorites.map((quote) => (
-              <FavoriteQuoteCard key={quote.id} quote={quote} onPress={openFavorites} />
+              <FavoriteQuoteCard key={quote.id} quote={quote} onPress={() => openFavorite(quote)} />
             ))}
-            <Pressable onPress={openFavorites} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+            <Pressable onPress={() => navigateTo("/favorites")} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
               <Box flexDirection="row" alignItems="center" justifyContent="center" py="md" gap="xs">
                 <Text fontSize={14} fontWeight="700" color="$primary">
-                  불씨 보관함 열기 ({favoriteQuotes.length})
+                  전체 보기 · 검색 ({favoriteQuotes.length})
                 </Text>
                 <FeatherIcon name="chevron-right" size={16} color="$primary" />
               </Box>

@@ -73,6 +73,7 @@ self-fire/
 ├── app/                  # Expo Router 기반 화면(Screen) 및 레이아웃 폴더
 │   ├── (navi)/           # 메인 화면들
 │   ├── add-quote.tsx     # 나만의 명언 추가 모달 화면 (/add-quote)
+│   ├── favorites.tsx     # 불씨 보관함 목록·검색 화면 (/favorites)
 │   ├── my-quotes.tsx     # 내 명언 목록 화면 (/my-quotes)
 │   ├── settings.tsx      # 설정 화면 (/settings)
 │   ├── privacy.tsx · terms.tsx # 개인정보 처리방침 · 이용약관

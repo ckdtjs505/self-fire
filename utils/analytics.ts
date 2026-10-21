@@ -54,6 +54,8 @@ export type AnalyticsEvent =
   | "favorite_add" // 불씨 보관함에 저장
   | "favorite_remove" // 불씨 보관함에서 해제
   | "favorite_undo" // 해제 직후 되돌리기
+  | "favorites_search" // 보관함 목록에서 검색을 시작함 (화면을 열 때마다 한 번)
+  | "favorite_open" // 보관함 목록에서 명언을 눌러 홈에서 엶
   | "notification_open" // 알림을 눌러 앱을 엶 (type: daily | streak)
   | "onboarding_skip" // 첫 실행 주제 고르기를 건너뜀
   | "widget_prompt_shown" // 점화 완료 시트에서 위젯 추가 제안 (streak)

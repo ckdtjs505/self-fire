@@ -25,13 +25,15 @@ import { useShallow } from "zustand/react/shallow";
 type Options = {
   // 기본 명언 (번들 + 동기화, hooks/useDefaultQuotes.ts)
   defaultQuotes: Quote[];
-  // 바뀔 때마다 불씨 보관함을 연다 (사이드바의 '불씨 보관함 열기'가 넘기는 값)
+  // 바뀔 때마다 불씨 보관함을 연다 (사이드바·보관함 목록이 넘기는 값)
   openFavoritesKey?: string;
+  // 불씨 보관함을 열 때 먼저 보여 줄 명언 (보관함 목록에서 누른 명언)
+  openQuoteId?: string;
   // 다음 명언으로 넘겼을 때 (넘기기 힌트 끄기 등)
   onNext?: () => void;
 };
 
-export const useQuotePager = ({ defaultQuotes, openFavoritesKey, onNext }: Options) => {
+export const useQuotePager = ({ defaultQuotes, openFavoritesKey, openQuoteId, onNext }: Options) => {
   const { customQuotes, favorites, favoritesData } = useFavoriteQuoteStore(
     useShallow((s) => ({
       customQuotes: s.customQuotes,
@@ -182,8 +184,23 @@ export const useQuotePager = ({ defaultQuotes, openFavoritesKey, onNext }: Optio
     changeCategory(selection);
   };
 
+  // 보관함 목록에서 누른 명언부터 보여 준다. 목록과 같은 최근 보관순으로 이어서 넘길 수 있다.
+  const openFavoriteAt = (id: string) => {
+    const quotes = [...favoriteQuotes()].reverse();
+    const index = quotes.findIndex((q) => q.id === id);
+    if (index < 0) {
+      selectCategory("favorites");
+      return;
+    }
+    if (filterMode !== "favorites") savedPagers.current[filterMode] = pager;
+    setPager({ quotes, currentIndex: index, maxIndex: index });
+    setFilterMode("favorites");
+  };
+
   useEffect(() => {
-    if (openFavoritesKey) selectCategory("favorites");
+    if (!openFavoritesKey) return;
+    if (openQuoteId) openFavoriteAt(openQuoteId);
+    else selectCategory("favorites");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openFavoritesKey]);
 

@@ -1,15 +1,18 @@
 // ─────────────────────────────────────────────────────────────
 // app/my-quotes.tsx
-// 사용자가 직접 작성한 명언 목록. 추가 / 수정 / 삭제할 수 있다.
+// 사용자가 직접 작성한 명언 목록. 추가 / 수정 / 삭제하고, 내용·작성자로 찾을 수 있다.
 // ─────────────────────────────────────────────────────────────
 
 import { Box, SafeAreaView, Text } from "@/atom";
 import HeaderIconButton from "@/components/header-icon-button";
 import FeatherIcon from "@/components/icon";
 import ScreenHeader from "@/components/screen-header";
+import SearchBar from "@/components/search-bar";
+import { searchQuotes } from "@/data/quote-search";
 import { Quote } from "@/models";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { Alert, FlatList, Pressable } from "react-native";
 import { useShallow } from "zustand/react/shallow";
 
@@ -89,6 +92,10 @@ export default function MyQuotesScreen() {
     }))
   );
 
+  const [query, setQuery] = useState("");
+  const results = searchQuotes(customQuotes, query);
+  const hasQuotes = customQuotes.length > 0;
+
   const goToAdd = () => router.push("/add-quote");
 
   // 수정 화면에 기존 내용을 파라미터로 넘긴다.
@@ -107,7 +114,7 @@ export default function MyQuotesScreen() {
       <ScreenHeader
         title="나만의 명언"
         right={
-          customQuotes.length > 0 && (
+          hasQuotes && (
             <HeaderIconButton active onPress={goToAdd} accessibilityLabel="명언 추가">
               <FeatherIcon name="plus" size={20} color="$onPrimary" />
             </HeaderIconButton>
@@ -115,11 +122,27 @@ export default function MyQuotesScreen() {
         }
       />
 
+      {hasQuotes && (
+        <Box paddingBottom="s">
+          <SearchBar value={query} onChangeText={setQuery} />
+        </Box>
+      )}
+
       <FlatList
-        data={customQuotes}
+        data={results}
         keyExtractor={(item) => item.id}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         contentContainerStyle={{ paddingTop: 8, paddingBottom: 40, flexGrow: 1 }}
-        ListEmptyComponent={<EmptyState onAdd={goToAdd} />}
+        ListEmptyComponent={
+          hasQuotes ? (
+            <Text variant="caption" textAlign="center" style={{ marginTop: 72 }}>
+              ‘{query.trim()}’에 맞는 명언이 없어요
+            </Text>
+          ) : (
+            <EmptyState onAdd={goToAdd} />
+          )
+        }
         renderItem={({ item }) => (
           <QuoteRow quote={item} onEdit={() => goToEdit(item)} onDelete={() => confirmDelete(item.id)} />
         )}
