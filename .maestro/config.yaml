@@ -1,0 +1,10 @@
+# Maestro E2E 흐름 (https://maestro.mobile.dev)
+# 실행: 에뮬레이터/기기에 개발 빌드나 preview 빌드를 설치한 뒤 `npm run e2e`
+flows:
+  - "*.yaml"
+executionOrder:
+  continueOnFailure: false
+  flowsOrder:
+    - first-launch
+    - swipe-quotes
+    - add-custom-quote

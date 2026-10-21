@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// MyQuotesScreen.tsx
+// app/my-quotes.tsx
 // 사용자가 직접 작성한 명언 목록. 추가 / 수정 / 삭제할 수 있다.
 // ─────────────────────────────────────────────────────────────
 
@@ -89,11 +89,11 @@ export default function MyQuotesScreen() {
     }))
   );
 
-  const goToAdd = () => router.push("/AddQuoteScreen");
+  const goToAdd = () => router.push("/add-quote");
 
   // 수정 화면에 기존 내용을 파라미터로 넘긴다.
   const goToEdit = ({ id, text, author }: Quote) =>
-    router.push({ pathname: "/AddQuoteScreen", params: { id, text, author } });
+    router.push({ pathname: "/add-quote", params: { id, text, author } });
 
   const confirmDelete = (id: string) => {
     Alert.alert("삭제 확인", "이 명언을 정말 삭제하시겠습니까?", [

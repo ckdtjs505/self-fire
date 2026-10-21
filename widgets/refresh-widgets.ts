@@ -6,12 +6,12 @@
 
 import { buildWidgetSnapshot, resolveWidgetView, saveWidgetSnapshot } from "@/data/widget-snapshot";
 import { LAST_IGNITED_DATE_KEY } from "@/hooks/useDailyIgnite";
-import { loadDailyCandidates } from "@/store/notification";
+import { loadDailyCandidates } from "@/services/daily-candidates";
 import { useStreakStore, whenStreakHydrated } from "@/store/streak";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 import { requestWidgetUpdate } from "react-native-android-widget";
 import { FLAME_WIDGET, QUOTE_WIDGET, renderSelfFireWidget } from "./self-fire-widgets";
+import { appStorage } from "@/utils/storage";
 
 // 저장·갱신이 겹치면 오래된 스냅샷이 나중에 저장될 수 있으므로 한 번에 하나씩 실행한다.
 let refreshQueue: Promise<void> = Promise.resolve();
@@ -31,7 +31,7 @@ const refreshNow = async () => {
       currentStreak,
       lastStreakDate,
       freezeUsedWeek,
-      lastIgnitedDate: await AsyncStorage.getItem(LAST_IGNITED_DATE_KEY),
+      lastIgnitedDate: await appStorage.getItem(LAST_IGNITED_DATE_KEY),
     });
     await saveWidgetSnapshot(snapshot);
 

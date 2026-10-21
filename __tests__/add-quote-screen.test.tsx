@@ -13,7 +13,7 @@ jest.mock("expo-router", () => ({
   useLocalSearchParams: () => mockParams,
 }));
 
-import AddQuoteScreen from "@/app/AddQuoteScreen";
+import AddQuoteScreen from "@/app/add-quote";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { getTheme } from "@/themes";
 import { ThemeProvider } from "@shopify/restyle";

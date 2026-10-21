@@ -7,7 +7,7 @@
 //   - 이전에 본 명언을 보는 중이면 카드 아래에 '새 명언으로' 버튼을 띄워 마지막 위치로 바로 돌아간다
 //   - 아직 한 번도 넘겨 보지 않은 사용자에게는 카드를 왼쪽으로 살짝 밀었다 놓으며 넘길 수 있다고 알려 준다
 //   - 기기의 '동작 줄이기'가 켜져 있으면 슬라이드·밀기 힌트 없이 페이드로만 바꾼다
-// PanGestureHandler 기반이라 Drawer 제스처와 충돌하지 않는다.
+// Gesture Handler의 Pan 제스처 + Reanimated라 Drawer 제스처와 충돌하지 않고 UI 스레드에서 움직인다.
 // ─────────────────────────────────────────────────────────────
 
 import { Box, Text } from "@/atom";
@@ -15,20 +15,30 @@ import FeatherIcon from "@/components/icon";
 import QuoteItem from "@/components/quote-items";
 import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { Quote } from "@/models";
-import { useEffect, useRef } from "react";
-import { Animated, useWindowDimensions } from "react-native";
-import {
-  NativeViewGestureHandler,
-  PanGestureHandler,
-  Pressable,
-  State,
-  type PanGestureHandlerGestureEvent,
-} from "react-native-gesture-handler";
+import { useEffect } from "react";
+import { useWindowDimensions } from "react-native";
+import { Gesture, GestureDetector, NativeViewGestureHandler, Pressable } from "react-native-gesture-handler";
+import Animated, {
+  cancelAnimation,
+  interpolate,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withSpring,
+  withTiming,
+} from "react-native-reanimated";
 
 // 다음/이전으로 넘어가기 위한 최소 이동 거리(px)와 속도(px/s)
 const SWIPE_VELOCITY_THRESHOLD = 500;
 // 카드 아래 '새 명언으로' 버튼 자리의 높이
 const REVISIT_SLOT_HEIGHT = 58;
+
+// 예전 Animated.spring(tension/friction)과 같은 느낌이 나도록 맞춘 스프링 값
+const ENTER_SPRING = { stiffness: 339, damping: 37, mass: 1 }; // tension 70, friction 12
+const BACK_SPRING = { stiffness: 375, damping: 31, mass: 1 }; // tension 80, friction 10
+const NUDGE_SPRING = { stiffness: 303, damping: 22, mass: 1 }; // tension 60, friction 7
 
 type Props = {
   quote?: Quote;
@@ -65,90 +75,72 @@ const QuoteSwiper: React.FC<Props> = ({
   const SWIPE_DISTANCE_THRESHOLD = SCREEN_WIDTH * 0.2;
   const reduceMotion = useReduceMotion();
   const ENTER_OFFSET = reduceMotion ? 0 : SCREEN_WIDTH * 0.25;
-  const slideX = useRef(new Animated.Value(0)).current;
-  const fade = useRef(new Animated.Value(1)).current;
+  const slideX = useSharedValue(0);
+  const fade = useSharedValue(1);
 
   // 넘기기 힌트: 잠시 뒤 카드를 왼쪽으로 두 번 살짝 밀었다 놓는다. (손가락이 닿으면 멈춤)
   const hintActive = showSwipeHint && canGoNext;
-  const hintAnim = useRef<Animated.CompositeAnimation | null>(null);
   useEffect(() => {
     if (!hintActive || reduceMotion) return;
-    const nudge = Animated.sequence([
-      Animated.timing(slideX, { toValue: HINT_NUDGE_X, duration: 380, useNativeDriver: true }),
-      Animated.spring(slideX, { toValue: 0, useNativeDriver: true, tension: 60, friction: 7 }),
-    ]);
-    const hint = Animated.sequence([Animated.delay(1500), nudge, Animated.delay(700), nudge]);
-    hintAnim.current = hint;
-    hint.start();
-    return () => hint.stop();
+    const nudge = () =>
+      withSequence(withTiming(HINT_NUDGE_X, { duration: 380 }), withSpring(0, NUDGE_SPRING));
+    slideX.value = withDelay(1500, withSequence(nudge(), withDelay(700, nudge())));
+    return () => cancelAnimation(slideX);
   }, [hintActive, reduceMotion, slideX]);
 
   // 새 카드를 fromX 위치에서 가운데로 슬라이드 + 페이드 인
   const playEnter = (fromX: number) => {
-    slideX.setValue(fromX);
-    fade.setValue(0);
-    Animated.parallel([
-      Animated.spring(slideX, { toValue: 0, useNativeDriver: true, tension: 70, friction: 12 }),
-      Animated.timing(fade, { toValue: 1, duration: 230, useNativeDriver: true }),
-    ]).start();
+    "worklet";
+    slideX.value = fromX;
+    fade.value = 0;
+    slideX.value = withSpring(0, ENTER_SPRING);
+    fade.value = withTiming(1, { duration: 230 });
   };
 
   // 현재 카드를 원위치로 되돌린다
   const springBack = () => {
-    Animated.spring(slideX, { toValue: 0, useNativeDriver: true, tension: 80, friction: 10 }).start();
-    Animated.timing(fade, { toValue: 1, duration: 150, useNativeDriver: true }).start();
+    "worklet";
+    slideX.value = withSpring(0, BACK_SPRING);
+    fade.value = withTiming(1, { duration: 150 });
   };
 
-  const onGestureEvent = (event: PanGestureHandlerGestureEvent) => {
-    hintAnim.current?.stop();
-    const dx = event.nativeEvent.translationX;
-    slideX.setValue(dx * 0.45);
-    fade.setValue(1 - Math.min(Math.abs(dx) / (SCREEN_WIDTH * 0.9), 0.25));
-  };
+  // 드래그 중 계산은 UI 스레드에서 하고, 명언 바꾸기만 JS로 넘긴다.
+  // 새 값을 대입하면 진행 중인 애니메이션(넘기기 힌트 포함)은 바로 멈춘다.
+  const pan = Gesture.Pan()
+    .activeOffsetX([-12, 12])
+    .failOffsetY([-8, 8])
+    .onUpdate((e) => {
+      slideX.value = e.translationX * 0.45;
+      fade.value = 1 - Math.min(Math.abs(e.translationX) / (SCREEN_WIDTH * 0.9), 0.25);
+    })
+    .onEnd((e) => {
+      const dx = e.translationX;
+      const vx = e.velocityX;
+      const isSwipeLeft = dx < -SWIPE_DISTANCE_THRESHOLD || vx < -SWIPE_VELOCITY_THRESHOLD;
+      const isSwipeRight = dx > SWIPE_DISTANCE_THRESHOLD || vx > SWIPE_VELOCITY_THRESHOLD;
 
-  const onHandlerStateChange = (event: PanGestureHandlerGestureEvent) => {
-    const { state, translationX: dx, velocityX: vx } = event.nativeEvent;
-    if (state !== State.END && state !== State.CANCELLED) return;
+      if (isSwipeLeft && canGoNext) {
+        runOnJS(onNext)();
+        playEnter(ENTER_OFFSET);
+      } else if (isSwipeRight && canGoPrev) {
+        runOnJS(onPrev)();
+        playEnter(-ENTER_OFFSET);
+      } else {
+        springBack();
+      }
+    });
 
-    // 진행 중인 애니메이션이 있으면 즉시 멈추고 새 전환을 시작한다.
-    slideX.stopAnimation();
-    fade.stopAnimation();
-
-    const isSwipeLeft = dx < -SWIPE_DISTANCE_THRESHOLD || vx < -SWIPE_VELOCITY_THRESHOLD;
-    const isSwipeRight = dx > SWIPE_DISTANCE_THRESHOLD || vx > SWIPE_VELOCITY_THRESHOLD;
-
-    if (isSwipeLeft && canGoNext) {
-      onNext();
-      playEnter(ENTER_OFFSET);
-    } else if (isSwipeRight && canGoPrev) {
-      onPrev();
-      playEnter(-ENTER_OFFSET);
-    } else {
-      springBack();
-    }
-  };
+  const cardStyle = useAnimatedStyle(() => ({
+    opacity: fade.value,
+    transform: [{ translateX: slideX.value }, { scale: interpolate(fade.value, [0, 1], [0.94, 1]) }],
+  }));
 
   return (
-    <PanGestureHandler
-      onGestureEvent={onGestureEvent}
-      onHandlerStateChange={onHandlerStateChange}
-      activeOffsetX={[-12, 12]}
-      failOffsetY={[-8, 8]}
-    >
+    <GestureDetector gesture={pan}>
       <Animated.View style={{ flex: 1, width: "100%" }}>
         <Box flex={1} width="100%" justifyContent="center" alignItems="center">
           {quote && (
-            <Animated.View
-              style={{
-                flex: 1,
-                width: "100%",
-                opacity: fade,
-                transform: [
-                  { translateX: slideX },
-                  { scale: fade.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) },
-                ],
-              }}
-            >
+            <Animated.View style={[{ flex: 1, width: "100%" }, cardStyle]}>
               <QuoteItem key={quote.id} {...quote} isCustom={isCustom} />
             </Animated.View>
           )}
@@ -163,7 +155,7 @@ const QuoteSwiper: React.FC<Props> = ({
             </Text>
           )}
           {isRevisit && (
-            // 부모 PanGestureHandler가 탭을 가로채지 않도록 감싼다 (quote-bar.tsx 참고)
+            // 부모 Pan 제스처가 탭을 가로채지 않도록 감싼다 (quote-bar.tsx 참고)
             <NativeViewGestureHandler>
               <Pressable
                 hitSlop={8}
@@ -193,7 +185,7 @@ const QuoteSwiper: React.FC<Props> = ({
           )}
         </Box>
       </Animated.View>
-    </PanGestureHandler>
+    </GestureDetector>
   );
 };
 

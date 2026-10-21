@@ -1,5 +1,5 @@
 import { Box, Text } from "@/atom";
-import { useThemeStore } from "@/store/theme";
+import { useAppTheme } from "@/themes";
 import { Pressable, Switch } from "react-native";
 import FeatherIcon, { IconNames } from "./icon";
 
@@ -55,7 +55,7 @@ export const SettingSwitch: React.FC<{ value: boolean; onValueChange: (value: bo
   value,
   onValueChange,
 }) => {
-  const colors = useThemeStore((s) => s.currentTheme.colors);
+  const { colors } = useAppTheme();
   return (
     <Switch
       value={value}

@@ -2,17 +2,17 @@
 // quotes.tsx
 // 명언 데이터 (로컬 우선)
 //   - 전체 명언은 앱에 번들된 quotes.json에서 바로 읽는다 (오프라인/즉시 실행).
-//   - 서버에 새로 추가된 명언은 하루 1번 백그라운드로 받아와 AsyncStorage에 덧붙인다.
+//   - 서버에 새로 추가된 명언은 하루 1번 백그라운드로 받아와 로컬 저장소(MMKV)에 덧붙인다.
 //
 // quotes.json은 저장소에 올리지 않는다. `npm run update-quotes`로 생성한다.
 // ─────────────────────────────────────────────────────────────
 
 import { Quote } from "@/models";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchQuotesSince } from "./quote-api";
 import { cleanQuotes } from "./quote-cleaner";
 import { parseQuotes } from "./schemas";
 import bundledQuotes from "./quotes.json";
+import { appStorage } from "@/utils/storage";
 
 // 형식이 어긋난 항목은 빼고 쓴다. (quotes.json은 빌드 때 서버 데이터로 만든다)
 export const quotes: Quote[] = parseQuotes(bundledQuotes);
@@ -27,7 +27,7 @@ const maxId = (list: Quote[]) => list.reduce((max, q) => Math.max(max, Number(q.
 /** 저장해 둔 추가 명언을 읽는다. */
 export const loadSyncedQuotes = async (): Promise<Quote[]> => {
   try {
-    const str = await AsyncStorage.getItem(SYNCED_KEY);
+    const str = await appStorage.getItem(SYNCED_KEY);
     return str ? parseQuotes(JSON.parse(str)) : [];
   } catch {
     return [];
@@ -40,20 +40,20 @@ export const loadSyncedQuotes = async (): Promise<Quote[]> => {
  */
 export const syncNewQuotes = async (): Promise<Quote[]> => {
   try {
-    const last = Number(await AsyncStorage.getItem(LAST_SYNC_KEY)) || 0;
+    const last = Number(await appStorage.getItem(LAST_SYNC_KEY)) || 0;
     if (Date.now() - last < SYNC_INTERVAL) return [];
 
     const synced = await loadSyncedQuotes();
     const sinceId = Math.max(maxId(quotes), maxId(synced));
     const fetched = await fetchQuotesSince(sinceId, SYNC_LIMIT);
 
-    await AsyncStorage.setItem(LAST_SYNC_KEY, String(Date.now()));
+    await appStorage.setItem(LAST_SYNC_KEY, String(Date.now()));
     if (fetched.some((q) => Number(q.id) <= sinceId)) return [];
 
     const fresh = cleanQuotes(fetched, [...quotes, ...synced].map((q) => q.text));
     if (fresh.length === 0) return [];
 
-    await AsyncStorage.setItem(SYNCED_KEY, JSON.stringify([...synced, ...fresh]));
+    await appStorage.setItem(SYNCED_KEY, JSON.stringify([...synced, ...fresh]));
     return fresh;
   } catch (e) {
     console.warn("Quote sync failed:", e);

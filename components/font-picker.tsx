@@ -1,7 +1,9 @@
 import { Box, Text } from "@/atom";
-import { forwardRef, useImperativeHandle, useRef } from "react";
+import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { Pressable, useWindowDimensions } from "react-native";
 import { useFontStore, FontId, toFontFamily } from "@/store/font-store";
+import { loadQuoteFont, QUOTE_FONTS, QuoteFontId } from "@/utils/fonts";
+import * as Font from "expo-font";
 import FeatherIcon from "./icon";
 import PickerSheet, { PickerSheetHandle, SHEET_SIDE_PADDING } from "./picker-sheet";
 import { useShallow } from "zustand/react/shallow";
@@ -65,8 +67,19 @@ const FontPicker = forwardRef<PickerSheetHandle>(function FontPicker(_props, ref
   const { width } = useWindowDimensions();
   const itemWidth = (width - SHEET_SIDE_PADDING * 2 - GAP) / 2;
 
+  // 미리보기 폰트는 시트를 처음 열 때 불러온다. 다 불러오면 다시 그린다.
+  const [, setPreviewFontsLoaded] = useState(false);
+  const loadPreviewFonts = () => {
+    Promise.all((Object.keys(QUOTE_FONTS) as QuoteFontId[]).map(loadQuoteFont))
+      .then(() => setPreviewFontsLoaded(true))
+      .catch(() => {});
+  };
+
   useImperativeHandle(ref, () => ({
-    open: () => sheetRef.current?.open(),
+    open: () => {
+      loadPreviewFonts();
+      sheetRef.current?.open();
+    },
     close: () => sheetRef.current?.close(),
   }));
 
@@ -87,7 +100,7 @@ const FontPicker = forwardRef<PickerSheetHandle>(function FontPicker(_props, ref
         style={{ paddingVertical: 10, paddingLeft: 16, paddingRight: 10 }}
       >
         <Text variant="body">글자 크기</Text>
-        <Box flexDirection="row" alignItems="center" style={{ gap: 12 }}>
+        <Box flexDirection="row" alignItems="center" gap="md">
           <FontSizeButton
             icon="minus"
             disabled={currentFontSize <= FONT_SIZE_MIN}
@@ -108,7 +121,9 @@ const FontPicker = forwardRef<PickerSheetHandle>(function FontPicker(_props, ref
       <Box flexDirection="row" flexWrap="wrap" mt="md" style={{ gap: GAP }}>
         {FONT_LIST.map((item) => {
           const isActive = currentFontId === item.id;
-          const fontFamily = toFontFamily(item.id);
+          // 아직 불러오지 않은 폰트는 불러올 때까지 기본 폰트로 보여 준다.
+          const family = toFontFamily(item.id);
+          const fontFamily = family && Font.isLoaded(family) ? family : undefined;
           return (
             <Pressable
               key={item.id}

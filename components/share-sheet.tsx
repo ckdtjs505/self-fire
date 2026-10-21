@@ -90,7 +90,7 @@ const ShareSheet = forwardRef<PickerSheetHandle, Props>(function ShareSheet({ te
 
   return (
     <PickerSheet ref={sheetRef} title="공유하기">
-      <Box style={{ gap: 4 }}>
+      <Box gap="xs">
         {OPTIONS.map((option) => (
           <Pressable
             key={option.method}

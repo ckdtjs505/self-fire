@@ -1,0 +1,21 @@
+# 사이드바 → 나만의 명언 → 명언 추가 → 저장 → 목록에 보인다 → 지운다
+appId: com.changsunoh.selfFire
+name: 나만의 명언 추가
+---
+- launchApp
+- tapOn: "메뉴 열기"
+- tapOn: "나만의 명언"
+- tapOn: "명언 추가"
+
+- tapOn: "가슴을 뛰게 하는 명언을 입력하세요."
+- inputText: "오늘 걷는 한 걸음이 내일의 길이 된다"
+- hideKeyboard
+- tapOn: "저장"
+
+- assertVisible: "오늘 걷는 한 걸음이 내일의 길이 된다"
+
+# 뒷정리: 방금 추가한 명언을 지운다
+- tapOn: "명언 삭제"
+- assertVisible: "삭제 확인"
+- tapOn: "삭제"
+- assertNotVisible: "오늘 걷는 한 걸음이 내일의 길이 된다"

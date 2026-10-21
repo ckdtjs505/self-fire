@@ -99,7 +99,7 @@ export default function Index() {
           px="lg"
           pt="s"
         >
-          <Box flexDirection="row" alignItems="center" style={{ gap: 8 }}>
+          <Box flexDirection="row" alignItems="center" gap="s">
             <MenuButton />
             <StreakBadge streak={currentStreak} onPress={() => streakSheetRef.current?.open()} />
           </Box>

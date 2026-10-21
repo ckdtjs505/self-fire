@@ -30,7 +30,7 @@ type MenuItemProps = {
 
 const MenuItem: React.FC<MenuItemProps> = ({ icon, title, onPress }) => (
   <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={title} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
-    <Box flexDirection="row" alignItems="center" paddingVertical="s" paddingHorizontal="md" style={{ gap: 12 }}>
+    <Box flexDirection="row" alignItems="center" paddingVertical="s" paddingHorizontal="md" gap="md">
       <Box width={34} height={34} borderRadius="sm" bg="$surfaceMuted" justifyContent="center" alignItems="center">
         <FeatherIcon name={icon} size={17} />
       </Box>
@@ -120,8 +120,8 @@ const Sidebar = ({ navigation }: DrawerContentComponentProps) => {
         <Box marginBottom="xl">
           <SectionTitle>메뉴</SectionTitle>
           <Box bg="$surface" borderWidth={1} borderColor="$border" borderRadius="md" paddingVertical="xs">
-            <MenuItem icon="edit-3" title="나만의 명언" onPress={() => navigateTo("/MyQuotesScreen")} />
-            <MenuItem icon="settings" title="설정" onPress={() => navigateTo("/SettingScreen")} />
+            <MenuItem icon="edit-3" title="나만의 명언" onPress={() => navigateTo("/my-quotes")} />
+            <MenuItem icon="settings" title="설정" onPress={() => navigateTo("/settings")} />
           </Box>
         </Box>
 
@@ -147,7 +147,7 @@ const Sidebar = ({ navigation }: DrawerContentComponentProps) => {
               <FavoriteQuoteCard key={quote.id} quote={quote} onPress={openFavorites} />
             ))}
             <Pressable onPress={openFavorites} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
-              <Box flexDirection="row" alignItems="center" justifyContent="center" py="md" style={{ gap: 4 }}>
+              <Box flexDirection="row" alignItems="center" justifyContent="center" py="md" gap="xs">
                 <Text fontSize={14} fontWeight="700" color="$primary">
                   불씨 보관함 열기 ({favoriteQuotes.length})
                 </Text>

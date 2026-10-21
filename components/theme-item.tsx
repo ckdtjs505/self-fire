@@ -1,12 +1,11 @@
 import { Box, Text } from "@/atom";
 import { lockedRewardMessage } from "@/data/streak-rewards";
-import { ThemeMeta } from "@/themes";
+import { ThemeMeta, useAppTheme } from "@/themes";
 import { useThemeStore } from "@/store/theme";
 import { Pressable } from "react-native";
 import Toast from "react-native-toast-message";
 import FeatherIcon from "./icon";
 import LockedOverlay from "./locked-overlay";
-import { useShallow } from "zustand/react/shallow";
 
 type Props = {
   item: ThemeMeta;
@@ -18,12 +17,8 @@ type Props = {
 // 테마 미리보기 타일: 그 테마의 바탕 위에 작은 명언 카드를 그려 보여주고, 누르면 테마를 적용한다.
 // 아직 해금되지 않은 보상 테마는 자물쇠를 덮고, 누르면 해금 조건을 알려 준다.
 const ThemeItem: React.FC<Props> = ({ item, width, isActive, isLocked }) => {
-  const { updateThemeId, currentTheme } = useThemeStore(
-    useShallow((s) => ({
-      updateThemeId: s.updateThemeId,
-      currentTheme: s.currentTheme,
-    }))
-  );
+  const updateThemeId = useThemeStore((s) => s.updateThemeId);
+  const currentTheme = useAppTheme();
   const { colors } = item.theme;
   const activeColor = currentTheme.colors.$primary;
 

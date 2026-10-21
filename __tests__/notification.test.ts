@@ -14,7 +14,7 @@ jest.mock("@/data/quotes", () => ({
 import { getDailyQuote } from "@/data/daily-quote";
 import { Quote } from "@/models";
 import * as Notifications from "expo-notifications";
-import { getStreakReminders, scheduleUpcoming } from "@/store/notification";
+import { getStreakReminders, scheduleUpcoming } from "@/services/notifications";
 
 const candidates: Quote[] = Array.from({ length: 100 }, (_, i) => ({
   id: String(i),

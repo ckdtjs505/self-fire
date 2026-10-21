@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { appStorage } from "@/utils/storage";
 
 const HAS_SWIPED_KEY = "has_swiped_quote";
 
@@ -12,13 +12,13 @@ export const useSwipeHint = () => {
   const [needsHint, setNeedsHint] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem(HAS_SWIPED_KEY).then((value) => setNeedsHint(value === null));
+    appStorage.getItem(HAS_SWIPED_KEY).then((value) => setNeedsHint(value === null));
   }, []);
 
   const markSwiped = () => {
     if (!needsHint) return;
     setNeedsHint(false);
-    AsyncStorage.setItem(HAS_SWIPED_KEY, "true");
+    appStorage.setItem(HAS_SWIPED_KEY, "true");
   };
 
   return { needsHint, markSwiped };

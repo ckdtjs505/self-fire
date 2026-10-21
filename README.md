@@ -44,7 +44,14 @@ SelfFire는 사용자의 동기부여를 돕는 명언 및 목표 달성(스트�
 
 * R8·리소스 축소, Crashlytics proguard 규칙, AD_ID 권한, 미디어 권한 제거, arm64 전용 빌드, gradle 메모리 설정은 `android/`에 직접 들어 있고 `app.json`으로는 다시 만들 수 없습니다. **`npx expo prebuild --clean`을 실행하면 이 설정이 사라지므로 실행하지 마세요.**
 * `app.json`의 Android 관련 설정(scheme, 권한, config plugin 등)을 바꾸면 같은 내용을 `android/`에도 직접 반영해야 합니다.
+* 네이티브 라이브러리(예: `react-native-mmkv`, `react-native-nitro-modules`)는 autolinking으로 연결되므로 `android/`를 고칠 필요는 없지만, 추가·업데이트한 뒤에는 개발 빌드를 다시 만들어야 합니다.
 * 버전 코드는 EAS 원격 버전 관리(`eas.json`의 `appVersionSource: remote`, `autoIncrement`)가 빌드할 때 정하므로 `app.json`에 적지 않습니다.
+
+## 🧪 테스트와 빌드
+
+* `npm test`: Jest + React Native Testing Library 단위·화면 테스트. PR마다 CI(`.github/workflows/ci.yml`)가 lint·타입 검사와 함께 돌립니다.
+* `npm run e2e`: [Maestro](https://maestro.mobile.dev) E2E 흐름(`.maestro/`). 에뮬레이터나 기기에 개발 빌드 또는 preview 빌드를 설치한 뒤 실행합니다. 첫 흐름이 앱 데이터를 지우고 시작합니다.
+* EAS 빌드: GitHub Actions의 **EAS Build** 워크플로를 수동 실행하거나 `v*` 태그를 푸시하면 Android 빌드를 맡깁니다. 저장소 Secrets에 `EXPO_TOKEN`이 필요합니다.
 
 ## 🏗 아키텍처
 
@@ -54,7 +61,7 @@ SelfFire는 사용자의 동기부여를 돕는 명언 및 목표 달성(스트�
 </picture>
 
 * **명언 데이터**: 빌드 시 `npm run update-quotes`로 서버의 전체 명언을 `data/quotes.json`에 번들하고, 실행 중에는 `since_id` 이후의 새 명언만 동기화합니다.
-* **상태 관리**: 화면은 Zustand 스토어를 읽고 쓰며, 스토어는 `persist`로 AsyncStorage에 저장되고 알림 스토어가 푸시 알림을 예약합니다.
+* **상태 관리**: 화면은 Zustand 스토어를 읽고 쓰며, 스토어는 `persist`로 MMKV(`utils/storage.ts`)에 저장되고 알림 스토어가 푸시 알림을 예약합니다. 예전 버전이 AsyncStorage에 남긴 값은 처음 실행할 때 MMKV로 옮깁니다.
 * **잠금 해제 자동 실행 (Android)**: `plugins/withAutoLaunch.js`가 네이티브 `AutoLaunchService`를 생성해 잠금 해제 시 앱을 띄웁니다.
 
 > 다이어그램 원본은 [`docs/architecture.html`](docs/architecture.html)입니다.
@@ -65,12 +72,15 @@ SelfFire는 사용자의 동기부여를 돕는 명언 및 목표 달성(스트�
 self-fire/
 ├── app/                  # Expo Router 기반 화면(Screen) 및 레이아웃 폴더
 │   ├── (navi)/           # 메인 화면들
-│   ├── AddQuoteScreen.tsx # 나만의 명언 추가 모달 화면
-│   ├── MyQuotesScreen.tsx # 내 명언 목록 화면
-│   ├── SettingScreen.tsx  # 설정 화면
-│   └── _layout.tsx       # 최상위 레이아웃 (폰트 로드, 테마, 광고 초기화)
+│   ├── add-quote.tsx     # 나만의 명언 추가 모달 화면 (/add-quote)
+│   ├── my-quotes.tsx     # 내 명언 목록 화면 (/my-quotes)
+│   ├── settings.tsx      # 설정 화면 (/settings)
+│   ├── privacy.tsx · terms.tsx # 개인정보 처리방침 · 이용약관
+│   └── _layout.tsx       # 최상위 레이아웃 (폰트 로드, 테마, 전역 래퍼)
 ├── assets/               # 이미지, 아이콘 등 정적 리소스
 ├── components/           # 재사용 가능한 UI 컴포넌트
+├── hooks/                # 화면 로직 훅 (명언 넘기기, 앱 생명주기 등)
+├── services/             # 여러 스토어를 엮는 일 (앱 시작 초기화, 알림 예약, 오늘의 명언 후보)
 ├── models.tsx            # 공통 데이터 모델 및 타입 정의
 ├── store/                # Zustand 스토어 (quote, streak, theme, font 상태 관리)
 ├── plugins/              # Expo 커스텀 앱 플러그인

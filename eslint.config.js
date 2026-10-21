@@ -16,7 +16,7 @@ module.exports = defineConfig([
   },
   {
     // jest.mock은 import보다 먼저 와야 하므로 테스트에서는 허용한다.
-    files: ["__tests__/**"],
+    files: ["__tests__/**", "jest.setup.ts"],
     rules: { "import/first": "off", "@typescript-eslint/no-require-imports": "off" },
   },
 ]);

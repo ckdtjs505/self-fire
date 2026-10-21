@@ -1,7 +1,7 @@
 import { CATEGORIES, CategoryId } from "@/data/quote-categories";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { stateStorage } from "@/utils/storage";
 
 interface CategoryStore {
   // null이면 전체
@@ -28,7 +28,7 @@ export const useCategoryStore = create<CategoryStore>()(
     }),
     {
       name: "category-storage",
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => stateStorage),
       partialize: (state) => ({
         currentCategoryId: state.currentCategoryId,
         interestIds: state.interestIds,

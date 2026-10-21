@@ -1,0 +1,54 @@
+# EAS로 Android 빌드를 만든다.
+#   - 수동 실행(Actions 탭 → EAS Build → Run workflow): 프로필을 골라 빌드
+#   - v* 태그를 푸시하면 production 빌드
+# 저장소 Secrets에 EXPO_TOKEN(expo.dev → Access tokens)이 있어야 한다.
+# 빌드는 EAS 서버에서 돌고, 이 작업은 빌드를 맡기고 바로 끝난다 (--no-wait).
+name: EAS Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "eas.json 빌드 프로필"
+        type: choice
+        options: [preview, production, development]
+        default: preview
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: eas-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: EXPO_TOKEN 확인
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::저장소 Secrets에 EXPO_TOKEN을 추가해 주세요."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - run: npm ci
+
+      - name: Android 빌드 맡기기
+        env:
+          PROFILE: ${{ inputs.profile || 'production' }}
+        run: eas build --platform android --profile "$PROFILE" --non-interactive --no-wait

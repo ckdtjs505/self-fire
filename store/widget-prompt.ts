@@ -1,6 +1,6 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { stateStorage } from "@/utils/storage";
 
 interface WidgetPromptStore {
   // 위젯 추가를 이미 제안한 연속 일수 (같은 일수에서는 다시 묻지 않는다)
@@ -20,7 +20,7 @@ export const useWidgetPromptStore = create<WidgetPromptStore>()(
     }),
     {
       name: "widget-prompt-storage",
-      storage: createJSONStorage(() => AsyncStorage),
+      storage: createJSONStorage(() => stateStorage),
       partialize: (state) => ({ promptedStreaks: state.promptedStreaks }),
     }
   )

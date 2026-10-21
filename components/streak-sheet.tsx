@@ -27,7 +27,7 @@ import { useShallow } from "zustand/react/shallow";
 
 // 작은 통계 칸 (최장 기록 / 불씨 지키기 / 다음 단계)
 const StatCell: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <Box flex={1} bg="$surfaceMuted" borderRadius="md" py="md" px="s" alignItems="center" style={{ gap: 4 }}>
+  <Box flex={1} bg="$surfaceMuted" borderRadius="md" py="md" px="s" alignItems="center" gap="xs">
     <Text variant="stat" textAlign="center">
       {value}
     </Text>
@@ -87,7 +87,7 @@ const MilestoneRow: React.FC<{ milestone: number; currentStreak: number; unlocke
 }) => {
   const progress = unlocked ? 1 : Math.min(currentStreak / milestone, 1);
   return (
-    <Box flexDirection="row" alignItems="center" style={{ gap: 12 }}>
+    <Box flexDirection="row" alignItems="center" gap="md">
       <Box
         width={36}
         height={36}
@@ -150,8 +150,8 @@ const StreakSheet = forwardRef<PickerSheetHandle>(function StreakSheet(_props, r
     <PickerSheet ref={ref} title="나의 모닥불" description="불씨를 지핀 날이 이어질수록 모닥불이 커져요">
       <Campfire streak={currentStreak} dimmed={!ignitedToday && currentStreak > 0} />
 
-      <Box alignItems="center" mt="lg" style={{ gap: 4 }}>
-        <Box flexDirection="row" alignItems="baseline" style={{ gap: 4 }}>
+      <Box alignItems="center" mt="lg" gap="xs">
+        <Box flexDirection="row" alignItems="baseline" gap="xs">
           <Text variant="display">
             {currentStreak}
           </Text>
@@ -169,7 +169,7 @@ const StreakSheet = forwardRef<PickerSheetHandle>(function StreakSheet(_props, r
 
       <RecentDays days={getRecentDays(record, ignitedDates ?? [], today)} />
 
-      <Box flexDirection="row" mt="lg" style={{ gap: 8 }}>
+      <Box flexDirection="row" mt="lg" gap="s">
         <StatCell label="최장 기록" value={`${longestStreak}일`} />
         <StatCell
           label="불씨 지키기 (주 1회)"

@@ -18,7 +18,7 @@ const ScreenHeader: React.FC<Props> = ({ title, backIcon = "arrow-left", right }
   const router = useRouter();
 
   return (
-    <Box flexDirection="row" alignItems="center" px="lg" py="s" minHeight={58} style={{ gap: 12 }}>
+    <Box flexDirection="row" alignItems="center" px="lg" py="s" minHeight={58} gap="md">
       <HeaderIconButton onPress={() => router.back()} accessibilityLabel="뒤로">
         <FeatherIcon name={backIcon} size={20} />
       </HeaderIconButton>

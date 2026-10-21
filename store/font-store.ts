@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { appStorage } from "@/utils/storage";
 
 export type FontId =
   | "system"
@@ -30,21 +30,21 @@ export const useFontStore = create<FontStore>((set) => ({
   currentFontId: "system",
   currentFontSize: 26,
   updateFontId: (fontId) => {
-    AsyncStorage.setItem(FONT_ID_KEY, fontId);
+    appStorage.setItem(FONT_ID_KEY, fontId);
     set({ currentFontId: fontId });
   },
   updateFontSize: (size) => {
-    AsyncStorage.setItem(FONT_SIZE_KEY, size.toString());
+    appStorage.setItem(FONT_SIZE_KEY, size.toString());
     set({ currentFontSize: size });
   },
 }));
 
-// 앱 시작 시 저장된 폰트 설정을 불러온다.
-Promise.all([
-  AsyncStorage.getItem(FONT_ID_KEY),
-  AsyncStorage.getItem(FONT_SIZE_KEY),
+// 앱 시작 시 저장된 폰트 설정을 불러온다. 다 불러오면 끝나는 Promise (app/_layout.tsx에서 기다린다)
+export const fontSettingsLoaded: Promise<void> = Promise.all([
+  appStorage.getItem(FONT_ID_KEY),
+  appStorage.getItem(FONT_SIZE_KEY),
 ]).then(([fontId, size]) => {
   const { updateFontId, updateFontSize } = useFontStore.getState();
   if (fontId) updateFontId(fontId as FontId);
   if (size) updateFontSize(parseInt(size, 10));
-});
+}).catch(() => {});
