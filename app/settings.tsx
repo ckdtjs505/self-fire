@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // app/settings.tsx
 // 앱 설정 화면.
-//   - 알림: 오늘의 명언 알림 ON/OFF, 알림 시간(시/분) 조정, 불씨가 꺼지기 전 저녁 알림 ON/OFF
+//   - 알림: 오늘의 명언 알림 ON/OFF, 하루 알림 시각(최대 3번, 시스템 시간 선택기), 불씨가 꺼지기 전 저녁 알림 ON/OFF
 //   - 서비스: 관심 주제, 나만의 명언 관리, 홈 화면 위젯(Android), 잠금 해제 시 자동 실행(Android),
 //             자주 묻는 질문, 응원의 리뷰
 //             (광고 제거 인앱 결제는 사업자 등록 전까지 미제공)
@@ -13,12 +13,13 @@ import ScreenHeader from "@/components/screen-header";
 import SettingItem, { SettingDivider, SettingSection, SettingSwitch } from "@/components/setting-item";
 import FeatherIcon from "@/components/icon";
 import InterestsSheet from "@/components/interests-sheet";
+import TimePickerButton from "@/components/time-picker-button";
 import WidgetSheet from "@/components/widget-sheet";
 import { PickerSheetHandle } from "@/components/picker-sheet";
 import { CATEGORIES } from "@/data/quote-categories";
 import { useAutoLaunch } from "@/hooks/useAutoLaunch";
 import { useCategoryStore } from "@/store/category";
-import { STREAK_REMINDER_HOUR, STREAK_REMINDER_MINUTE } from "@/services/notifications";
+import { MAX_NOTIFICATION_TIMES, STREAK_REMINDER_HOUR, STREAK_REMINDER_MINUTE } from "@/services/notifications";
 import { useNotificationStore } from "@/store/notification";
 import { isWidgetSupported } from "@/widgets/widget-pin";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
@@ -33,61 +34,34 @@ const FAQ_URL = "https://workshop-code.tistory.com/107";
 const PACKAGE_NAME = Application.applicationId || "com.changsunoh.selfFire";
 const STORE_REVIEW_URL = `market://details?id=${PACKAGE_NAME}`;
 const STORE_WEB_URL = `https://play.google.com/store/apps/details?id=${PACKAGE_NAME}`;
-const MINUTE_STEP = 5;
 
 const APP_VERSION = Application.nativeApplicationVersion || "1.0.0";
-
-// value에 step을 더하되 [0, max] 범위를 벗어나면 반대쪽 끝으로 순환한다.
-const stepWithWrap = (value: number, step: number, max: number) => {
-  const next = value + step;
-  if (next > max) return 0;
-  if (next < 0) return max;
-  return next;
-};
 
 const pad2 = (value: number) => String(value).padStart(2, "0");
 
 // Play 스토어 앱으로 리뷰 페이지를 열고, 실패하면 웹 페이지로 연다.
 const openStoreReview = () => Linking.openURL(STORE_REVIEW_URL).catch(() => Linking.openURL(STORE_WEB_URL));
 
-// ‹ 값 › 형태의 시간 조절 버튼
-const TimeStepper: React.FC<{ value: number; unit: string; onDecrease: () => void; onIncrease: () => void }> = ({
-  value,
-  unit,
-  onDecrease,
-  onIncrease,
-}) => (
-  <Box flexDirection="row" alignItems="center" bg="$surfaceMuted" borderRadius="sm" style={{ padding: 2 }}>
-    <Pressable onPress={onDecrease} hitSlop={6} accessibilityRole="button" accessibilityLabel={`${unit} 줄이기`} style={({ pressed }) => ({ padding: 6, opacity: pressed ? 0.5 : 1 })}>
-      <FeatherIcon name="chevron-left" size={16} color="$muted" />
-    </Pressable>
-    <Text fontSize={16} fontWeight="800" style={{ minWidth: 24, textAlign: "center", fontVariant: ["tabular-nums"] }}>
-      {pad2(value)}
-    </Text>
-    <Pressable onPress={onIncrease} hitSlop={6} accessibilityRole="button" accessibilityLabel={`${unit} 늘리기`} style={({ pressed }) => ({ padding: 6, opacity: pressed ? 0.5 : 1 })}>
-      <FeatherIcon name="chevron-right" size={16} color="$muted" />
-    </Pressable>
-  </Box>
-);
-
 function SettingContent() {
   const router = useRouter();
   const autoLaunch = useAutoLaunch();
   const {
     isEnabled: isNotificationEnabled,
-    notificationHour: hour,
-    notificationMinute: minute,
+    notificationTimes,
     setEnabled: setNotificationEnabled,
-    setTime,
+    setTimeAt,
+    addTime,
+    removeTime,
     streakReminderEnabled,
     setStreakReminderEnabled,
   } = useNotificationStore(
     useShallow((s) => ({
       isEnabled: s.isEnabled,
-      notificationHour: s.notificationHour,
-      notificationMinute: s.notificationMinute,
+      notificationTimes: s.notificationTimes,
       setEnabled: s.setEnabled,
-      setTime: s.setTime,
+      setTimeAt: s.setTimeAt,
+      addTime: s.addTime,
+      removeTime: s.removeTime,
       streakReminderEnabled: s.streakReminderEnabled,
       setStreakReminderEnabled: s.setStreakReminderEnabled,
     }))
@@ -116,33 +90,45 @@ function SettingContent() {
               rightElement={<SettingSwitch value={isNotificationEnabled} onValueChange={setNotificationEnabled} />}
             />
 
-            {/* 알림이 켜져 있을 때만 시간 설정 표시 (시: 1시간, 분: 5분 단위) */}
+            {/* 알림이 켜져 있을 때만 시간 설정 표시 (하루 최대 MAX_NOTIFICATION_TIMES번) */}
             {isNotificationEnabled && (
               <>
-                <SettingDivider />
-                <Box flexDirection="row" alignItems="center" minHeight={58} style={{ paddingHorizontal: 14, gap: 12 }}>
-                  <Box width={34} height={34} borderRadius="sm" bg="$surfaceMuted" justifyContent="center" alignItems="center">
-                    <FeatherIcon name="clock" size={17} />
+                {notificationTimes.map(({ hour, minute }, index) => (
+                  <Box key={`${hour}:${minute}`}>
+                    <SettingDivider />
+                    <Box flexDirection="row" alignItems="center" minHeight={58} style={{ paddingHorizontal: 14, gap: 12 }}>
+                      <Box width={34} height={34} borderRadius="sm" bg="$surfaceMuted" justifyContent="center" alignItems="center">
+                        <FeatherIcon name="clock" size={17} />
+                      </Box>
+                      <Text variant="body" style={{ flex: 1 }}>
+                        {notificationTimes.length > 1 ? `알림 ${index + 1}` : "알림 시간"}
+                      </Text>
+                      <TimePickerButton
+                        hour={hour}
+                        minute={minute}
+                        onChange={(h, m) => setTimeAt(index, h, m)}
+                        accessibilityLabel={`알림 ${index + 1} 시간 바꾸기`}
+                      />
+                      {notificationTimes.length > 1 && (
+                        <Pressable
+                          onPress={() => removeTime(index)}
+                          hitSlop={8}
+                          accessibilityRole="button"
+                          accessibilityLabel={`알림 ${index + 1} 지우기`}
+                          style={({ pressed }) => ({ padding: 4, opacity: pressed ? 0.5 : 1 })}
+                        >
+                          <FeatherIcon name="x" size={18} color="$muted" />
+                        </Pressable>
+                      )}
+                    </Box>
                   </Box>
-                  <Text variant="body" style={{ flex: 1 }}>
-                    알림 시간
-                  </Text>
-                  <Box flexDirection="row" alignItems="center" gap="xs">
-                    <TimeStepper
-                      value={hour}
-                      unit="시"
-                      onDecrease={() => setTime(stepWithWrap(hour, -1, 23), minute)}
-                      onIncrease={() => setTime(stepWithWrap(hour, 1, 23), minute)}
-                    />
-                    <Text fontSize={16} fontWeight="800" color="$muted">:</Text>
-                    <TimeStepper
-                      value={minute}
-                      unit="분"
-                      onDecrease={() => setTime(hour, stepWithWrap(minute, -MINUTE_STEP, 60 - MINUTE_STEP))}
-                      onIncrease={() => setTime(hour, stepWithWrap(minute, MINUTE_STEP, 60 - MINUTE_STEP))}
-                    />
-                  </Box>
-                </Box>
+                ))}
+                {notificationTimes.length < MAX_NOTIFICATION_TIMES && (
+                  <>
+                    <SettingDivider />
+                    <SettingItem icon="plus" title="알림 시간 추가" onPress={addTime} />
+                  </>
+                )}
                 <SettingDivider />
                 <SettingItem
                   icon="moon"

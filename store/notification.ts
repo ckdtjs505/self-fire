@@ -7,14 +7,19 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import * as Notifications from "expo-notifications";
 import { Quote } from "@/models";
-import { rescheduleNotifications } from "@/services/notifications";
+import {
+  MAX_NOTIFICATION_TIMES,
+  NotificationTime,
+  normalizeTimes,
+  rescheduleNotifications,
+} from "@/services/notifications";
 import { waitForHydration } from "@/utils/hydration";
 import { stateStorage } from "@/utils/storage";
 
 interface NotificationState {
   isEnabled: boolean;
-  notificationHour: number;
-  notificationMinute: number;
+  // 하루 알림 시각 (시각 순, 1~MAX_NOTIFICATION_TIMES개). 첫 알림이 '오늘의 명언'이다.
+  notificationTimes: NotificationTime[];
   // 첫 점화 후 '알림 받기'를 한 번 제안했는지 (ignite-result-sheet.tsx)
   hasOfferedReminder: boolean;
   // 불씨가 꺼지기 전 저녁 알림 (오늘의 명언 알림이 켜져 있을 때만 보낸다)
@@ -22,17 +27,30 @@ interface NotificationState {
   // 켜기에 성공하면 true (알림 권한을 거부하면 false)
   setEnabled: (enabled: boolean) => Promise<boolean>;
   markReminderOffered: () => void;
-  setTime: (hour: number, minute: number) => Promise<void>;
+  setTimes: (times: NotificationTime[]) => Promise<void>;
+  // index번째 알림 시각을 바꾼다. (다른 알림과 같은 시각이 되면 하나로 합친다)
+  setTimeAt: (index: number, hour: number, minute: number) => Promise<void>;
+  // 아직 쓰지 않은 시각으로 알림을 하나 더한다. (최대 MAX_NOTIFICATION_TIMES개)
+  addTime: () => Promise<void>;
+  // 알림은 최소 하나는 남긴다.
+  removeTime: (index: number) => Promise<void>;
   setStreakReminderEnabled: (enabled: boolean) => Promise<void>;
 }
+
+// 알림을 더할 때 차례로 고르는 시각 (아침·점심·저녁·밤)
+const SUGGESTED_HOURS = [8, 12, 18, 21, 7, 10, 15, 20];
+
+const nextSuggestedTime = (times: NotificationTime[]): NotificationTime => {
+  const hour = SUGGESTED_HOURS.find((h) => !times.some((t) => t.hour === h && t.minute === 0)) ?? 9;
+  return { hour, minute: 0 };
+};
 
 // '오늘의 명언' 알림 설정 (켜짐 여부, 알림 시각)
 export const useNotificationStore = create<NotificationState>()(
   persist(
     (set, get) => ({
       isEnabled: false,
-      notificationHour: 8,
-      notificationMinute: 0,
+      notificationTimes: [{ hour: 8, minute: 0 }],
       hasOfferedReminder: false,
       streakReminderEnabled: true,
 
@@ -53,11 +71,28 @@ export const useNotificationStore = create<NotificationState>()(
 
       markReminderOffered: () => set({ hasOfferedReminder: true }),
 
-      setTime: async (hour: number, minute: number) => {
-        set({ notificationHour: hour, notificationMinute: minute });
+      setTimes: async (times: NotificationTime[]) => {
+        const normalized = normalizeTimes(times);
+        if (normalized.length === 0) return;
+        set({ notificationTimes: normalized });
         if (get().isEnabled) {
           await rescheduleNotifications(get());
         }
+      },
+
+      setTimeAt: (index: number, hour: number, minute: number) =>
+        get().setTimes(get().notificationTimes.map((t, i) => (i === index ? { hour, minute } : t))),
+
+      addTime: async () => {
+        const times = get().notificationTimes;
+        if (times.length >= MAX_NOTIFICATION_TIMES) return;
+        await get().setTimes([...times, nextSuggestedTime(times)]);
+      },
+
+      removeTime: async (index: number) => {
+        const times = get().notificationTimes;
+        if (times.length <= 1) return;
+        await get().setTimes(times.filter((_, i) => i !== index));
       },
 
       setStreakReminderEnabled: async (enabled: boolean) => {
@@ -70,6 +105,22 @@ export const useNotificationStore = create<NotificationState>()(
     {
       name: "notification-storage",
       storage: createJSONStorage(() => stateStorage),
+      version: 1,
+      // v0: 하루 한 번(notificationHour·notificationMinute). 그 시각을 첫 알림 시각으로 넘겨 준다.
+      migrate: (persisted, version) => {
+        const state = (persisted ?? {}) as Partial<NotificationState> & {
+          notificationHour?: number;
+          notificationMinute?: number;
+        };
+        if (version === 0) {
+          const { notificationHour, notificationMinute, ...rest } = state;
+          return {
+            ...rest,
+            notificationTimes: [{ hour: notificationHour ?? 8, minute: notificationMinute ?? 0 }],
+          } as NotificationState;
+        }
+        return state as NotificationState;
+      },
     }
   )
 );
