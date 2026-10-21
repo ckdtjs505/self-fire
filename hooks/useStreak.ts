@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import Toast from "react-native-toast-message";
 import { useStreakStore, whenStreakHydrated } from "@/store/streak";
 import { setUserProp, trackEvent } from "@/utils/analytics";
+import { useShallow } from "zustand/react/shallow";
 
 const streakBucket = (streak: number) => {
   if (streak >= 30) return "30+";
@@ -16,7 +17,12 @@ const streakBucket = (streak: number) => {
  * 메인 화면에서 한 번만 호출.
  */
 export const useStreak = () => {
-  const { currentStreak, longestStreak } = useStreakStore();
+  const { currentStreak, longestStreak } = useStreakStore(
+    useShallow((s) => ({
+      currentStreak: s.currentStreak,
+      longestStreak: s.longestStreak,
+    }))
+  );
 
   useEffect(() => {
     whenStreakHydrated().then(() => {

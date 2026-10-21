@@ -38,7 +38,7 @@ type Props = {
 
 const PickerSheet = forwardRef<PickerSheetHandle, Props>(function PickerSheet({ title, description, children }, ref) {
   const modalRef = useRef<BottomSheetModal>(null);
-  const { colors } = useThemeStore().currentTheme;
+  const colors = useThemeStore((s) => s.currentTheme.colors);
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [isOpen, setIsOpen] = useState(false);

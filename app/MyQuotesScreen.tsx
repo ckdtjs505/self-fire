@@ -11,6 +11,7 @@ import { Quote } from "@/models";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { useRouter } from "expo-router";
 import { Alert, FlatList, Pressable } from "react-native";
+import { useShallow } from "zustand/react/shallow";
 
 // 목록이 비었을 때 안내 + 첫 명언 등록 버튼
 const EmptyState: React.FC<{ onAdd: () => void }> = ({ onAdd }) => (
@@ -81,7 +82,12 @@ const QuoteRow: React.FC<QuoteRowProps> = ({ quote, onEdit, onDelete }) => (
 
 export default function MyQuotesScreen() {
   const router = useRouter();
-  const { customQuotes, removeCustomQuote } = useFavoriteQuoteStore();
+  const { customQuotes, removeCustomQuote } = useFavoriteQuoteStore(
+    useShallow((s) => ({
+      customQuotes: s.customQuotes,
+      removeCustomQuote: s.removeCustomQuote,
+    }))
+  );
 
   const goToAdd = () => router.push("/AddQuoteScreen");
 

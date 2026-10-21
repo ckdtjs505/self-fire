@@ -46,6 +46,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import Toast from "react-native-toast-message";
+import { useShallow } from "zustand/react/shallow";
 
 // 예전 버전에서 쓰던 랜덤 50개 캐시 키 (정리용)
 const LEGACY_QUOTE_CACHE_KEY = "cached_recent_quotes";
@@ -69,9 +70,22 @@ const createPager = (quotes: Quote[] = []): QuotePager => ({ quotes, currentInde
 const isCustomQuoteId = (id: string) => id.startsWith("custom-");
 
 export default function Index() {
-  const { isAdFree } = useAdStore();
-  const { customQuotes, favorites, favoritesData } = useFavoriteQuoteStore();
-  const { currentCategoryId, updateCategoryId, interestIds, hasPickedInterests } = useCategoryStore();
+  const isAdFree = useAdStore((s) => s.isAdFree);
+  const { customQuotes, favorites, favoritesData } = useFavoriteQuoteStore(
+    useShallow((s) => ({
+      customQuotes: s.customQuotes,
+      favorites: s.favorites,
+      favoritesData: s.favoritesData,
+    }))
+  );
+  const { currentCategoryId, updateCategoryId, interestIds, hasPickedInterests } = useCategoryStore(
+    useShallow((s) => ({
+      currentCategoryId: s.currentCategoryId,
+      updateCategoryId: s.updateCategoryId,
+      interestIds: s.interestIds,
+      hasPickedInterests: s.hasPickedInterests,
+    }))
+  );
   const [isCategoryHydrated, setIsCategoryHydrated] = useState(useCategoryStore.persist.hasHydrated());
   const { currentStreak } = useStreak();
   const { isIgnited, isFirstVisit, markIgnited } = useDailyIgnite();

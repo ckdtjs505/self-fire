@@ -17,8 +17,8 @@ const GAP = 10;
 
 // 테마 선택 바텀시트: 위쪽은 앱 색 테마, 아래쪽은 명언 카드 배경 이미지
 const ThemePicker = forwardRef<PickerSheetHandle>(function ThemePicker(_props, ref) {
-  const { currentThemeId } = useThemeStore();
-  const { currentBackgroundId } = useCardBackgroundStore();
+  const currentThemeId = useThemeStore((s) => s.currentThemeId);
+  const currentBackgroundId = useCardBackgroundStore((s) => s.currentBackgroundId);
   const longestStreak = useStreakStore((s) => s.longestStreak);
   const { width } = useWindowDimensions();
   const contentWidth = width - SHEET_SIDE_PADDING * 2;

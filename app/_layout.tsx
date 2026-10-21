@@ -82,7 +82,7 @@ const RETURN_TO_MAIN_AFTER_MS = 30 * 1000;
 const KEEP_SCREEN_PATHS = ["/AddQuoteScreen"];
 
 export default function RootLayout() {
-  const { currentTheme } = useThemeStore();
+  const currentTheme = useThemeStore((s) => s.currentTheme);
   const pathname = usePathname();
   const pathnameRef = useRef(pathname);
   pathnameRef.current = pathname;

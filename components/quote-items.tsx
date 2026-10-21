@@ -11,6 +11,7 @@ import { Image, StyleSheet, View, useWindowDimensions } from "react-native";
 import ViewShot from "react-native-view-shot";
 import FeatherIcon from "./icon";
 import QuoteBar from "./quote-bar";
+import { useShallow } from "zustand/react/shallow";
 
 type Props = Quote & {
   // 사용자가 직접 작성한 명언이면 '나만의 명언' 라벨을 붙인다.
@@ -19,11 +20,16 @@ type Props = Quote & {
 
 const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom }) => {
   const viewShotRef = useRef<ViewShot>(null);
-  const { colors } = useThemeStore().currentTheme;
-  const { currentFontId, currentFontSize } = useFontStore();
+  const colors = useThemeStore((s) => s.currentTheme.colors);
+  const { currentFontId, currentFontSize } = useFontStore(
+    useShallow((s) => ({
+      currentFontId: s.currentFontId,
+      currentFontSize: s.currentFontSize,
+    }))
+  );
   const fontFamily = toFontFamily(currentFontId);
   // 카드 배경 이미지를 고르면 테마 색 대신 이미지 밝기에 맞춘 글씨 색을 쓴다.
-  const background = getCardBackground(useCardBackgroundStore().currentBackgroundId);
+  const background = getCardBackground(useCardBackgroundStore((s) => s.currentBackgroundId));
   const imageColors = background.tone ? CARD_TEXT_COLORS[background.tone] : undefined;
   const foregroundColor = imageColors?.foreground ?? colors.$foreground;
   const mutedColor = imageColors?.muted ?? colors.$muted;

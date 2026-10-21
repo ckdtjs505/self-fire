@@ -18,8 +18,8 @@ type Props = {
 // 카드 배경 미리보기 타일: 세로로 긴 카드 모양에 이미지를 보여주고, 누르면 배경을 적용한다.
 // 아직 해금되지 않은 보상 배경은 자물쇠를 덮고, 누르면 해금 조건을 알려 준다.
 const CardBackgroundItem: React.FC<Props> = ({ item, width, isActive, isLocked }) => {
-  const { updateBackgroundId } = useCardBackgroundStore();
-  const { colors } = useThemeStore().currentTheme;
+  const updateBackgroundId = useCardBackgroundStore((s) => s.updateBackgroundId);
+  const colors = useThemeStore((s) => s.currentTheme.colors);
 
   const onPress = () => {
     if (isLocked && item.unlockAt) {
