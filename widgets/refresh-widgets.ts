@@ -6,7 +6,7 @@
 
 import { buildWidgetSnapshot, resolveWidgetView, saveWidgetSnapshot } from "@/data/widget-snapshot";
 import { LAST_IGNITED_DATE_KEY } from "@/hooks/useDailyIgnite";
-import { loadDailyCandidates } from "@/store/notification";
+import { loadDailyCandidates } from "@/services/daily-candidates";
 import { useStreakStore, whenStreakHydrated } from "@/store/streak";
 import { Platform } from "react-native";
 import { requestWidgetUpdate } from "react-native-android-widget";

@@ -2,6 +2,7 @@ import { toDateString } from "@/utils/date";
 import { igniteStreak, reconcileStreak, StreakRecord } from "@/utils/streak";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { waitForHydration } from "@/utils/hydration";
 import { stateStorage } from "@/utils/storage";
 
 // 나의 모닥불 주간 기록에 쓰는 최근 점화 날짜 수
@@ -76,11 +77,4 @@ export const useStreakStore = create<StreakState>()(
 );
 
 // 저장된 스트릭을 다 불러온 뒤에 실행한다. (불러오기 전에 계산하면 저장값에 덮인다)
-export const whenStreakHydrated = () =>
-  new Promise<void>((resolve) => {
-    if (useStreakStore.persist.hasHydrated()) return resolve();
-    const unsubscribe = useStreakStore.persist.onFinishHydration(() => {
-      unsubscribe();
-      resolve();
-    });
-  });
+export const whenStreakHydrated = () => waitForHydration(useStreakStore);

@@ -25,7 +25,7 @@ export const quoteApiResponseSchema = z.object({
   ),
 });
 
-// 알림에 담아 두는 데이터 (store/notification.ts의 NotificationData와 같은 모양)
+// 알림에 담아 두는 데이터 (services/notifications.ts의 NotificationData와 같은 모양)
 export const notificationDataSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("daily"), quoteId: z.string(), text: z.string(), author: z.string() }),
   z.object({ type: z.literal("streak") }),

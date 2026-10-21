@@ -70,9 +70,11 @@ self-fire/
 │   ├── my-quotes.tsx     # 내 명언 목록 화면 (/my-quotes)
 │   ├── settings.tsx      # 설정 화면 (/settings)
 │   ├── privacy.tsx · terms.tsx # 개인정보 처리방침 · 이용약관
-│   └── _layout.tsx       # 최상위 레이아웃 (폰트 로드, 테마, 광고 초기화)
+│   └── _layout.tsx       # 최상위 레이아웃 (폰트 로드, 테마, 전역 래퍼)
 ├── assets/               # 이미지, 아이콘 등 정적 리소스
 ├── components/           # 재사용 가능한 UI 컴포넌트
+├── hooks/                # 화면 로직 훅 (명언 넘기기, 앱 생명주기 등)
+├── services/             # 여러 스토어를 엮는 일 (앱 시작 초기화, 알림 예약, 오늘의 명언 후보)
 ├── models.tsx            # 공통 데이터 모델 및 타입 정의
 ├── store/                # Zustand 스토어 (quote, streak, theme, font 상태 관리)
 ├── plugins/              # Expo 커스텀 앱 플러그인
