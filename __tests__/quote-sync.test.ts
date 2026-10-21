@@ -84,3 +84,33 @@ describe("loadSyncedQuotes", () => {
     expect(await loadSyncedQuotes()).toEqual([]);
   });
 });
+
+describe("loadSyncedQuotes", () => {
+  beforeEach(() => mmkv.clearAll());
+
+  it("번들이 덮는 id 범위의 예전 동기화 명언은 버린다 (수정·삭제 반영)", async () => {
+    await appStorage.setItem(
+      "synced_quotes",
+      JSON.stringify([
+        { id: "2", text: "삭제된 명언", author: "x" },
+        { id: "3", text: "c", author: "z" },
+      ])
+    );
+    expect((await loadSyncedQuotes()).map((q) => q.id)).toEqual(["3"]);
+  });
+});
+
+describe("syncNewQuotes — featured·categories", () => {
+  beforeEach(() => mmkv.clearAll());
+
+  it("값이 있을 때만 남긴다", async () => {
+    mockFetch([
+      { id: 3, text: "시작이 반이다.", author: "z", featured: 1, categories: "life, effort" },
+      { id: 4, text: "아는 것이 힘이다.", author: "z", featured: false, categories: null },
+    ]);
+    expect(await syncNewQuotes()).toEqual([
+      { id: "3", text: "시작이 반이다.", author: "z", featured: true, categories: ["life", "effort"] },
+      { id: "4", text: "아는 것이 힘이다.", author: "z" },
+    ]);
+  });
+});

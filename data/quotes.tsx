@@ -24,11 +24,17 @@ const SYNC_LIMIT = 500;
 
 const maxId = (list: Quote[]) => list.reduce((max, q) => Math.max(max, Number(q.id) || 0), 0);
 
-/** 저장해 둔 추가 명언을 읽는다. */
+/**
+ * 저장해 둔 추가 명언을 읽는다.
+ * 새 빌드의 번들이 덮는 id 범위(번들 최대 id 이하)는 번들이 기준이므로 버린다.
+ * (그 사이 서버에서 수정·삭제된 명언이 예전 동기화 데이터로 남지 않도록)
+ */
 export const loadSyncedQuotes = async (): Promise<Quote[]> => {
   try {
     const str = await appStorage.getItem(SYNCED_KEY);
-    return str ? parseQuotes(JSON.parse(str)) : [];
+    const saved = str ? parseQuotes(JSON.parse(str)) : [];
+    const bundledMax = maxId(quotes);
+    return saved.filter((q) => Number(q.id) > bundledMax);
   } catch {
     return [];
   }

@@ -30,3 +30,13 @@ describe("notificationDataSchema", () => {
     expect(notificationDataSchema.safeParse(null).success).toBe(false);
   });
 });
+
+describe("parseQuotes — featured·categories", () => {
+  it("대표 명언 표시와 카테고리를 지우지 않는다", () => {
+    const quote = { id: "1", text: "a", author: "x", featured: true, categories: ["life"] };
+    expect(parseQuotes([quote, { id: "2", text: "b", author: "y", categories: null }])).toEqual([
+      quote,
+      { id: "2", text: "b", author: "y", categories: null },
+    ]);
+  });
+});

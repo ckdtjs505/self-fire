@@ -32,8 +32,13 @@ const filterByInterests = (all: Quote[], interestIds: CategoryId[]): Quote[] => 
 };
 
 // 날짜를 시드로 섞는다. 같은 날에는 항상 같은 순서이고, 맨 앞이 그날의 '오늘의 명언'이다.
-export const orderQuotesForDay = (quotes: Quote[], date: Date = new Date()): Quote[] =>
-  seededShuffle(quotes, toDateString(date), (q) => q.id);
+// 오늘의 명언은 대표 명언(featured) 중에서 고른다. 후보에 대표 명언이 없으면(예전 번들 등) 섞인 순서 그대로.
+export const orderQuotesForDay = (quotes: Quote[], date: Date = new Date()): Quote[] => {
+  const shuffled = seededShuffle(quotes, toDateString(date), (q) => q.id);
+  const firstFeatured = shuffled.findIndex((q) => q.featured);
+  if (firstFeatured <= 0) return shuffled;
+  return [shuffled[firstFeatured], ...shuffled.slice(0, firstFeatured), ...shuffled.slice(firstFeatured + 1)];
+};
 
 export const getDailyQuote = (quotes: Quote[], date: Date = new Date()): Quote | undefined =>
   orderQuotesForDay(quotes, date)[0];

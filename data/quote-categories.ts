@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // quote-categories.ts
-// 명언 카테고리. 명언 데이터에는 카테고리 정보가 없어서 본문 키워드로 분류한다.
+// 명언 카테고리. 서버에서 지정한 categories가 있으면 그 값을 쓰고,
+// 없으면(null) 본문 키워드로 분류한다.
 //   - '성경'처럼 출처로 나누는 카테고리는 작가 칸으로 분류한다.
 //   - 한 명언이 여러 카테고리에 속할 수 있다.
 //   - 어느 키워드에도 걸리지 않는 명언은 '전체'에서만 보인다.
@@ -56,5 +57,6 @@ export const getCategory = (id: CategoryId) => categoryById.get(id);
 export const matchesCategory = (quote: Quote, id: CategoryId) => {
   const category = categoryById.get(id);
   if (!category) return false;
+  if (quote.categories) return quote.categories.includes(id);
   return !!(category.pattern?.test(quote.text) || category.authorPattern?.test(quote.author));
 };
