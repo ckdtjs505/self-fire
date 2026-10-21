@@ -38,6 +38,14 @@ SelfFire는 사용자의 동기부여를 돕는 명언 및 목표 달성(스트�
    - **Expo Go** 앱을 통한 실제 기기 테스트
    - **Android Emulator** 실행 (`a` 입력)
 
+## 🤖 Android 네이티브 프로젝트 관리
+
+`android/` 폴더는 저장소에 커밋되어 있고 **이 폴더가 Android 빌드의 기준**입니다. 폴더가 있으면 EAS 빌드는 `expo prebuild`를 건너뛰고 이 폴더를 그대로 씁니다.
+
+* R8·리소스 축소, Crashlytics proguard 규칙, AD_ID 권한, 미디어 권한 제거, arm64 전용 빌드, gradle 메모리 설정은 `android/`에 직접 들어 있고 `app.json`으로는 다시 만들 수 없습니다. **`npx expo prebuild --clean`을 실행하면 이 설정이 사라지므로 실행하지 마세요.**
+* `app.json`의 Android 관련 설정(scheme, 권한, config plugin 등)을 바꾸면 같은 내용을 `android/`에도 직접 반영해야 합니다.
+* 버전 코드는 EAS 원격 버전 관리(`eas.json`의 `appVersionSource: remote`, `autoIncrement`)가 빌드할 때 정하므로 `app.json`에 적지 않습니다.
+
 ## 🏗 아키텍처
 
 <picture>

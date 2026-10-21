@@ -18,7 +18,6 @@
       },
       "package": "com.changsunoh.selfFire",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 2,
       "permissions": [
         "SYSTEM_ALERT_WINDOW",
         "RECEIVE_BOOT_COMPLETED",
