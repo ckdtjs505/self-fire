@@ -117,7 +117,7 @@ const IgniteResultSheet = forwardRef<IgniteResultSheetHandle>(function IgniteRes
       <Campfire streak={streak} />
 
       {!!unlockedMilestone && (
-        <Box mt="lg" p="lg" borderRadius="md" bg="$primarySoft" style={{ gap: 4 }}>
+        <Box mt="lg" p="lg" borderRadius="md" bg="$primarySoft" gap="xs">
           <Text fontSize={15} fontWeight="800">
             🎁 {unlockedMilestone}일 연속 달성!
           </Text>
@@ -128,15 +128,15 @@ const IgniteResultSheet = forwardRef<IgniteResultSheetHandle>(function IgniteRes
       )}
 
       {offerReminder ? (
-        <Box mt="xl" style={{ gap: 12 }}>
-          <Box style={{ gap: 4 }}>
+        <Box mt="xl" gap="md">
+          <Box gap="xs">
             <Text fontSize={16} fontWeight="800">
               내일도 잊지 않게 알려 드릴까요?
             </Text>
             <Text variant="caption">매일 정한 시간에 오늘의 명언을 보내 드려요</Text>
           </Box>
 
-          <Box flexDirection="row" flexWrap="wrap" style={{ gap: 8 }}>
+          <Box flexDirection="row" flexWrap="wrap" gap="s">
             {REMINDER_HOURS.map((hour) => {
               const selected = hour === reminderHour;
               return (
@@ -172,8 +172,8 @@ const IgniteResultSheet = forwardRef<IgniteResultSheetHandle>(function IgniteRes
           </Pressable>
         </Box>
       ) : offerWidget ? (
-        <Box mt="xl" style={{ gap: 12 }}>
-          <Box style={{ gap: 4 }}>
+        <Box mt="xl" gap="md">
+          <Box gap="xs">
             <Text fontSize={16} fontWeight="800">
               홈 화면에서 불씨를 지켜보세요
             </Text>

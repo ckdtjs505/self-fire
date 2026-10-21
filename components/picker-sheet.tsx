@@ -8,7 +8,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { Box, Text } from "@/atom";
-import { useThemeStore } from "@/store/theme";
+import { useAppTheme } from "@/themes";
 import {
   BottomSheetBackdrop,
   BottomSheetBackdropProps,
@@ -38,7 +38,7 @@ type Props = {
 
 const PickerSheet = forwardRef<PickerSheetHandle, Props>(function PickerSheet({ title, description, children }, ref) {
   const modalRef = useRef<BottomSheetModal>(null);
-  const colors = useThemeStore((s) => s.currentTheme.colors);
+  const { colors } = useAppTheme();
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [isOpen, setIsOpen] = useState(false);

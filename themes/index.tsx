@@ -1,3 +1,4 @@
+import { useTheme } from "@shopify/restyle";
 import light, { Theme } from "./light";
 import dark from "./dark";
 import nature from "./nature";
@@ -31,3 +32,9 @@ export const getTheme = (themeId: ThemeId): Theme =>
   themeList.find((meta) => meta.id === themeId)!.theme;
 
 export type { Theme };
+
+/**
+ * 지금 테마(색·간격·글자 스타일). 화면과 컴포넌트는 이 훅으로 테마를 읽는다.
+ * ThemeProvider 밖에서 그려지는 화면(ErrorBoundary)만 테마 스토어를 직접 읽는다.
+ */
+export const useAppTheme = () => useTheme<Theme>();

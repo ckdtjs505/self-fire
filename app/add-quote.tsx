@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// AddQuoteScreen.tsx
+// app/add-quote.tsx
 // 사용자가 직접 명언을 추가하거나 기존 명언을 수정하는 화면.
 // - URL 파라미터(id, text, author)가 있으면 수정 모드로 동작
 // - 없으면 신규 추가 모드로 동작
@@ -11,7 +11,7 @@
 import { Box, SafeAreaView, Text } from "@/atom";
 import ScreenHeader from "@/components/screen-header";
 import { useFavoriteQuoteStore } from "@/store/quote";
-import { useThemeStore } from "@/store/theme";
+import { useAppTheme } from "@/themes";
 import { trackEvent } from "@/utils/analytics";
 import { usePreventRemove } from "@react-navigation/native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
@@ -49,7 +49,7 @@ export default function AddQuoteScreen() {
       updateCustomQuote: s.updateCustomQuote,
     }))
   );
-  const colors = useThemeStore((s) => s.currentTheme.colors);
+  const { colors } = useAppTheme();
   // 지금 입력 중인 칸 (테두리를 강조색으로 표시)
   const [focused, setFocused] = useState<"text" | "author" | null>(null);
 
@@ -189,7 +189,7 @@ export default function AddQuoteScreen() {
               </Box>
 
               {/* ── 안내 문구 ──────────────────────────────── */}
-              <Box flexDirection="row" bg="$surfaceMuted" borderRadius="md" padding="md" style={{ gap: 8 }}>
+              <Box flexDirection="row" bg="$surfaceMuted" borderRadius="md" padding="md" gap="s">
                 <Text fontSize={13}>💡</Text>
                 <Text variant="caption" lineHeight={19} style={{ flex: 1 }}>
                   등록된 명언은 메인 화면의 명언 목록에 포함되어 무작위로 나타납니다.

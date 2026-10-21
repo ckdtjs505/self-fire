@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// SettingScreen.tsx
+// app/settings.tsx
 // 앱 설정 화면.
 //   - 알림: 오늘의 명언 알림 ON/OFF, 알림 시간(시/분) 조정, 불씨가 꺼지기 전 저녁 알림 ON/OFF
 //   - 서비스: 관심 주제, 나만의 명언 관리, 홈 화면 위젯(Android), 잠금 해제 시 자동 실행(Android),
@@ -126,7 +126,7 @@ function SettingContent() {
                   <Text variant="body" style={{ flex: 1 }}>
                     알림 시간
                   </Text>
-                  <Box flexDirection="row" alignItems="center" style={{ gap: 4 }}>
+                  <Box flexDirection="row" alignItems="center" gap="xs">
                     <TimeStepper
                       value={hour}
                       unit="시"
@@ -165,7 +165,7 @@ function SettingContent() {
               }
             />
             <SettingDivider />
-            <SettingItem icon="edit-3" title="나만의 명언 관리" onPress={() => router.push("/MyQuotesScreen")} />
+            <SettingItem icon="edit-3" title="나만의 명언 관리" onPress={() => router.push("/my-quotes")} />
             <SettingDivider />
             {isWidgetSupported && (
               <>
@@ -193,9 +193,9 @@ function SettingContent() {
           </SettingSection>
 
           <SettingSection title="앱 정보">
-            <SettingItem icon="shield" title="개인정보 처리방침" onPress={() => router.push("/PrivacyScreen")} />
+            <SettingItem icon="shield" title="개인정보 처리방침" onPress={() => router.push("/privacy")} />
             <SettingDivider />
-            <SettingItem icon="file-text" title="서비스 이용약관" onPress={() => router.push("/TermsScreen")} />
+            <SettingItem icon="file-text" title="서비스 이용약관" onPress={() => router.push("/terms")} />
             <SettingDivider />
             <SettingItem
               icon="info"

@@ -3,7 +3,7 @@ import { CARD_TEXT_COLORS, getCardBackground } from "@/data/card-backgrounds";
 import { Quote } from "@/models";
 import { useCardBackgroundStore } from "@/store/card-background";
 import { toFontFamily, useFontStore } from "@/store/font-store";
-import { useThemeStore } from "@/store/theme";
+import { useAppTheme } from "@/themes";
 import { LINE_HEIGHT_RATIO, MIN_QUOTE_FONT_SIZE, fitQuoteFontSize, shrinkToFit } from "@/utils/quote-font-size";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
@@ -21,7 +21,7 @@ type Props = Quote & {
 
 const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom }) => {
   const viewShotRef = useRef<ViewShot>(null);
-  const colors = useThemeStore((s) => s.currentTheme.colors);
+  const { colors } = useAppTheme();
   const { currentFontId, currentFontSize } = useFontStore(
     useShallow((s) => ({
       currentFontId: s.currentFontId,

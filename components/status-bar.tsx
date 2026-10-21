@@ -1,12 +1,11 @@
 import { Box } from "@/atom";
-import { Theme } from "@/themes";
-import { useTheme } from "@shopify/restyle";
+import { useAppTheme } from "@/themes";
 import { StatusBar as StatusBarRN, StatusBarStyle } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // 상태바 영역을 현재 테마 배경색으로 칠한다.
 const StatusBar = () => {
-  const theme = useTheme<Theme>();
+  const theme = useAppTheme();
   const { top } = useSafeAreaInsets();
   return (
     <Box

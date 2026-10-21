@@ -2,7 +2,7 @@ import { Box, Text } from "@/atom";
 import { CardBackground } from "@/data/card-backgrounds";
 import { lockedRewardMessage } from "@/data/streak-rewards";
 import { useCardBackgroundStore } from "@/store/card-background";
-import { useThemeStore } from "@/store/theme";
+import { useAppTheme } from "@/themes";
 import { Image, Pressable, StyleSheet } from "react-native";
 import Toast from "react-native-toast-message";
 import FeatherIcon from "./icon";
@@ -19,7 +19,7 @@ type Props = {
 // 아직 해금되지 않은 보상 배경은 자물쇠를 덮고, 누르면 해금 조건을 알려 준다.
 const CardBackgroundItem: React.FC<Props> = ({ item, width, isActive, isLocked }) => {
   const updateBackgroundId = useCardBackgroundStore((s) => s.updateBackgroundId);
-  const colors = useThemeStore((s) => s.currentTheme.colors);
+  const { colors } = useAppTheme();
 
   const onPress = () => {
     if (isLocked && item.unlockAt) {

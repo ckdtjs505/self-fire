@@ -1,5 +1,4 @@
-import { Theme } from "@/themes";
-import { useTheme } from "@shopify/restyle";
+import { useAppTheme } from "@/themes";
 import { Pressable, Text, View } from "react-native";
 import { ToastConfig, ToastConfigParams } from "react-native-toast-message";
 
@@ -10,7 +9,7 @@ import { ToastConfig, ToastConfigParams } from "react-native-toast-message";
 type ToastProps = { onUndo?: () => void };
 
 const SimpleToast = ({ text1, text2, props }: ToastConfigParams<ToastProps>) => {
-  const { colors } = useTheme<Theme>();
+  const { colors } = useAppTheme();
   const message = text2 || text1;
   if (!message) return null;
   const onUndo = props?.onUndo;

@@ -66,9 +66,10 @@ SelfFire는 사용자의 동기부여를 돕는 명언 및 목표 달성(스트�
 self-fire/
 ├── app/                  # Expo Router 기반 화면(Screen) 및 레이아웃 폴더
 │   ├── (navi)/           # 메인 화면들
-│   ├── AddQuoteScreen.tsx # 나만의 명언 추가 모달 화면
-│   ├── MyQuotesScreen.tsx # 내 명언 목록 화면
-│   ├── SettingScreen.tsx  # 설정 화면
+│   ├── add-quote.tsx     # 나만의 명언 추가 모달 화면 (/add-quote)
+│   ├── my-quotes.tsx     # 내 명언 목록 화면 (/my-quotes)
+│   ├── settings.tsx      # 설정 화면 (/settings)
+│   ├── privacy.tsx · terms.tsx # 개인정보 처리방침 · 이용약관
 │   └── _layout.tsx       # 최상위 레이아웃 (폰트 로드, 테마, 광고 초기화)
 ├── assets/               # 이미지, 아이콘 등 정적 리소스
 ├── components/           # 재사용 가능한 UI 컴포넌트

@@ -80,7 +80,16 @@ export { ErrorFallback as ErrorBoundary };
 // 이 시간 이상 백그라운드에 있다가 돌아오면 메인 화면으로 이동한다.
 const RETURN_TO_MAIN_AFTER_MS = 30 * 1000;
 // 작성 중인 내용이 사라지지 않도록 복귀 시에도 유지하는 화면
-const KEEP_SCREEN_PATHS = ["/AddQuoteScreen"];
+const KEEP_SCREEN_PATHS = ["/add-quote"];
+// Analytics 화면 이름. 라우트 경로를 소문자로 바꾸기 전의 이름을 그대로 써서 지난 통계와 이어지게 한다.
+const SCREEN_NAMES: Record<string, string> = {
+  "/": "Home",
+  "/settings": "SettingScreen",
+  "/privacy": "PrivacyScreen",
+  "/terms": "TermsScreen",
+  "/my-quotes": "MyQuotesScreen",
+  "/add-quote": "AddQuoteScreen",
+};
 
 export default function RootLayout() {
   const currentTheme = useThemeStore((s) => s.currentTheme);
@@ -105,7 +114,7 @@ export default function RootLayout() {
 
   // 화면 전환마다 screen_view를 기록한다.
   useEffect(() => {
-    trackScreen(pathname === "/" ? "Home" : pathname.replace(/^\//, ""));
+    trackScreen(SCREEN_NAMES[pathname] ?? pathname.replace(/^\//, ""));
   }, [pathname]);
 
   useEffect(() => {
@@ -158,12 +167,12 @@ export default function RootLayout() {
 
         <Stack initialRouteName="(navi)" screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(navi)" />
-          <Stack.Screen name="SettingScreen" />
-          <Stack.Screen name="PrivacyScreen" />
-          <Stack.Screen name="TermsScreen" />
-          <Stack.Screen name="MyQuotesScreen" />
+          <Stack.Screen name="settings" />
+          <Stack.Screen name="privacy" />
+          <Stack.Screen name="terms" />
+          <Stack.Screen name="my-quotes" />
           {/* 명언 추가/수정은 아래에서 올라오는 모달로 띄운다. */}
-          <Stack.Screen name="AddQuoteScreen" options={{ presentation: "modal" }} />
+          <Stack.Screen name="add-quote" options={{ presentation: "modal" }} />
         </Stack>
 
         <Toast position="bottom" bottomOffset={76} config={toastConfig} />

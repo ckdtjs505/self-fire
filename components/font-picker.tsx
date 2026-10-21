@@ -100,7 +100,7 @@ const FontPicker = forwardRef<PickerSheetHandle>(function FontPicker(_props, ref
         style={{ paddingVertical: 10, paddingLeft: 16, paddingRight: 10 }}
       >
         <Text variant="body">글자 크기</Text>
-        <Box flexDirection="row" alignItems="center" style={{ gap: 12 }}>
+        <Box flexDirection="row" alignItems="center" gap="md">
           <FontSizeButton
             icon="minus"
             disabled={currentFontSize <= FONT_SIZE_MIN}
