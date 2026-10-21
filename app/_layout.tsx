@@ -14,7 +14,8 @@
 import ErrorFallback from "@/components/error-fallback";
 import StatusBar from "@/components/status-bar";
 import { toastConfig } from "@/components/simple-toast";
-import { NotificationData, refreshDailyNotifications, usePendingQuoteStore } from "@/store/notification";
+import { notificationDataSchema } from "@/data/schemas";
+import { refreshDailyNotifications, usePendingQuoteStore } from "@/store/notification";
 import { useThemeStore } from "@/store/theme";
 import { initAnalytics, trackEvent, trackScreen } from "@/utils/analytics";
 import { GowunDodum_400Regular } from "@expo-google-fonts/gowun-dodum";
@@ -136,10 +137,11 @@ export default function RootLayout() {
     if (notificationResponse.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
     Notifications.clearLastNotificationResponse();
 
-    const data = notificationResponse.notification.request.content.data as Partial<NotificationData> | null;
+    const parsed = notificationDataSchema.safeParse(notificationResponse.notification.request.content.data);
+    const data = parsed.success ? parsed.data : null;
     trackEvent("notification_open", { type: data?.type ?? "unknown" });
     if (data?.type === "daily" && data.quoteId && data.text) {
-      usePendingQuoteStore.getState().setQuote({ id: data.quoteId, text: data.text, author: data.author ?? "" });
+      usePendingQuoteStore.getState().setQuote({ id: data.quoteId, text: data.text, author: data.author });
     }
     // 명언을 작성 중이면 화면을 유지한다. (홈으로 돌아가면 그때 보여 준다)
     if (pathnameRef.current !== "/" && !KEEP_SCREEN_PATHS.includes(pathnameRef.current)) router.replace("/(navi)");
