@@ -58,13 +58,14 @@ export default function Index() {
   const { isIgnited, isFirstVisit, markIgnited } = useDailyIgnite();
   // 아직 한 번도 넘겨 보지 않았으면 오늘의 불씨를 켠 뒤 넘기기 힌트를 보여 준다.
   const { needsHint, markSwiped } = useSwipeHint();
-  // 사이드바에서 '불씨 보관함 열기'를 누르면 view=favorites로 들어온다.
-  const { view, at } = useLocalSearchParams<{ view?: string; at?: string }>();
+  // 사이드바·보관함 목록에서 명언을 누르면 view=favorites(+ 그 명언의 quote)로 들어온다.
+  const { view, at, quote } = useLocalSearchParams<{ view?: string; at?: string; quote?: string }>();
 
   const defaultQuotes = useDefaultQuotes();
   const pager = useQuotePager({
     defaultQuotes,
     openFavoritesKey: view === "favorites" ? at : undefined,
+    openQuoteId: quote,
     onNext: markSwiped,
   });
   const { currentQuote, filterMode } = pager;

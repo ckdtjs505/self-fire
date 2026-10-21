@@ -27,6 +27,7 @@ const SCREEN_NAMES: Record<string, string> = {
   "/privacy": "PrivacyScreen",
   "/terms": "TermsScreen",
   "/my-quotes": "MyQuotesScreen",
+  "/favorites": "FavoritesScreen",
   "/add-quote": "AddQuoteScreen",
 };
 
