@@ -39,12 +39,12 @@ export const useFontStore = create<FontStore>((set) => ({
   },
 }));
 
-// 앱 시작 시 저장된 폰트 설정을 불러온다.
-Promise.all([
+// 앱 시작 시 저장된 폰트 설정을 불러온다. 다 불러오면 끝나는 Promise (app/_layout.tsx에서 기다린다)
+export const fontSettingsLoaded: Promise<void> = Promise.all([
   AsyncStorage.getItem(FONT_ID_KEY),
   AsyncStorage.getItem(FONT_SIZE_KEY),
 ]).then(([fontId, size]) => {
   const { updateFontId, updateFontSize } = useFontStore.getState();
   if (fontId) updateFontId(fontId as FontId);
   if (size) updateFontSize(parseInt(size, 10));
-});
+}).catch(() => {});

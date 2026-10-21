@@ -12,6 +12,7 @@ import ViewShot from "react-native-view-shot";
 import FeatherIcon from "./icon";
 import QuoteBar from "./quote-bar";
 import { useShallow } from "zustand/react/shallow";
+import { QUOTE_MARK_FONT, useLoadedFont } from "@/utils/fonts";
 
 type Props = Quote & {
   // 사용자가 직접 작성한 명언이면 '나만의 명언' 라벨을 붙인다.
@@ -27,7 +28,8 @@ const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom }) => {
       currentFontSize: s.currentFontSize,
     }))
   );
-  const fontFamily = toFontFamily(currentFontId);
+  // 고른 폰트를 아직 불러오는 중이면 잠시 기본 폰트로 보여 준다.
+  const fontFamily = useLoadedFont(toFontFamily(currentFontId));
   // 카드 배경 이미지를 고르면 테마 색 대신 이미지 밝기에 맞춘 글씨 색을 쓴다.
   const background = getCardBackground(useCardBackgroundStore((s) => s.currentBackgroundId));
   const imageColors = background.tone ? CARD_TEXT_COLORS[background.tone] : undefined;
@@ -128,7 +130,7 @@ const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom }) => {
                   lineHeight: 52,
                   height: 30,
                   fontWeight: "900",
-                  fontFamily: "NanumMyeongjo_800ExtraBold",
+                  fontFamily: QUOTE_MARK_FONT,
                 }}
               >
                 {"“"}

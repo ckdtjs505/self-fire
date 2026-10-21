@@ -3,7 +3,7 @@
 // 앱 전체의 루트 레이아웃.
 // - Firebase Analytics·Crashlytics 초기화 / 화면 조회 기록
 // - AdMob 초기화 / 포그라운드 알림 핸들러 설정 / 오늘의 명언 알림 예약 갱신
-// - 구글 폰트 로드
+// - 필요한 구글 폰트만 로드 (그동안 스플래시를 유지)
 // - 강제 업데이트 체크
 // - 알림을 누르면 그 알림의 명언을 홈 화면에 보여 준다
 // - 화면을 그리다 에러가 나면 ErrorBoundary로 안내 화면을 보여 주고 Crashlytics에 기록
@@ -16,22 +16,23 @@ import StatusBar from "@/components/status-bar";
 import { toastConfig } from "@/components/simple-toast";
 import { notificationDataSchema } from "@/data/schemas";
 import { refreshDailyNotifications, usePendingQuoteStore } from "@/store/notification";
+import { fontSettingsLoaded, useFontStore } from "@/store/font-store";
 import { useThemeStore } from "@/store/theme";
 import { initAnalytics, trackEvent, trackScreen } from "@/utils/analytics";
-import { GowunDodum_400Regular } from "@expo-google-fonts/gowun-dodum";
-import { Jua_400Regular } from "@expo-google-fonts/jua";
-import { NanumMyeongjo_400Regular, NanumMyeongjo_700Bold, NanumMyeongjo_800ExtraBold } from "@expo-google-fonts/nanum-myeongjo";
-import { NanumPenScript_400Regular } from "@expo-google-fonts/nanum-pen-script";
-import { NotoSansKR_400Regular, NotoSansKR_700Bold, NotoSansKR_900Black, useFonts } from "@expo-google-fonts/noto-sans-kr";
+import { loadStartupFonts } from "@/utils/fonts";
 import { ThemeProvider } from "@shopify/restyle";
 import * as Notifications from "expo-notifications";
 import { router, Stack, usePathname } from "expo-router";
-import { useEffect, useRef } from "react";
+import * as SplashScreen from "expo-splash-screen";
+import { useEffect, useRef, useState } from "react";
 import { AppState, Platform } from "react-native";
 import mobileAds from "react-native-google-mobile-ads";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import SpInAppUpdates, { IAUUpdateKind, StartUpdateOptions } from "sp-react-native-in-app-updates";
+
+// 폰트를 불러올 때까지 스플래시를 유지한다.
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // ── 분석·크래시 리포트 초기화 ─────────────────────────────────
 initAnalytics();
@@ -90,18 +91,17 @@ export default function RootLayout() {
   // 앱을 열게 한(또는 실행 중에 누른) 알림. 처음 실행할 때 누른 알림도 함께 받는다.
   const notificationResponse = Notifications.useLastNotificationResponse();
 
-  // 폰트 로드가 끝나기 전에는 아무것도 렌더링하지 않는다.
-  const [fontsLoaded] = useFonts({
-    NotoSansKR_400Regular,
-    NotoSansKR_700Bold,
-    NotoSansKR_900Black,
-    NanumMyeongjo_400Regular,
-    NanumMyeongjo_700Bold,
-    NanumMyeongjo_800ExtraBold,
-    GowunDodum_400Regular,
-    Jua_400Regular,
-    NanumPenScript_400Regular,
-  });
+  // 저장된 폰트 설정을 읽고, 따옴표 폰트와 고른 명언 폰트만 불러온다. 그전에는 스플래시를 유지한다.
+  // (나머지 명언 폰트는 고를 때 불러온다. utils/fonts.ts 참고)
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+  useEffect(() => {
+    fontSettingsLoaded
+      .then(() => loadStartupFonts(useFontStore.getState().currentFontId))
+      .finally(() => {
+        setFontsLoaded(true);
+        SplashScreen.hideAsync().catch(() => {});
+      });
+  }, []);
 
   // 화면 전환마다 screen_view를 기록한다.
   useEffect(() => {
