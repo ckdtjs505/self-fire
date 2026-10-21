@@ -1,0 +1,34 @@
+# PR과 main 푸시마다 lint·타입 검사·테스트를 돌린다.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # data/quotes.json은 저장소에 없다 (EAS 빌드 때 npm run update-quotes로 만든다).
+      # 검사에는 내용이 필요 없으므로 빈 목록으로 대신한다.
+      - name: Stub bundled quotes
+        run: test -f data/quotes.json || echo '[]' > data/quotes.json
+
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test -- --ci

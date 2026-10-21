@@ -6,10 +6,12 @@
 // - 구글 폰트 로드
 // - 강제 업데이트 체크
 // - 알림을 누르면 그 알림의 명언을 홈 화면에 보여 준다
+// - 화면을 그리다 에러가 나면 ErrorBoundary로 안내 화면을 보여 주고 Crashlytics에 기록
 // - 백그라운드에 한동안 있다가 복귀 시 메인 화면으로 이동
 // - SafeAreaProvider / ThemeProvider / Toast 등 전역 래퍼 제공
 // ─────────────────────────────────────────────────────────────
 
+import ErrorFallback from "@/components/error-fallback";
 import StatusBar from "@/components/status-bar";
 import { toastConfig } from "@/components/simple-toast";
 import { NotificationData, refreshDailyNotifications, usePendingQuoteStore } from "@/store/notification";
@@ -69,6 +71,9 @@ const checkForcedUpdate = () => {
     console.log("InAppUpdates Initialization failed:", e);
   }
 };
+
+// 화면을 그리다 에러가 나면 흰 화면 대신 안내 화면을 보여 준다. (Expo Router가 이 export를 찾아 쓴다)
+export { ErrorFallback as ErrorBoundary };
 
 // 이 시간 이상 백그라운드에 있다가 돌아오면 메인 화면으로 이동한다.
 const RETURN_TO_MAIN_AFTER_MS = 30 * 1000;
