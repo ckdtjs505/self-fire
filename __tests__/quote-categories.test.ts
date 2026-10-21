@@ -30,3 +30,15 @@ describe("matchesCategory", () => {
     expect(new Set(CATEGORIES.map((c) => c.id)).size).toBe(CATEGORIES.length);
   });
 });
+
+describe("matchesCategory — 서버 categories", () => {
+  it("categories가 있으면 키워드보다 우선한다", () => {
+    const quote = { id: "1", text: "성공은 끝이 아니다", author: "작가", categories: ["love"] };
+    expect(matchesCategory(quote, "love")).toBe(true);
+    expect(matchesCategory(quote, "success")).toBe(false);
+  });
+
+  it("categories가 null이면 키워드로 분류한다", () => {
+    expect(matchesCategory({ id: "1", text: "성공은 끝이 아니다", author: "작가", categories: null }, "success")).toBe(true);
+  });
+});

@@ -21,15 +21,19 @@ const OUT = path.join(__dirname, "..", "data", "quotes.json");
       id: String(Number(item.id)),
       text: String(item.text ?? "").trim(),
       author: String(item.author ?? "").trim(),
+      featured: item.featured,
+      categories: item.categories,
     }))
     .filter((q) => q.text && !seen.has(q.id) && seen.add(q.id))
     .sort((a, b) => Number(a.id) - Number(b.id));
   const quotes = cleanQuotes(raw);
 
   fs.writeFileSync(OUT, JSON.stringify(quotes));
+  const featured = quotes.filter((q) => q.featured).length;
   console.log(
-    `Wrote ${quotes.length} quotes (${raw.length - quotes.length} filtered) to ${path.relative(process.cwd(), OUT)}`
+    `Wrote ${quotes.length} quotes (${raw.length - quotes.length} filtered, ${featured} featured) to ${path.relative(process.cwd(), OUT)}`
   );
+  if (featured === 0) console.warn("No featured quotes: daily quote falls back to all quotes.");
 })().catch((e) => {
   console.error(e);
   process.exit(1);

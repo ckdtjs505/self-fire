@@ -11,9 +11,11 @@ export const quoteSchema = z.object({
   id: z.string(),
   text: z.string(),
   author: z.string(),
+  featured: z.boolean().optional(),
+  categories: z.array(z.string()).nullable().optional(),
 });
 
-// 명언 서버 응답. id는 숫자·문자열 모두 오고, text·author는 비어 있을 수 있다.
+// 명언 서버 응답. id는 숫자·문자열 모두 오고, text·author·featured·categories는 비어 있을 수 있다.
 export const quoteApiResponseSchema = z.object({
   status: z.literal("success"),
   data: z.array(
@@ -21,6 +23,9 @@ export const quoteApiResponseSchema = z.object({
       id: z.union([z.number(), z.string()]),
       text: z.unknown().optional(),
       author: z.unknown().optional(),
+      // 0/1·bool, 배열·쉼표 구분 문자열 모두 올 수 있다. 정리는 quote-cleaner.js에서 한다.
+      featured: z.unknown().optional(),
+      categories: z.unknown().optional(),
     })
   ),
 });

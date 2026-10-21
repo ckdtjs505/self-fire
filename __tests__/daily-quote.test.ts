@@ -1,4 +1,4 @@
-import { getAllModeCandidates } from "@/data/daily-quote";
+import { getAllModeCandidates, getDailyQuote, orderQuotesForDay } from "@/data/daily-quote";
 import { Quote } from "@/models";
 
 const q = (id: string, text: string): Quote => ({ id, text, author: "작가" });
@@ -32,5 +32,24 @@ describe("getAllModeCandidates — 관심 주제", () => {
   it("즐겨찾기한 명언은 빼되, 다 즐겨찾기했으면 그대로", () => {
     expect(ids(getAllModeCandidates(quotes, null, new Set(["1"]), ["success", "courage"]))).toEqual(["2"]);
     expect(ids(getAllModeCandidates(quotes, null, new Set(["1", "2"]), ["success", "courage"]))).toEqual(["1", "2"]);
+  });
+});
+
+describe("orderQuotesForDay — 대표 명언", () => {
+  const many: Quote[] = Array.from({ length: 30 }, (_, i) => ({ ...q(String(i + 1), `명언 ${i + 1}`), featured: i % 10 === 9 }));
+  const day = (d: number) => new Date(2026, 9, d);
+
+  it("오늘의 명언(맨 앞)은 항상 featured 명언이고, 나머지 순서는 유지된다", () => {
+    for (let d = 1; d <= 20; d++) {
+      const ordered = orderQuotesForDay(many, day(d));
+      expect(ordered[0].featured).toBe(true);
+      expect(getDailyQuote(many, day(d))).toBe(ordered[0]);
+      expect(ids(ordered).sort()).toEqual(ids(many).sort());
+    }
+  });
+
+  it("featured 명언이 없으면 섞인 순서 그대로", () => {
+    const plain = many.map(({ featured, ...rest }) => rest);
+    expect(getDailyQuote(plain, day(1))).toBeDefined();
   });
 });

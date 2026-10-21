@@ -35,6 +35,9 @@ export const fetchQuotesSince = async (sinceId: number, limit: number): Promise<
       id: String(item.id),
       text: String(item.text ?? "").trim(),
       author: String(item.author ?? "").trim(),
+      // featured·categories는 cleanQuotes에서 정리한다.
+      featured: item.featured as Quote["featured"],
+      categories: item.categories as Quote["categories"],
     }));
   } finally {
     clearTimeout(timer);

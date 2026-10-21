@@ -6,6 +6,7 @@
 //   - 작가 이름 표기 통일
 //   - 명언으로 보기 어려운 항목 제외 (혐오·성적 표현, 독재자·현대 정치인 발언, 개그 멘트 등)
 //   - 같은 문장 중복 제거
+//   - 서버 메타데이터(featured, categories) 정리: 값이 있을 때만 남긴다. (번들 크기)
 //
 // scripts/update-quotes.js(Node)와 data/quotes.tsx(앱) 양쪽에서 쓰므로 CommonJS로 둔다.
 // ─────────────────────────────────────────────────────────────
@@ -111,12 +112,23 @@ const tidy = (s) =>
 // "용기(勇氣)" → "용기" (호환용 한자 U+F900~ 포함)
 const stripHanja = (s) => s.replace(/\s*\([㐀-䶿一-鿿豈-﫿\s]+\)/g, "");
 
+// featured: true/1/"1"만 대표 명언으로 본다.
+const parseFeatured = (value) => value === true || value === 1 || value === "1";
+
+// categories: 배열 또는 쉼표 구분 문자열 → 카테고리 id 배열. 없으면 null (키워드 분류)
+const parseCategories = (value) => {
+  if (value == null) return null;
+  const list = Array.isArray(value) ? value : String(value).split(",");
+  const ids = list.map((v) => String(v).trim()).filter(Boolean);
+  return ids.length > 0 ? ids : null;
+};
+
 const AUTHOR_SUFFIX = /\s+[-–—]\s*([^.!?]{1,20})$/;
 
 /**
  * 명언 하나를 다듬는다. 제외 대상이면 null.
- * @param {{ id: string, text: string, author: string }} quote
- * @returns {{ id: string, text: string, author: string } | null}
+ * @param {{ id: string, text: string, author: string, featured?: unknown, categories?: unknown }} quote
+ * @returns {{ id: string, text: string, author: string, featured?: true, categories?: string[] } | null}
  */
 const cleanQuote = (quote) => {
   const id = String(quote.id);
@@ -151,7 +163,11 @@ const cleanQuote = (quote) => {
   if (BLOCKED_AUTHORS.has(author)) return null;
   if (BLOCKED_TEXT_PATTERNS.some((re) => re.test(text))) return null;
 
-  return { id, text, author };
+  const result = { id, text, author };
+  if (parseFeatured(quote.featured)) result.featured = true;
+  const categories = parseCategories(quote.categories);
+  if (categories) result.categories = categories;
+  return result;
 };
 
 // 띄어쓰기·문장부호만 다른 문장은 같은 명언으로 본다.
