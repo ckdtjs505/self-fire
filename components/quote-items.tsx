@@ -167,11 +167,11 @@ const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom }) => {
               {author}
             </Text>
 
-            {/* 저장·공유 이미지에 남는 워터마크 */}
-            <Box flexDirection="row" alignItems="center" style={{ marginTop: 22, gap: 4, opacity: imageColors ? 0.6 : 0.4 }}>
-              <Ionicons name="flame" size={11} color={mutedColor} />
-              <Text fontSize={10} fontWeight="800" style={{ letterSpacing: 2.5, color: mutedColor }}>
-                SELF FIRE
+            {/* 저장·공유 이미지에 남는 워터마크. 카드를 본 사람이 스토어에서 그대로 검색할 수 있게 한글 앱 이름을 쓴다 */}
+            <Box flexDirection="row" alignItems="center" style={{ marginTop: 22, gap: 4, opacity: imageColors ? 0.8 : 0.65 }}>
+              <Ionicons name="flame" size={13} color={mutedColor} />
+              <Text fontSize={12} fontWeight="800" style={{ letterSpacing: 1, color: mutedColor }}>
+                셀프파이어
               </Text>
             </Box>
           </ViewShot>
