@@ -19,7 +19,6 @@ import { useEffect } from "react";
 import { useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector, NativeViewGestureHandler, Pressable } from "react-native-gesture-handler";
 import Animated, {
-  cancelAnimation,
   interpolate,
   runOnJS,
   useAnimatedStyle,
@@ -85,7 +84,11 @@ const QuoteSwiper: React.FC<Props> = ({
     const nudge = () =>
       withSequence(withTiming(HINT_NUDGE_X, { duration: 380 }), withSpring(0, NUDGE_SPRING));
     slideX.value = withDelay(1500, withSequence(nudge(), withDelay(700, nudge())));
-    return () => cancelAnimation(slideX);
+    // 첫 스와이프로 힌트가 꺼질 때는 이미 새 카드의 진입 스프링이 돌고 있다.
+    // cancelAnimation으로 멈추면 카드가 옆으로 밀린 채 굳으므로, 남은 힌트만 지우고 가운데로 되돌린다.
+    return () => {
+      slideX.value = withSpring(0, ENTER_SPRING);
+    };
   }, [hintActive, reduceMotion, slideX]);
 
   // 새 카드를 fromX 위치에서 가운데로 슬라이드 + 페이드 인
