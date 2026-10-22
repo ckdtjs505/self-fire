@@ -2,7 +2,7 @@
 // app/settings.tsx
 // 앱 설정 화면.
 //   - 알림: 오늘의 명언 알림 ON/OFF, 하루 알림 시각(최대 3번, 시스템 시간 선택기), 불씨가 꺼지기 전 저녁 알림 ON/OFF
-//   - 서비스: 관심 주제, 나만의 명언 관리, 홈 화면 위젯(Android), 잠금 해제 시 자동 실행(Android),
+//   - 서비스: 관심 주제, 나만의 명언 관리, 홈 화면 위젯 추가·꾸미기(Android), 잠금 해제 시 자동 실행(Android),
 //             자주 묻는 질문, 응원의 리뷰
 //             (광고 제거 인앱 결제는 사업자 등록 전까지 미제공)
 //   - 앱 정보: 개인정보 처리방침, 서비스 이용약관, 버전 정보
@@ -15,6 +15,7 @@ import FeatherIcon from "@/components/icon";
 import InterestsSheet from "@/components/interests-sheet";
 import TimePickerButton from "@/components/time-picker-button";
 import WidgetSheet from "@/components/widget-sheet";
+import WidgetStyleSheet from "@/components/widget-style-sheet";
 import { PickerSheetHandle } from "@/components/picker-sheet";
 import { CATEGORIES } from "@/data/quote-categories";
 import { useAutoLaunch } from "@/hooks/useAutoLaunch";
@@ -69,6 +70,7 @@ function SettingContent() {
   const interestIds = useCategoryStore((s) => s.interestIds);
   const interestsSheetRef = useRef<PickerSheetHandle>(null);
   const widgetSheetRef = useRef<PickerSheetHandle>(null);
+  const widgetStyleSheetRef = useRef<PickerSheetHandle>(null);
   const interestsSummary =
     interestIds.length === 0
       ? "모든 주제"
@@ -158,6 +160,8 @@ function SettingContent() {
               <>
                 <SettingItem icon="grid" title="홈 화면 위젯 추가" onPress={() => widgetSheetRef.current?.open()} />
                 <SettingDivider />
+                <SettingItem icon="droplet" title="위젯 꾸미기" onPress={() => widgetStyleSheetRef.current?.open()} />
+                <SettingDivider />
               </>
             )}
 
@@ -204,6 +208,7 @@ function SettingContent() {
       </Box>
       <InterestsSheet ref={interestsSheetRef} />
       <WidgetSheet ref={widgetSheetRef} />
+      <WidgetStyleSheet ref={widgetStyleSheetRef} />
     </SafeAreaView>
   );
 }
