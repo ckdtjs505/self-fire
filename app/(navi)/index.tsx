@@ -31,6 +31,7 @@ import QuoteItem from "@/components/quote-items";
 import QuoteSwiper from "@/components/quote-swiper";
 import StreakBadge from "@/components/streak-badge";
 import StreakSheet from "@/components/streak-sheet";
+import TodaySteps from "@/components/today-steps";
 import { useBackgroundRefresh } from "@/hooks/useBackgroundRefresh";
 import { useDailyIgnite } from "@/hooks/useDailyIgnite";
 import { useDefaultQuotes } from "@/hooks/useDefaultQuotes";
@@ -48,7 +49,6 @@ import { isDeedDone } from "@/utils/deed";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { BackHandler, Pressable } from "react-native";
-import Toast from "react-native-toast-message";
 import { useShallow } from "zustand/react/shallow";
 
 // 헤더 아래 카테고리 탭 줄의 높이
@@ -88,8 +88,7 @@ export default function Index() {
     onNext: markSwiped,
     todayQuote,
   });
-  const { currentQuote, filterMode } = pager;
-  const isFavoritesMode = filterMode === "favorites";
+  const { currentQuote } = pager;
 
   // 처음 설치한 사용자에게만 명언보다 먼저 주제 고르기를 보여 준다.
   const showOnboarding = isFirstVisit && pager.isCategoryHydrated && !hasPickedInterests;
@@ -147,11 +146,8 @@ export default function Index() {
     const isChange = !!todayQuote;
     if (!pickToday(picked)) return;
     setIsBrowsing(false);
+    // 화면이 오늘 따르는 문장으로 바로 바뀌므로 토스트는 띄우지 않는다.
     trackEvent("today_quote_pick", { change: isChange });
-    Toast.show({
-      type: "success",
-      text1: isChange ? "오늘 따를 문장을 바꿨어요" : "오늘 이 문장대로 살아 봐요 🔥",
-    });
   };
 
   // 오늘 할 일을 해냈다. 완료로 표시하면 점화 화면이 떠서 꾹 눌러 불씨를 지핀다.
@@ -191,6 +187,12 @@ export default function Index() {
             <StreakBadge streak={currentStreak} onPress={() => streakSheetRef.current?.open()} />
           </Box>
         </Box>
+
+        {/* 오늘의 단계: 문장 고르기 → 할 일 정하기 → 해내고 완료 → 불씨. 지금 어디쯤인지와 불씨를 켜는 법을 알려 준다.
+            오늘 따르는 문장 화면과, 아직 문장을 고르기 전(새날)에 보여 준다. 바꾸려고 넘겨 보는 중에는 숨긴다. */}
+        {(isFocused || !todayQuote) && (
+          <TodaySteps picked={!!todayQuote} planned={!!todayDeed} completed={isTodayDone} ignited={isTodayDone && isIgnited} />
+        )}
 
         {isFocused ? (
           <>
@@ -253,13 +255,10 @@ export default function Index() {
             <QuoteSwiper
               quote={currentQuote}
               isCustom={!!currentQuote && customQuotes.some((q) => q.id === currentQuote.id)}
-              // 저장한 문장은 다시 보려고 모아 둔 목록이라 '새 명언으로' 버튼을 띄우지 않는다.
-              isRevisit={!isFavoritesMode && pager.currentIndex < pager.maxIndex}
               canGoPrev={pager.canGoPrev}
               canGoNext={pager.canGoNext}
               onNext={pager.showNextQuote}
               onPrev={pager.showPrevQuote}
-              onJumpToLatest={pager.showLatestQuote}
               showSwipeHint={needsHint && !showIgnite && !showOnboarding}
               // 이 문장대로 한 일 한 줄 (남겼으면 오늘의 한 줄): 읽은 문장 바로 아래에 붙여 둔다
               isTodaysQuote={!!currentQuote && currentQuote.id === todayQuote?.id}

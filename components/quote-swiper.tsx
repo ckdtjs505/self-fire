@@ -4,20 +4,18 @@
 //   - 드래그 중: 카드가 손가락을 살짝 따라오며 옅어짐
 //   - 임계값 이상 스와이프: 새 카드가 반대편에서 슬라이드 + 페이드 인
 //   - 임계값 미달: 스프링으로 원위치
-//   - 이전에 본 명언을 보는 중이면 카드 아래에 '새 명언으로' 버튼을 띄워 마지막 위치로 바로 돌아간다
 //   - 아직 한 번도 넘겨 보지 않은 사용자에게는 카드를 왼쪽으로 살짝 밀었다 놓으며 넘길 수 있다고 알려 준다
 //   - 기기의 '동작 줄이기'가 켜져 있으면 슬라이드·밀기 힌트 없이 페이드로만 바꾼다
 // Gesture Handler의 Pan 제스처 + Reanimated라 Drawer 제스처와 충돌하지 않고 UI 스레드에서 움직인다.
 // ─────────────────────────────────────────────────────────────
 
 import { Box, Text } from "@/atom";
-import FeatherIcon from "@/components/icon";
 import QuoteItem from "@/components/quote-items";
 import { useReduceMotion } from "@/hooks/useReduceMotion";
 import { Quote } from "@/models";
 import { useEffect } from "react";
 import { useWindowDimensions } from "react-native";
-import { Gesture, GestureDetector, NativeViewGestureHandler, Pressable } from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   interpolate,
   runOnJS,
@@ -31,8 +29,8 @@ import Animated, {
 
 // 다음/이전으로 넘어가기 위한 최소 이동 거리(px)와 속도(px/s)
 const SWIPE_VELOCITY_THRESHOLD = 500;
-// 카드 아래 '새 명언으로' 버튼 자리의 높이
-const REVISIT_SLOT_HEIGHT = 58;
+// 카드 아래 넘기기 힌트 자리의 높이
+const HINT_SLOT_HEIGHT = 40;
 
 // 예전 Animated.spring(tension/friction)과 같은 느낌이 나도록 맞춘 스프링 값
 const ENTER_SPRING = { stiffness: 339, damping: 37, mass: 1 }; // tension 70, friction 12
@@ -44,15 +42,11 @@ type Props = {
   isCustom: boolean;
   // 오늘의 문장으로 정한 명언이면 true
   isTodaysQuote?: boolean;
-  // 이미 지나온 명언을 다시 보고 있으면 true
-  isRevisit: boolean;
   canGoPrev: boolean;
   // 넘길 다음 명언이 없으면 (예: 내 명언의 마지막 명언) false
   canGoNext: boolean;
   onNext: () => void;
   onPrev: () => void;
-  // 가장 멀리 본 명언으로 돌아간다
-  onJumpToLatest: () => void;
   // 아직 한 번도 넘겨 보지 않았으면 true (넘기기 힌트)
   showSwipeHint?: boolean;
   // 카드 바로 아래에 붙여 함께 넘어가는 자리 (홈: 이 문장대로 한 일 한 줄)
@@ -66,12 +60,10 @@ const QuoteSwiper: React.FC<Props> = ({
   quote,
   isCustom,
   isTodaysQuote = false,
-  isRevisit,
   canGoPrev,
   canGoNext,
   onNext,
   onPrev,
-  onJumpToLatest,
   showSwipeHint = false,
   cardFooter,
 }) => {
@@ -156,42 +148,12 @@ const QuoteSwiper: React.FC<Props> = ({
           )}
         </Box>
 
-        {/* 이전에 본 명언을 보는 중이면 '새 명언으로' 버튼을 띄운다.
-            버튼이 생겨도 카드가 움직이지 않도록 자리를 항상 비워 둔다. */}
-        <Box height={REVISIT_SLOT_HEIGHT} alignItems="center" justifyContent="center">
-          {!isRevisit && hintActive && (
+        {/* 아직 한 번도 넘겨 보지 않았으면 넘기기 힌트. 힌트가 사라져도 카드가 움직이지 않도록 자리를 비워 둔다. */}
+        <Box height={HINT_SLOT_HEIGHT} alignItems="center" justifyContent="center">
+          {hintActive && (
             <Text variant="caption">
               ← 넘겨서 다음 명언 보기
             </Text>
-          )}
-          {isRevisit && (
-            // 부모 Pan 제스처가 탭을 가로채지 않도록 감싼다 (quote-bar.tsx 참고)
-            <NativeViewGestureHandler>
-              <Pressable
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="새 명언으로"
-                accessibilityHint="가장 최근에 본 명언으로 돌아갑니다"
-                onPress={() => {
-                  onJumpToLatest();
-                  playEnter(ENTER_OFFSET);
-                }}
-              >
-                <Box
-                  flexDirection="row"
-                  alignItems="center"
-                  bg="$primary"
-                  height={38}
-                  borderRadius="pill"
-                  style={{ gap: 4, paddingLeft: 16, paddingRight: 12 }}
-                >
-                  <Text variant="label" color="$onPrimary">
-                    새 명언으로
-                  </Text>
-                  <FeatherIcon name="chevron-right" size={15} color="$onPrimary" />
-                </Box>
-              </Pressable>
-            </NativeViewGestureHandler>
           )}
         </Box>
       </Animated.View>

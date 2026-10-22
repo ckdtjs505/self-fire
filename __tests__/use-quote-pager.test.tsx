@@ -54,11 +54,8 @@ describe("useQuotePager", () => {
 
     act(() => result.current.showPrevQuote());
     expect(result.current.currentQuote).toEqual(first);
-    // 앞으로 돌아왔으므로 '새 명언으로' 대상(maxIndex)은 그대로
+    // 앞으로 돌아와도 가장 멀리 본 위치(maxIndex)는 그대로
     expect(result.current.maxIndex).toBe(1);
-
-    act(() => result.current.showLatestQuote());
-    expect(result.current.currentIndex).toBe(1);
   });
 
   it("비어 있는 저장한 문장을 고르면 안내만 하고 모드를 바꾸지 않는다", () => {
