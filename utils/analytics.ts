@@ -62,6 +62,7 @@ export type AnalyticsEvent =
   | "widget_prompt_dismiss" // 위젯 추가 제안을 닫음 (streak)
   | "widget_pin_request" // 위젯 추가 창 요청 (widget, source, accepted)
   | "widget_added" // 홈 화면에 위젯이 놓임 (widget)
+  | "review_prompt_requested" // 7일 이상 이어 간 날 인앱 리뷰 창을 요청함 (streak)
 
 export const trackEvent = (name: AnalyticsEvent, params?: EventParams) => {
   safely(() => logEvent(getAnalytics(), name as string, params));

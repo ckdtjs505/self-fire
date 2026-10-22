@@ -5,11 +5,13 @@
 //   - 마일스톤에 처음 닿았으면 새로 열린 보상
 //   - 알림이 꺼져 있으면 (처음 한 번만) 매일 알림 받기를 제안한다
 //   - 불씨를 3일·7일 이어 간 날에는 홈 화면 위젯 추가를 제안한다 (Android, 위젯을 아직 놓지 않았을 때)
+//   - 제안 없이 '확인'으로 닫을 때, 7일 이상 이어 왔으면 인앱 리뷰를 한 번 요청한다 (services/store-review.ts)
 // ─────────────────────────────────────────────────────────────
 
 import { Box, Text } from "@/atom";
 import { getMilestoneRewardNames } from "@/data/streak-rewards";
 import { IgniteResult } from "@/hooks/useDailyIgnite";
+import { maybeRequestReview } from "@/services/store-review";
 import { useNotificationStore } from "@/store/notification";
 import { useWidgetPromptStore } from "@/store/widget-prompt";
 import { trackEvent } from "@/utils/analytics";
@@ -197,7 +199,13 @@ const IgniteResultSheet = forwardRef<IgniteResultSheetHandle>(function IgniteRes
         </Box>
       ) : (
         <Box mt="xl">
-          <PrimaryButton label="확인" onPress={close} />
+          <PrimaryButton
+            label="확인"
+            onPress={() => {
+              close();
+              maybeRequestReview(streak);
+            }}
+          />
         </Box>
       )}
     </PickerSheet>
