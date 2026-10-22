@@ -1,8 +1,8 @@
 // ─────────────────────────────────────────────────────────────
 // sidebar.tsx — 홈 화면 왼쪽 서랍
 //   - 메뉴: 저장한 문장 · 나만의 명언 · 설정
-//   - 오늘 따르는 문장: 오늘 고른 문장과 오늘의 한 줄 (누르면 홈에서 그 문장을 연다)
-//   - 따라 산 날들: 지난날 따른 문장과 그날의 한 줄 몇 개 (전체는 나의 모닥불 시트에서)
+//   - 오늘 따르는 문장: 오늘 고른 문장과 오늘 할 일·완료 여부 (누르면 홈에서 그 문장을 연다)
+//   - 따라 산 날들: 지난날 따른 문장과 그날 해낸 일 몇 개 (완료한 날만, 전체는 나의 모닥불 시트에서)
 // 저장한 문장은 다시 보려고 모아 두는 책갈피라 메뉴로만 두고,
 // 서랍에는 이 앱의 핵심인 '문장대로 산 기록'을 보여 준다.
 // ─────────────────────────────────────────────────────────────
@@ -12,7 +12,7 @@ import { Quote } from "@/models";
 import { useDeedStore, useTodayDeed, useTodayQuote } from "@/store/deed";
 import { usePendingQuoteStore } from "@/store/notification";
 import { toDateString } from "@/utils/date";
-import { Deed, recentDeeds } from "@/utils/deed";
+import { Deed, isDeedDone, recentDeeds } from "@/utils/deed";
 import { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { Href, useRouter } from "expo-router";
 import { Image, ScrollView } from "react-native";
@@ -47,7 +47,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, title, onPress }) => (
   </Pressable>
 );
 
-// 서랍에서 보여 줄 지난 한 줄 수 (전체는 나의 모닥불 시트에서)
+// 서랍에서 보여 줄 지난날 해낸 일 수 (전체는 나의 모닥불 시트에서)
 const RECENT_PAST_DEEDS = 3;
 
 // "10/21"
@@ -56,7 +56,7 @@ const shortDate = (date: string) => {
   return `${m}/${d}`;
 };
 
-// 오늘 따르는 문장 카드. 한 줄을 남겼으면 그 한 줄도 함께 보여 준다.
+// 오늘 따르는 문장 카드. 할 일을 정했으면 할 일과 완료 여부도 함께 보여 준다.
 const TodayQuoteCard: React.FC<{ quote: Pick<Quote, "text" | "author">; deed: Deed | null; onPress: () => void }> = ({
   quote,
   deed,
@@ -80,9 +80,13 @@ const TodayQuoteCard: React.FC<{ quote: Pick<Quote, "text" | "author">; deed: De
           </Text>
         )}
         <Box flexDirection="row" alignItems="center" marginTop="md" style={{ gap: 6 }}>
-          <Ionicon name={deed ? "flame" : "flame-outline"} size={14} color={deed ? "$flame" : "$muted"} />
+          <Ionicon
+            name={!deed ? "flame-outline" : isDeedDone(deed) ? "checkmark-circle" : "flame"}
+            size={14}
+            color={deed ? "$flame" : "$muted"}
+          />
           <Text fontSize={13} fontWeight={deed ? "700" : "400"} color={deed ? "$foreground" : "$muted"} numberOfLines={2} style={{ flex: 1 }}>
-            {deed ? deed.text : "아직 오늘의 한 줄을 남기지 않았어요"}
+            {!deed ? "아직 오늘 할 일을 정하지 않았어요" : isDeedDone(deed) ? `해냈어요 · ${deed.text}` : `할 일 · ${deed.text}`}
           </Text>
         </Box>
       </Box>
@@ -90,7 +94,7 @@ const TodayQuoteCard: React.FC<{ quote: Pick<Quote, "text" | "author">; deed: De
   </Pressable>
 );
 
-// 지난날 따른 문장 한 줄: 날짜 · 그날의 한 줄 · 따른 문장. 누르면 홈에서 그 문장을 연다.
+// 지난날 따른 문장: 날짜 · 그날 해낸 일 · 따른 문장. 누르면 홈에서 그 문장을 연다.
 const PastDeedRow: React.FC<{ deed: Deed; onPress: () => void }> = ({ deed, onPress }) => (
   <Pressable
     onPress={onPress}
@@ -124,7 +128,7 @@ const Sidebar = ({ navigation }: DrawerContentComponentProps) => {
   const deeds = useDeedStore((s) => s.deeds);
   const today = toDateString();
   const pastDeeds = recentDeeds(
-    deeds.filter((d) => d.date !== today),
+    deeds.filter((d) => d.date !== today && isDeedDone(d)),
     RECENT_PAST_DEEDS
   );
 

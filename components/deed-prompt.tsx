@@ -1,18 +1,19 @@
 // ─────────────────────────────────────────────────────────────
-// deed-prompt.tsx — 명언 카드 바로 아래 '오늘 따르는 문장 · 오늘의 한 줄' 자리
-// 하루 흐름: 명언을 넘겨 보다가 오늘 이 문장대로 살기로 정한다 → 그 문장대로 산 일을 한 줄 남긴다
-// 고르기 → 한 줄 → 불씨로 이어지는 흐름이라 모두 불씨 색을 쓴다. (저장은 회색 책갈피로 따로 둔다)
+// deed-prompt.tsx — 명언 카드 바로 아래 '오늘 따르는 문장 · 오늘 할 일' 자리
+// 하루 흐름: 오늘 이 문장대로 살기로 정한다 → 그 문장대로 할 일 한 가지를 정한다 → 해내면 완료 → 불씨
+// 고르기 → 할 일 → 완료 → 불씨로 이어지는 흐름이라 모두 불씨 색을 쓴다. (저장은 회색 책갈피로 따로 둔다)
 //   - 아직 정하지 않았으면: 오늘 이 문장대로 살기 버튼
-//   - 정한 문장 아래에서는: 이 문장대로 한 일을 남기는 버튼
-//   - 다른 문장 아래에서는: 이 문장으로 바꾸는 버튼
-//     한 줄을 남긴 뒤라면 바로 바꾸지 않고, 기존 한 줄을 채운 한 줄 쓰기 화면을 열어 새 문장에 맞게 다듬게 한다
-//   - 한 줄을 남긴 문장 아래에서는: 오늘 남긴 한 줄 (누르면 고친다)
+//   - 정한 문장 아래에서는: 오늘 이 문장대로 할 일 정하기 버튼
+//   - 할 일을 정했으면: 할 일 카드 (크게, 자르지 않고) + 완료 버튼. 할 일을 누르면 고친다
+//   - 완료했으면: 오늘 해낸 일 카드 (그날 기록으로 굳어 고치지 않는다)
+//   - 다른 문장 아래에서는: 이 문장으로 바꾸는 버튼 (완료 전까지만)
+//     할 일을 정한 뒤라면 바로 바꾸지 않고, 기존 할 일을 채운 할 일 쓰기 화면을 열어 새 문장에 맞게 다듬게 한다
 // 스와이프 영역(quote-swiper.tsx) 안에 놓이므로 Pressable은 react-native-gesture-handler 것을 쓴다.
 // ─────────────────────────────────────────────────────────────
 
 import { Box, Text } from "@/atom";
 import { Quote } from "@/models";
-import { Deed } from "@/utils/deed";
+import { Deed, isDeedDone } from "@/utils/deed";
 import { tapHaptic } from "@/utils/haptics";
 import { useRouter } from "expo-router";
 import { ComponentProps } from "react";
@@ -22,15 +23,19 @@ import FeatherIcon, { Ionicon } from "./icon";
 type Props = {
   quote: Quote | null;
   todayDeed: Deed | null;
-  // 오늘 따르는 문장 (한 줄이 따른 문장 또는 오늘 고른 문장)
+  // 오늘 따르는 문장 (할 일이 따른 문장 또는 오늘 고른 문장)
   todayQuote: Pick<Quote, "id" | "text" | "author"> | null;
   // 지금 보는 문장을 오늘 따를 문장으로 정하거나 바꾼다
   onPick: (quote: Quote) => void;
+  // 오늘 할 일을 해냈다 (완료 → 불씨 점화)
+  onComplete: () => void;
+  // 화면 폭 전체를 쓰는 자리이면 true (오늘 따르는 문장 화면). 할 일을 더 크게, 버튼 문구를 온전히 보여 준다.
+  wide?: boolean;
 };
 
 type PillButtonProps = {
   icon: ComponentProps<typeof Ionicon>["name"];
-  // 저장·공유 버튼과 한 줄에 놓여 폭이 좁으므로 짧게 쓴다. (접근성 라벨은 전체 문구)
+  // 저장·공유 버튼과 한 줄에 놓이면 폭이 좁으므로 짧게 쓴다. (접근성 라벨은 전체 문구)
   label: string;
   accessibilityLabel: string;
   accessibilityHint: string;
@@ -67,7 +72,81 @@ const PillButton: React.FC<PillButtonProps> = ({ icon, label, accessibilityLabel
   </Pressable>
 );
 
-const DeedPrompt: React.FC<Props> = ({ quote, todayDeed, todayQuote, onPick }) => {
+// 오늘 할 일 카드. 이 앱의 주인공이라 자르지 않고 전부 보여 주고, 불씨 색 테두리로 명언 다음에 바로 눈이 가게 한다.
+// 완료 전: 할 일을 누르면 고치고, 아래 완료 버튼으로 해냈다고 표시한다.
+// 완료 후: 오늘 해낸 일로 굳는다.
+const TodayTaskCard: React.FC<{ deed: Deed; wide: boolean; onEdit: () => void; onComplete: () => void }> = ({
+  deed,
+  wide,
+  onEdit,
+  onComplete,
+}) => {
+  const done = isDeedDone(deed);
+  const taskText = (
+    <Text fontSize={wide ? 21 : 16} lineHeight={wide ? 30 : 23} fontWeight="800">
+      {deed.text}
+    </Text>
+  );
+
+  return (
+    <Box bg="$surface" borderWidth={1.5} borderColor="$flame" borderRadius="lg" px="lg" py="md" style={{ gap: 10 }}>
+      {done ? (
+        <Box accessible accessibilityLabel={`오늘 이 문장대로 해낸 일: ${deed.text}`} style={{ gap: 6 }}>
+          <Box flexDirection="row" alignItems="center" style={{ gap: 6 }}>
+            <Ionicon name="checkmark-circle" size={17} color="$flame" />
+            <Text fontSize={13} fontWeight="800" color="$muted">
+              오늘 이 문장대로 해낸 일
+            </Text>
+          </Box>
+          {taskText}
+        </Box>
+      ) : (
+        <>
+          <Pressable
+            onPress={onEdit}
+            accessibilityRole="button"
+            accessibilityLabel={`오늘 이 문장대로 할 일: ${deed.text}`}
+            accessibilityHint="눌러서 고칠 수 있어요"
+            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, gap: 6 })}
+          >
+            <Box flexDirection="row" alignItems="center" style={{ gap: 6 }}>
+              <Ionicon name="flame" size={16} color="$flame" />
+              <Text fontSize={13} fontWeight="800" color="$muted" style={{ flex: 1 }}>
+                오늘 이 문장대로 할 일
+              </Text>
+              <FeatherIcon name="edit-2" size={15} color="$muted" />
+            </Box>
+            {taskText}
+          </Pressable>
+          <Pressable
+            onPress={onComplete}
+            accessibilityRole="button"
+            accessibilityLabel="오늘 할 일 완료"
+            accessibilityHint="해냈다면 눌러서 오늘의 불씨를 지펴요"
+            style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+          >
+            <Box
+              flexDirection="row"
+              alignItems="center"
+              justifyContent="center"
+              bg="$flame"
+              height={48}
+              borderRadius="pill"
+              gap="s"
+            >
+              <Ionicon name="checkmark" size={19} color="$onPrimary" />
+              <Text color="$onPrimary" fontSize={16} fontWeight="800">
+                완료
+              </Text>
+            </Box>
+          </Pressable>
+        </>
+      )}
+    </Box>
+  );
+};
+
+const DeedPrompt: React.FC<Props> = ({ quote, todayDeed, todayQuote, onPick, onComplete, wide = false }) => {
   const router = useRouter();
 
   const open = () => {
@@ -79,51 +158,26 @@ const DeedPrompt: React.FC<Props> = ({ quote, todayDeed, todayQuote, onPick }) =
     );
   };
 
-  // 오늘 따르는 문장 아래에서는 오늘 남긴 한 줄 (누르면 고친다)
+  const complete = () => {
+    tapHaptic();
+    onComplete();
+  };
+
+  // 오늘 따르는 문장 아래에서는 오늘 할 일
   if (todayDeed && (!quote || todayDeed.quote.id === quote.id)) {
-    return (
-      <Pressable
-        onPress={open}
-        accessibilityRole="button"
-        accessibilityLabel={`오늘의 한 줄: ${todayDeed.text}`}
-        accessibilityHint="눌러서 고칠 수 있어요"
-        style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1, width: "100%" })}
-      >
-        <Box
-          flexDirection="row"
-          alignItems="center"
-          bg="$surface"
-          borderWidth={1}
-          borderColor="$border"
-          borderRadius="lg"
-          px="md"
-          py="md"
-          gap="s"
-        >
-          <Ionicon name="flame" size={18} color="$flame" />
-          <Box flex={1} gap="xs">
-            <Text variant="micro" color="$muted" numberOfLines={1}>
-              오늘 이 문장대로 한 일
-            </Text>
-            <Text fontSize={15} fontWeight="700" numberOfLines={2}>
-              {todayDeed.text}
-            </Text>
-          </Box>
-          <FeatherIcon name="edit-2" size={15} color="$muted" />
-        </Box>
-      </Pressable>
-    );
+    return <TodayTaskCard deed={todayDeed} wide={wide} onEdit={open} onComplete={complete} />;
   }
 
-  if (!quote) return null;
+  // 완료한 날은 문장을 바꾸지 않는다.
+  if (!quote || (todayDeed && isDeedDone(todayDeed))) return null;
 
   const pick = () => {
     tapHaptic();
     onPick(quote);
   };
 
-  // 한 줄을 남긴 뒤에 바꾸면 이 문장과 기존 한 줄로 한 줄 쓰기 화면을 연다. (app/deed.tsx의 문장 바꾸기)
-  // 그 화면에서 한 줄을 남겨야 바뀌고, 닫으면 아무것도 바뀌지 않는다.
+  // 할 일을 정한 뒤에 바꾸면 이 문장과 기존 할 일로 할 일 쓰기 화면을 연다. (app/deed.tsx의 문장 바꾸기)
+  // 그 화면에서 할 일을 남겨야 바뀌고, 닫으면 아무것도 바뀌지 않는다.
   const changeWithDeed = () => {
     tapHaptic();
     router.push({ pathname: "/deed", params: { quoteId: quote.id, text: quote.text, author: quote.author } });
@@ -133,9 +187,9 @@ const DeedPrompt: React.FC<Props> = ({ quote, todayDeed, todayQuote, onPick }) =
     return (
       <PillButton
         icon="flame"
-        label="문장대로 한 일 남기기"
-        accessibilityLabel="이 문장대로 한 일 남기기"
-        accessibilityHint="한 줄을 남기면 오늘의 불씨를 지필 수 있어요"
+        label={wide ? "오늘 이 문장대로 할 일 정하기" : "할 일 정하기"}
+        accessibilityLabel="오늘 이 문장대로 할 일 정하기"
+        accessibilityHint="할 일 한 가지를 정하고, 해내면 완료를 눌러 오늘의 불씨를 지펴요"
         filled
         onPress={open}
       />
@@ -160,7 +214,7 @@ const DeedPrompt: React.FC<Props> = ({ quote, todayDeed, todayQuote, onPick }) =
       icon="flame"
       label="오늘 이 문장대로 살기"
       accessibilityLabel="오늘 이 문장대로 살기"
-      accessibilityHint="정한 문장대로 산 일을 오늘 안에 한 줄 남겨요"
+      accessibilityHint="이 문장대로 할 일 한 가지를 정하고 하루를 지내요"
       filled
       onPress={pick}
     />

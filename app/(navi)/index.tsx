@@ -8,8 +8,9 @@
 //   - 테마/폰트 변경 바텀시트, 스트릭 배지를 누르면 나의 모닥불 시트
 //   - AdMob 배너 광고 (광고 제거 미구매 시)
 //   - 첫 실행 주제 고르기 → 명언을 바로 보여 준다 (명언은 들어오는 문)
-//   - 카드 바로 아래 '오늘 이 문장대로 살기' → 정한 문장 아래 '문장대로 한 일 남기기' → 한 줄 작성(app/deed.tsx) → 그 한 줄로 불씨 점화(Hold to Ignite)
-//     → 점화 완료 시트 (모닥불 + 첫 알림 제안). 불씨는 명언을 연 날이 아니라 문장대로 산 날에 켜진다.
+//   - 카드 바로 아래 '오늘 이 문장대로 살기' → 정한 문장 아래 '오늘 이 문장대로 할 일 정하기' → 할 일 한 가지 작성(app/deed.tsx)
+//     → 하루를 지내며 해내면 '완료' → 불씨 점화(Hold to Ignite) → 점화 완료 시트 (모닥불 + 첫 알림 제안).
+//     불씨는 명언을 연 날도, 할 일을 정한 날도 아니라 문장대로 해낸 날에 켜진다.
 //   - 오늘 따르는 문장을 정하면 홈은 그 문장 하나에 머문다. (보면서 계속 도전받도록)
 //     다른 명언은 '다른 문장으로 바꾸기'를 누르거나, 저장한 문장·지난 문장을 열었을 때만 넘겨 본다.
 //   - 알림 예약·홈 화면 위젯 갱신 (hooks/useBackgroundRefresh.ts)
@@ -45,6 +46,7 @@ import { usePendingQuoteStore } from "@/store/notification";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { Quote } from "@/models";
 import { trackEvent } from "@/utils/analytics";
+import { isDeedDone } from "@/utils/deed";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { BackHandler, Pressable } from "react-native";
@@ -53,9 +55,6 @@ import { useShallow } from "zustand/react/shallow";
 
 // 헤더 아래 카테고리 탭 줄의 높이
 const CATEGORY_ROW_HEIGHT = 52;
-// 오늘 따르는 문장 화면에서 카드 아래 '다른 문장으로 바꾸기' 자리의 높이 (넘겨 보는 화면의 아래 자리와 같다)
-const FOCUS_FOOTER_HEIGHT = 58;
-
 export default function Index() {
   const isAdFree = useAdStore((s) => s.isAdFree);
   const { customQuotes, favorites } = useFavoriteQuoteStore(
@@ -74,8 +73,10 @@ export default function Index() {
   // 오늘 따라 살기로 고른 문장 (한 줄을 남겼으면 그 한 줄이 따른 문장)
   const todayQuote = useTodayQuote();
   const pickToday = useDeedStore((s) => s.pickToday);
-  // 오늘의 한 줄을 남겼는데 아직 불씨를 지피지 않았으면 점화 화면을 띄운다. (앱을 껐다 켜도 이어진다)
-  const showIgnite = !isIgnited && !!todayDeed;
+  const completeToday = useDeedStore((s) => s.completeToday);
+  const isTodayDone = !!todayDeed && isDeedDone(todayDeed);
+  // 오늘 할 일을 완료했는데 아직 불씨를 지피지 않았으면 점화 화면을 띄운다. (앱을 껐다 켜도 이어진다)
+  const showIgnite = !isIgnited && isTodayDone;
   // 아직 한 번도 넘겨 보지 않았으면 오늘의 불씨를 켠 뒤 넘기기 힌트를 보여 준다.
   const { needsHint, markSwiped } = useSwipeHint();
   // 저장한 문장 목록에서 명언을 누르면 view=favorites(+ 그 명언의 quote)로 들어온다.
@@ -150,7 +151,7 @@ export default function Index() {
   };
 
   // 지금 보는 명언을 오늘 따를 문장으로 정하거나 바꾼다.
-  // (한 줄을 남긴 뒤에는 DeedPrompt가 여기 대신 한 줄 쓰기 화면을 열어 새 문장으로 한 줄을 다시 남기게 한다)
+  // (할 일을 정한 뒤에는 DeedPrompt가 여기 대신 할 일 쓰기 화면을 열어 새 문장으로 할 일을 다시 다듬게 한다)
   const handlePick = (picked: Quote) => {
     const isChange = !!todayQuote;
     if (!pickToday(picked)) return;
@@ -160,6 +161,12 @@ export default function Index() {
       type: "success",
       text1: isChange ? "오늘 따를 문장을 바꿨어요" : "오늘 이 문장대로 살아 봐요 🔥",
     });
+  };
+
+  // 오늘 할 일을 해냈다. 완료로 표시하면 점화 화면이 떠서 꾹 눌러 불씨를 지핀다.
+  const handleComplete = () => {
+    if (!completeToday()) return;
+    trackEvent("deed_complete");
   };
 
   // 점화 애니메이션이 끝나면 오늘의 모닥불을 보여 준다.
@@ -212,35 +219,46 @@ export default function Index() {
 
         {isFocused ? (
           <>
-            {/* 오늘 따르는 문장 하나와 오늘의 한 줄. 넘기지 않고 이 문장에 머문다. */}
-            <Box flex={1} width="100%" overflow="hidden">
+            {/* 오늘 따르는 문장 하나와 오늘의 한 줄. 넘기지 않고 이 문장에 머문다.
+                오늘의 한 줄은 화면 폭 전체로 크게, 저장·공유는 그 아래 '다른 문장으로 바꾸기'와 한 줄에 둔다. */}
+            <Box flex={1} width="100%" overflow="hidden" pb="md">
               <QuoteItem
                 key={todayQuote.id}
                 {...todayQuote}
                 isCustom={customQuotes.some((q) => q.id === todayQuote.id)}
                 isTodaysQuote
+                footerStacked
                 footer={
-                  <DeedPrompt quote={todayQuote} todayDeed={todayDeed} todayQuote={todayQuote} onPick={handlePick} />
+                  <DeedPrompt
+                    quote={todayQuote}
+                    todayDeed={todayDeed}
+                    todayQuote={todayQuote}
+                    onPick={handlePick}
+                    onComplete={handleComplete}
+                    wide
+                  />
+                }
+                actionsLeading={
+                  // 완료 전까지는 바꿀 수 있다. (할 일을 정한 뒤면 새 문장으로 할 일을 다시 다듬는다)
+                  !isTodayDone && (
+                  <Pressable
+                    onPress={startChange}
+                    hitSlop={12}
+                    accessibilityRole="button"
+                    accessibilityLabel="다른 문장으로 바꾸기"
+                    accessibilityHint="명언을 넘겨 보며 오늘 따를 문장을 다시 고릅니다"
+                    style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, alignSelf: "flex-start", paddingVertical: 12 })}
+                  >
+                    <Box flexDirection="row" alignItems="center" gap="xs">
+                      <FeatherIcon name="repeat" size={14} color="$muted" />
+                      <Text variant="caption" fontSize={14}>
+                        다른 문장으로 바꾸기
+                      </Text>
+                    </Box>
+                  </Pressable>
+                  )
                 }
               />
-            </Box>
-            {/* 한 줄을 남긴 뒤에도 바꿀 수 있다. (그때는 새 문장으로 한 줄을 다시 다듬는다) */}
-            <Box height={FOCUS_FOOTER_HEIGHT} justifyContent="center" alignItems="center">
-              <Pressable
-                onPress={startChange}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="다른 문장으로 바꾸기"
-                accessibilityHint="명언을 넘겨 보며 오늘 따를 문장을 다시 고릅니다"
-                style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-              >
-                <Box flexDirection="row" alignItems="center" gap="xs">
-                  <FeatherIcon name="repeat" size={14} color="$muted" />
-                  <Text variant="caption" fontSize={14}>
-                    다른 문장으로 바꾸기
-                  </Text>
-                </Box>
-              </Pressable>
             </Box>
           </>
         ) : (
@@ -271,7 +289,13 @@ export default function Index() {
               // 이 문장대로 한 일 한 줄 (남겼으면 오늘의 한 줄): 읽은 문장 바로 아래에 붙여 둔다
               isTodaysQuote={!!currentQuote && currentQuote.id === todayQuote?.id}
               cardFooter={
-                <DeedPrompt quote={currentQuote} todayDeed={todayDeed} todayQuote={todayQuote} onPick={handlePick} />
+                <DeedPrompt
+                  quote={currentQuote}
+                  todayDeed={todayDeed}
+                  todayQuote={todayQuote}
+                  onPick={handlePick}
+                  onComplete={handleComplete}
+                />
               }
             />
           </>

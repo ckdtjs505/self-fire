@@ -44,7 +44,8 @@ type EventParams = Record<string, string | number | boolean>;
 
 export type AnalyticsEvent =
   | "ignite_complete" // 하루 첫 점화 완료
-  | "deed_save" // 오늘의 한 줄(문장대로 한 일) 저장 (edit, length)
+  | "deed_save" // 오늘 이 문장대로 할 일 저장 (edit, change_quote, length)
+  | "deed_complete" // 오늘 할 일을 해내고 완료를 누름 (이어서 점화)
   | "today_quote_pick" // 오늘의 문장을 정함 (change: 이미 고른 문장을 바꿨는지)
   | "streak_freeze_used" // 불씨 지키기로 빠진 하루를 지킴
   | "streak_milestone" // 7/30/100일 마일스톤 도달 (보상 해금)

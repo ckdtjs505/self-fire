@@ -22,9 +22,22 @@ type Props = Quote & {
   footer?: React.ReactNode;
   // 오늘 따르기로 정한 명언이면 카드 위에 '오늘 따르는 문장' 표시를 붙인다. (공유 이미지에는 들어가지 않는다)
   isTodaysQuote?: boolean;
+  // footer에 화면 폭 전체를 주고, 저장·공유 버튼은 그 아래 줄로 내린다. (오늘 따르는 문장 화면: 오늘의 한 줄이 주인공)
+  footerStacked?: boolean;
+  // footerStacked일 때 저장·공유 버튼 왼쪽에 둘 것 (예: 다른 문장으로 바꾸기)
+  actionsLeading?: React.ReactNode;
 };
 
-const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom, footer, isTodaysQuote }) => {
+const QuoteItem: React.FC<Props> = ({
+  id,
+  text,
+  author,
+  isCustom,
+  footer,
+  isTodaysQuote,
+  footerStacked = false,
+  actionsLeading,
+}) => {
   const viewShotRef = useRef<ViewShot>(null);
   const { colors } = useAppTheme();
   const { currentFontId, currentFontSize } = useFontStore(
@@ -205,7 +218,15 @@ const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom, footer, isToda
           )}
         </View>
 
-        {footer ? (
+        {footer && footerStacked ? (
+          <Box width="100%" style={{ marginTop: 16, gap: 12 }}>
+            {footer}
+            <Box flexDirection="row" alignItems="center" style={{ gap: 8 }}>
+              <Box flex={1}>{actionsLeading}</Box>
+              <QuoteBar id={id} text={text} author={author} viewShotRef={viewShotRef} inline />
+            </Box>
+          </Box>
+        ) : footer ? (
           // 긴 명언도 카드가 들어갈 자리를 남기도록 footer와 저장·공유 버튼을 한 줄에 둔다.
           <Box width="100%" flexDirection="row" alignItems="center" style={{ marginTop: 16, gap: 8 }}>
             {/* 부모 Pan 제스처(스와이프)가 탭을 가로채지 않도록 감싼다 (quote-bar.tsx 참고) */}

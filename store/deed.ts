@@ -1,6 +1,6 @@
 import { Quote } from "@/models";
 import { toDateString } from "@/utils/date";
-import { Deed, normalizeDeedText, upsertDeed } from "@/utils/deed";
+import { Deed, isDeedDone, normalizeDeedText, upsertDeed } from "@/utils/deed";
 import { stateStorage } from "@/utils/storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -18,13 +18,15 @@ type PersistedDeed = {
 };
 
 interface DeedState extends PersistedDeed {
-  // 오늘의 한 줄을 남기거나 고친다. 다듬은 뒤 비어 있으면 저장하지 않고 null.
+  // 오늘 이 문장대로 할 일을 정하거나 고친다. 다듬은 뒤 비어 있거나 이미 완료했으면 저장하지 않고 null.
   saveToday: (quote: DeedQuote, text: string) => Deed | null;
-  // 오늘의 문장을 정하거나 바꾼다. 오늘의 한 줄을 이미 남겼으면 그 문장으로 굳어 있어 false.
+  // 오늘의 문장을 정하거나 바꾼다. 오늘 할 일을 이미 정했으면 그 문장으로 굳어 있어 false.
   pickToday: (quote: DeedQuote) => boolean;
+  // 오늘 할 일을 해냈다고 표시한다. 할 일이 없거나 이미 완료했으면 false. (그 뒤 불씨를 지핀다)
+  completeToday: () => boolean;
 }
 
-// 문장대로 한 일 한 줄 관리. 규칙은 utils/deed.ts 참고.
+// 오늘 이 문장대로 할 일 한 가지 관리. 규칙은 utils/deed.ts 참고.
 export const useDeedStore = create<DeedState>()(
   persist<DeedState, [], [], PersistedDeed>(
     (set, get) => ({
@@ -41,14 +43,26 @@ export const useDeedStore = create<DeedState>()(
       saveToday: (quote, text) => {
         const line = normalizeDeedText(text);
         if (!line) return null;
+        const today = toDateString();
+        const current = get().deeds.find((d) => d.date === today);
+        // 완료한 날은 그날 기록으로 굳는다.
+        if (current && isDeedDone(current)) return null;
         const deed: Deed = {
-          date: toDateString(),
+          date: today,
           text: line,
           quote: { id: quote.id, text: quote.text, author: quote.author },
+          completed: false,
         };
         // 한 줄이 따른 문장이 곧 오늘 고른 문장이다. (한 줄을 남긴 뒤 문장을 바꿔도 둘이 어긋나지 않게)
         set({ deeds: upsertDeed(get().deeds, deed), pick: { date: deed.date, quote: deed.quote } });
         return deed;
+      },
+
+      completeToday: () => {
+        const current = get().deeds.find((d) => d.date === toDateString());
+        if (!current || isDeedDone(current)) return false;
+        set({ deeds: upsertDeed(get().deeds, { ...current, completed: true }) });
+        return true;
       },
     }),
     {
