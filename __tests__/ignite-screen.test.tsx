@@ -27,7 +27,7 @@ afterEach(() => {
 });
 
 describe("IgniteScreen", () => {
-  it("불씨를 지필 오늘의 한 줄을 보여 준다", () => {
+  it("불씨를 지필 오늘 해낸 일을 보여 준다", () => {
     renderScreen();
     expect(screen.getByText("미뤄 둔 전화를 오늘 걸었다", { includeHiddenElements: true })).toBeTruthy();
   });

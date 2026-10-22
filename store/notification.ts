@@ -155,7 +155,7 @@ const refreshNow = async () => {
   }
 };
 
-// 알림을 눌러 앱을 열었을 때 홈 화면에 보여 줄 명언. 홈 화면이 꺼내 쓰고 비운다.
+// 알림을 눌러 앱을 열었을 때(또는 사이드바에서 문장을 눌렀을 때) 홈 화면에 보여 줄 명언. 홈 화면이 꺼내 쓰고 비운다.
 export const usePendingQuoteStore = create<{ quote: Quote | null; setQuote: (quote: Quote | null) => void }>()(
   (set) => ({
     quote: null,

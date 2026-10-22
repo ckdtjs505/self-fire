@@ -8,7 +8,7 @@ import { Quote } from "@/models";
 import { toDateString } from "@/utils/date";
 import { seededShuffle } from "@/utils/shuffle";
 
-// '전체' 모드의 후보 명언: 고른 카테고리에 속하고, 불씨를 지피지(즐겨찾기) 않은 것
+// '전체' 모드의 후보 명언: 고른 카테고리에 속하고, 저장(즐겨찾기)하지 않은 것
 //   - 카테고리를 고르지 않았으면(전체) 관심 주제(온보딩에서 고른 주제) 중 하나라도 속하는 명언
 //   - 관심 주제가 없거나 맞는 명언이 없으면 모든 명언
 // 카테고리의 명언을 모두 즐겨찾기했다면 즐겨찾기한 명언도 그대로 후보로 쓴다.
@@ -42,3 +42,8 @@ export const orderQuotesForDay = (quotes: Quote[], date: Date = new Date()): Quo
 
 export const getDailyQuote = (quotes: Quote[], date: Date = new Date()): Quote | undefined =>
   orderQuotesForDay(quotes, date)[0];
+
+// 오늘 따르는 문장(오늘 고른 문장)을 그날 목록 맨 앞에 둔다. 홈 화면 첫 명언·알림·위젯이 같은 규칙을 쓴다.
+// 오늘 따르기로 한 문장이라 다른 주제를 보는 중이어도 언제나 맨 앞에 둔다.
+export const pinTodayQuote = (ordered: Quote[], todayQuote: Quote | null | undefined): Quote[] =>
+  todayQuote ? [todayQuote, ...ordered.filter((q) => q.id !== todayQuote.id)] : ordered;

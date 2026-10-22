@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────
 // quote-bar.tsx
-// 명언 카드 아래 액션 바: 공유(이미지·텍스트·복사·저장 시트) / 불씨 보관함 토글
+// 명언 카드 아래 액션 바: 공유(이미지·텍스트·복사·저장 시트) / 저장한 문장 토글
 //
 // ⚠️ NativeViewGestureHandler로 감싸서, 부모 PanGestureHandler(스와이프)가
 //    이 영역의 버튼 탭을 스와이프로 오인하지 않도록 한다.
@@ -25,9 +25,11 @@ import { useShallow } from "zustand/react/shallow";
 type Props = Quote & {
   // 이미지 캡처 대상 카드
   viewShotRef?: React.RefObject<ViewShot | null>;
+  // 다른 버튼(홈: 이 문장대로 한 일)과 한 줄에 나란히 놓을 때: 위 여백 없이 촘촘하게
+  inline?: boolean;
 };
 
-const QuoteBar: React.FC<Props> = ({ id, text, author, viewShotRef }) => {
+const QuoteBar: React.FC<Props> = ({ id, text, author, viewShotRef, inline = false }) => {
   const { addFavorite, removeFavorite, favorites } = useFavoriteQuoteStore(
     useShallow((s) => ({
       addFavorite: s.addFavorite,
@@ -38,8 +40,8 @@ const QuoteBar: React.FC<Props> = ({ id, text, author, viewShotRef }) => {
   const isFavorite = favorites.includes(id);
   const shareSheetRef = useRef<PickerSheetHandle>(null);
 
-  // 불씨 보관함 추가/제거. 사이드바에서 바로 보여줄 수 있게 명언 내용도 함께 저장한다.
-  // 실수로 꺼도 토스트의 '되돌리기'로 바로 다시 보관할 수 있다.
+  // 저장한 문장 추가/제거. 사이드바에서 바로 보여줄 수 있게 명언 내용도 함께 저장한다.
+  // 실수로 꺼도 토스트의 '되돌리기'로 바로 다시 저장할 수 있다.
   const toggleFavorite = () => {
     tapHaptic();
     if (isFavorite) {
@@ -47,7 +49,7 @@ const QuoteBar: React.FC<Props> = ({ id, text, author, viewShotRef }) => {
       trackEvent("favorite_remove");
       Toast.show({
         type: "undo",
-        text1: "불씨가 꺼졌습니다",
+        text1: "저장을 취소했어요",
         props: {
           onUndo: () => {
             addFavorite(id, { id, text, author });
@@ -59,20 +61,20 @@ const QuoteBar: React.FC<Props> = ({ id, text, author, viewShotRef }) => {
     } else {
       addFavorite(id, { id, text, author });
       trackEvent("favorite_add");
-      Toast.show({ type: "success", text1: "불씨 보관함에 저장되었습니다 🔥" });
+      Toast.show({ type: "success", text1: "저장한 문장에 담았어요" });
     }
   };
 
   return (
     <>
       <NativeViewGestureHandler>
-        <Box flexDirection="row" justifyContent="center" style={{ gap: 28, marginTop: 20 }}>
+        <Box flexDirection="row" justifyContent="center" style={inline ? { gap: 8 } : { gap: 28, marginTop: 20 }}>
           <ActionButton label="공유" onPress={() => shareSheetRef.current?.open()}>
             <FeatherIcon name="share" size={20} />
           </ActionButton>
 
-          <ActionButton label={isFavorite ? "보관됨" : "불씨"} onPress={toggleFavorite} active={isFavorite}>
-            <Ionicon name={isFavorite ? "flame" : "flame-outline"} size={22} color={isFavorite ? "white" : "$foreground"} />
+          <ActionButton label={isFavorite ? "저장됨" : "저장"} onPress={toggleFavorite} active={isFavorite}>
+            <Ionicon name={isFavorite ? "bookmark" : "bookmark-outline"} size={21} color="$foreground" />
           </ActionButton>
         </Box>
       </NativeViewGestureHandler>

@@ -42,6 +42,8 @@ const NUDGE_SPRING = { stiffness: 303, damping: 22, mass: 1 }; // tension 60, fr
 type Props = {
   quote?: Quote;
   isCustom: boolean;
+  // 오늘의 문장으로 정한 명언이면 true
+  isTodaysQuote?: boolean;
   // 이미 지나온 명언을 다시 보고 있으면 true
   isRevisit: boolean;
   canGoPrev: boolean;
@@ -53,6 +55,8 @@ type Props = {
   onJumpToLatest: () => void;
   // 아직 한 번도 넘겨 보지 않았으면 true (넘기기 힌트)
   showSwipeHint?: boolean;
+  // 카드 바로 아래에 붙여 함께 넘어가는 자리 (홈: 이 문장대로 한 일 한 줄)
+  cardFooter?: React.ReactNode;
 };
 
 // 넘기기 힌트: 카드를 왼쪽으로 이만큼 밀었다가 되돌린다
@@ -61,6 +65,7 @@ const HINT_NUDGE_X = -42;
 const QuoteSwiper: React.FC<Props> = ({
   quote,
   isCustom,
+  isTodaysQuote = false,
   isRevisit,
   canGoPrev,
   canGoNext,
@@ -68,6 +73,7 @@ const QuoteSwiper: React.FC<Props> = ({
   onPrev,
   onJumpToLatest,
   showSwipeHint = false,
+  cardFooter,
 }) => {
   // 회전·창 크기 변경에 맞춰 스와이프 기준을 다시 계산한다.
   const { width: SCREEN_WIDTH } = useWindowDimensions();
@@ -141,10 +147,11 @@ const QuoteSwiper: React.FC<Props> = ({
   return (
     <GestureDetector gesture={pan}>
       <Animated.View style={{ flex: 1, width: "100%" }}>
-        <Box flex={1} width="100%" justifyContent="center" alignItems="center">
+        {/* 아주 긴 명언이 넘쳐도 위쪽 카테고리 칩을 덮지 않도록 이 영역 밖은 잘라 낸다. */}
+        <Box flex={1} width="100%" justifyContent="center" alignItems="center" overflow="hidden">
           {quote && (
             <Animated.View style={[{ flex: 1, width: "100%" }, cardStyle]}>
-              <QuoteItem key={quote.id} {...quote} isCustom={isCustom} />
+              <QuoteItem key={quote.id} {...quote} isCustom={isCustom} isTodaysQuote={isTodaysQuote} footer={cardFooter} />
             </Animated.View>
           )}
         </Box>

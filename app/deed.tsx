@@ -1,13 +1,16 @@
 // ─────────────────────────────────────────────────────────────
 // app/deed.tsx
-// 실천 한 줄: 명언을 읽고 그 문장대로 한 일을 한 줄로 남기는 화면. (/deed)
+// 오늘 이 문장대로 할 일 한 가지를 정하는 화면. (/deed)
 // - 홈 화면에서 지금 보고 있는 명언(quoteId, text, author)을 넘겨 받는다.
-// - 오늘 이미 남긴 한 줄이 있으면 그 줄과 그때 따른 문장으로 고치기 모드가 된다.
-// - 처음 남기면 홈으로 돌아가 불씨 점화(Hold to Ignite)로 이어진다. (app/(navi)/index.tsx)
+// - 오늘 이미 정한 할 일이 있으면 그 할 일과 그때 따른 문장으로 고치기 모드가 된다. (완료하면 고치지 않는다)
+// - 할 일을 정한 뒤 다른 문장을 넘겨 받으면 문장 바꾸기 모드: 새 문장 아래에 기존 할 일을 채워 두고,
+//   새 문장에 맞게 다듬어 남기면 오늘 따르는 문장과 할 일이 함께 바뀐다. (닫으면 아무것도 바뀌지 않는다)
+// - 할 일을 정해도 불씨는 아직이다. 하루를 지내며 해내고 홈에서 완료를 누르면 그때 점화한다. (app/(navi)/index.tsx)
 // - 고친 내용이 있는데 닫으면 버릴지 한 번 묻는다
 // ─────────────────────────────────────────────────────────────
 
 import { Box, SafeAreaView, Text } from "@/atom";
+import FeatherIcon from "@/components/icon";
 import ScreenHeader from "@/components/screen-header";
 import { useDeedStore, useTodayDeed } from "@/store/deed";
 import { useAppTheme } from "@/themes";
@@ -21,10 +24,10 @@ import Toast from "react-native-toast-message";
 
 // 무엇을 쓰면 될지 감을 주는 예시 (매번 하나)
 const PLACEHOLDERS = [
-  "예) 미뤄 둔 전화를 오늘 걸었다",
-  "예) 엘리베이터 대신 계단으로 올라갔다",
-  "예) 동료의 말을 끝까지 들었다",
-  "예) 자기 전에 10분 책을 읽었다",
+  "예) 미뤄 둔 전화 오늘 걸기",
+  "예) 엘리베이터 대신 계단으로 오르기",
+  "예) 동료의 말을 끝까지 듣기",
+  "예) 자기 전에 10분 책 읽기",
 ];
 
 export default function DeedScreen() {
@@ -35,9 +38,12 @@ export default function DeedScreen() {
 
   const todayDeed = useTodayDeed();
   const saveToday = useDeedStore((s) => s.saveToday);
-  const isEditing = !!todayDeed;
-  // 고칠 때는 그날 따른 문장을 그대로 보여 준다.
-  const quote = todayDeed?.quote ?? { id: params.quoteId ?? "", text: params.text ?? "", author: params.author ?? "" };
+  const paramQuote = { id: params.quoteId ?? "", text: params.text ?? "", author: params.author ?? "" };
+  // 한 줄을 남긴 뒤 다른 문장을 넘겨 받았으면 그 문장으로 바꾸는 중이다.
+  const isChangingQuote = !!todayDeed && !!paramQuote.id && paramQuote.id !== todayDeed.quote.id;
+  const isEditing = !!todayDeed && !isChangingQuote;
+  // 고칠 때는 그날 따른 문장을 그대로, 바꿀 때는 새 문장을 보여 준다.
+  const quote = isEditing ? todayDeed.quote : paramQuote;
 
   const [text, setText] = useState(todayDeed?.text ?? "");
   const [placeholder] = useState(() => PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)]);
@@ -59,21 +65,25 @@ export default function DeedScreen() {
 
   const handleSave = () => {
     if (!canSave) {
-      Toast.show({ type: "error", text2: "오늘 이 문장대로 한 일을 한 줄 적어 주세요" });
+      Toast.show({ type: "error", text2: "오늘 이 문장대로 할 일을 한 가지 적어 주세요" });
       return;
     }
     const deed = saveToday(quote, text);
     if (!deed) return;
     isSaving.current = true;
-    trackEvent("deed_save", { edit: isEditing, length: deed.text.length });
-    if (isEditing) Toast.show({ type: "success", text2: "오늘의 한 줄을 고쳤어요" });
+    trackEvent("deed_save", { edit: !!todayDeed, change_quote: isChangingQuote, length: deed.text.length });
+    if (isChangingQuote) Toast.show({ type: "success", text2: "오늘 따르는 문장을 바꿨어요" });
+    else if (isEditing) Toast.show({ type: "success", text2: "오늘 할 일을 고쳤어요" });
     router.back();
   };
 
   return (
     <SafeAreaView flex={1} backgroundColor="$background">
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <ScreenHeader title={isEditing ? "오늘의 한 줄 고치기" : "오늘의 한 줄"} backIcon="x" />
+        <ScreenHeader
+          title={isChangingQuote ? "새 문장으로 할 일 다듬기" : isEditing ? "오늘 할 일 고치기" : "오늘 할 일 한 가지"}
+          backIcon="x"
+        />
 
         <ScrollView
           style={{ flex: 1 }}
@@ -91,7 +101,7 @@ export default function DeedScreen() {
 
           {/* ── 한 줄 입력 ── */}
           <Box flexDirection="row" justifyContent="space-between" alignItems="flex-end" marginBottom="s" marginLeft="xs">
-            <Text variant="overline">오늘 내가 한 일</Text>
+            <Text variant="overline">오늘 이 문장대로 할 일</Text>
             <Text variant="caption" fontSize={12} style={{ fontVariant: ["tabular-nums"] }}>
               {text.length}/{DEED_MAX_LENGTH}
             </Text>
@@ -101,7 +111,7 @@ export default function DeedScreen() {
             borderRadius="lg"
             padding="lg"
             borderWidth={1.5}
-            borderColor={focused ? "$primary" : "$border"}
+            borderColor={focused ? "$flame" : "$border"}
           >
             <TextInput
               autoFocus
@@ -111,22 +121,29 @@ export default function DeedScreen() {
               maxLength={DEED_MAX_LENGTH}
               placeholder={placeholder}
               placeholderTextColor={colors.$muted}
-              selectionColor={colors.$primary}
+              selectionColor={colors.$flame}
               value={text}
               onChangeText={setText}
               onSubmitEditing={handleSave}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
-              accessibilityLabel="오늘 이 문장대로 한 일"
+              accessibilityLabel="오늘 이 문장대로 할 일"
               style={[styles.input, { color: colors.$foreground }]}
               textAlignVertical="top"
             />
           </Box>
 
+          {/* 안내는 하나만: 문장을 바꾸는 중이면 지금 한 줄이 이전 문장대로 쓴 것임을, 아니면 부담을 덜어 주는 말 */}
           <Box flexDirection="row" bg="$surfaceMuted" borderRadius="md" padding="md" gap="s" marginTop="lg">
-            <Text fontSize={13}>🔥</Text>
+            {isChangingQuote ? (
+              <FeatherIcon name="repeat" size={14} color="$muted" style={{ marginTop: 2 }} />
+            ) : (
+              <Text fontSize={13}>🔥</Text>
+            )}
             <Text variant="caption" lineHeight={19} style={{ flex: 1 }}>
-              크지 않아도 괜찮아요. 문장대로 한 작은 일 하나가 오늘의 불씨가 됩니다.
+              {isChangingQuote
+                ? "지금 할 일은 이전 문장에 맞춰 정한 거예요. 새 문장에 맞게 다듬어 주세요."
+                : "크지 않아도 괜찮아요. 오늘 해낼 수 있는 작은 일 하나면 돼요. 해내고 완료를 누르면 불씨가 켜져요."}
             </Text>
           </Box>
         </ScrollView>
@@ -138,9 +155,9 @@ export default function DeedScreen() {
             accessibilityState={{ disabled: !canSave }}
             style={({ pressed }) => ({ opacity: !canSave ? 0.45 : pressed ? 0.8 : 1 })}
           >
-            <Box height={52} borderRadius="pill" bg="$primary" justifyContent="center" alignItems="center">
+            <Box height={52} borderRadius="pill" bg="$flame" justifyContent="center" alignItems="center">
               <Text color="$onPrimary" fontSize={16} fontWeight="800">
-                {isEditing ? "고치기" : "한 줄 남기고 불씨 지피기"}
+                {isChangingQuote ? "이 문장으로 바꾸기" : isEditing ? "고치기" : "할 일 정하기"}
               </Text>
             </Box>
           </Pressable>

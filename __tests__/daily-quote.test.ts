@@ -1,4 +1,4 @@
-import { getAllModeCandidates, getDailyQuote, orderQuotesForDay } from "@/data/daily-quote";
+import { getAllModeCandidates, getDailyQuote, orderQuotesForDay, pinTodayQuote } from "@/data/daily-quote";
 import { Quote } from "@/models";
 
 const q = (id: string, text: string): Quote => ({ id, text, author: "작가" });
@@ -51,5 +51,27 @@ describe("orderQuotesForDay — 대표 명언", () => {
   it("featured 명언이 없으면 섞인 순서 그대로", () => {
     const plain = many.map(({ featured, ...rest }) => rest);
     expect(getDailyQuote(plain, day(1))).toBeDefined();
+  });
+});
+
+describe("pinTodayQuote — 오늘 고른 문장", () => {
+  const pool: Quote[] = [
+    { id: "a", text: "가", author: "" },
+    { id: "b", text: "나", author: "" },
+    { id: "c", text: "다", author: "" },
+  ];
+  const picked: Quote = { id: "b", text: "나", author: "" };
+
+  it("고른 문장이 없으면 그대로 둔다", () => {
+    expect(pinTodayQuote(pool, null)).toBe(pool);
+  });
+
+  it("고른 문장을 맨 앞에 두고 같은 문장은 한 번만 남긴다", () => {
+    expect(pinTodayQuote(pool, picked).map((q) => q.id)).toEqual(["b", "a", "c"]);
+  });
+
+  it("지금 목록(고른 주제)에 없는 문장이어도 맨 앞에 둔다", () => {
+    const outside: Quote = { id: "z", text: "밖", author: "" };
+    expect(pinTodayQuote(pool, outside).map((q) => q.id)).toEqual(["z", "a", "b", "c"]);
   });
 });

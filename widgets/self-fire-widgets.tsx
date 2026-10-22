@@ -76,7 +76,10 @@ export function QuoteWidget({ view, width, height, dark, style = DEFAULT_WIDGET_
       <FlexWidget
         style={{ width: "match_parent", flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}
       >
-        <TextWidget text="오늘의 명언" style={{ fontSize: 12, fontWeight: "700", color: c.muted }} />
+        <TextWidget
+          text={view.quote?.picked ? "🔥 오늘 따르는 문장" : "오늘의 명언"}
+          style={{ fontSize: 12, fontWeight: "700", color: c.muted }}
+        />
         <FlexWidget
           style={{
             backgroundColor: lit ? c.flameSoft : withOpacity(c.background, style.opacity),

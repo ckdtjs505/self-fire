@@ -9,7 +9,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { CategorySelection } from "@/components/category-tabs";
-import { getAllModeCandidates, orderQuotesForDay } from "@/data/daily-quote";
+import { getAllModeCandidates, orderQuotesForDay, pinTodayQuote } from "@/data/daily-quote";
 import { QUOTE_BATCH_SIZE } from "@/data/quote-api";
 import { CategoryId } from "@/data/quote-categories";
 import { createPager, FilterMode, getFavoriteQuotes, QuotePager, syncPager } from "@/data/quote-pager";
@@ -25,15 +25,17 @@ import { useShallow } from "zustand/react/shallow";
 type Options = {
   // 기본 명언 (번들 + 동기화, hooks/useDefaultQuotes.ts)
   defaultQuotes: Quote[];
-  // 바뀔 때마다 불씨 보관함을 연다 (사이드바·보관함 목록이 넘기는 값)
+  // 바뀔 때마다 저장한 문장을 연다 (사이드바·저장한 문장 목록이 넘기는 값)
   openFavoritesKey?: string;
-  // 불씨 보관함을 열 때 먼저 보여 줄 명언 (보관함 목록에서 누른 명언)
+  // 저장한 문장을 열 때 먼저 보여 줄 명언 (저장한 문장 목록에서 누른 명언)
   openQuoteId?: string;
   // 다음 명언으로 넘겼을 때 (넘기기 힌트 끄기 등)
   onNext?: () => void;
+  // 오늘 고른 문장. '전체' 목록을 만들 때 맨 앞에 두어, 앱을 다시 켜도 오늘의 문장부터 보인다.
+  todayQuote?: Quote | null;
 };
 
-export const useQuotePager = ({ defaultQuotes, openFavoritesKey, openQuoteId, onNext }: Options) => {
+export const useQuotePager = ({ defaultQuotes, openFavoritesKey, openQuoteId, onNext, todayQuote }: Options) => {
   const { customQuotes, favorites, favoritesData } = useFavoriteQuoteStore(
     useShallow((s) => ({
       customQuotes: s.customQuotes,
@@ -75,14 +77,17 @@ export const useQuotePager = ({ defaultQuotes, openFavoritesKey, openQuoteId, on
   //            같은 날에는 앱을 다시 실행해도 첫 명언(오늘의 명언)과 순서가 같다.
   //   - 'mine': 커스텀 명언 전체
   //   - 'favorites': 즐겨찾기한 명언 전체
-  const buildPool = (mode: FilterMode, categoryId?: CategoryId | null): Quote[] => {
+  // 'all'은 오늘 따르는 문장이 있으면 고른 주제와 상관없이 맨 앞에 둔다.
+  const buildPool = (mode: FilterMode, categoryId: CategoryId | null = currentCategoryId): Quote[] => {
     switch (mode) {
       case "mine":
         return shuffle(customQuotes);
       case "favorites":
         return shuffle(favoriteQuotes());
-      case "all":
-        return orderQuotesForDay(getCandidates(categoryId)).slice(0, QUOTE_BATCH_SIZE);
+      case "all": {
+        const candidates = getCandidates(categoryId);
+        return pinTodayQuote(orderQuotesForDay(candidates).slice(0, QUOTE_BATCH_SIZE), todayQuote);
+      }
     }
   };
 
@@ -161,7 +166,7 @@ export const useQuotePager = ({ defaultQuotes, openFavoritesKey, openQuoteId, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interestIds]);
 
-  // 카테고리 탭에서 고른 항목: 불씨 보관함·내 명언이면 그 모드로, 아니면 그 카테고리의 전체 모드로 전환한다.
+  // 카테고리 탭에서 고른 항목: 저장한 문장·내 명언이면 그 모드로, 아니면 그 카테고리의 전체 모드로 전환한다.
   const selectCategory = (selection: CategorySelection) => {
     if (selection === "favorites" || selection === "mine") {
       if (filterMode === selection) return;
@@ -172,7 +177,7 @@ export const useQuotePager = ({ defaultQuotes, openFavoritesKey, openQuoteId, on
           text1: "알림",
           text2:
             selection === "favorites"
-              ? "아직 보관된 불씨가 없습니다. 마음에 와닿는 문장에 불씨를 지펴보세요! 🔥"
+              ? "아직 저장한 문장이 없습니다. 마음에 와닿는 문장을 저장해 보세요!"
               : "아직 직접 작성한 명언이 없습니다. 명언을 먼저 등록해 보세요!",
         });
         return;
@@ -184,7 +189,7 @@ export const useQuotePager = ({ defaultQuotes, openFavoritesKey, openQuoteId, on
     changeCategory(selection);
   };
 
-  // 보관함 목록에서 누른 명언부터 보여 준다. 목록과 같은 최근 보관순으로 이어서 넘길 수 있다.
+  // 저장한 문장 목록에서 누른 명언부터 보여 준다. 목록과 같은 최근 저장순으로 이어서 넘길 수 있다.
   const openFavoriteAt = (id: string) => {
     const quotes = [...favoriteQuotes()].reverse();
     const index = quotes.findIndex((q) => q.id === id);
@@ -204,7 +209,7 @@ export const useQuotePager = ({ defaultQuotes, openFavoritesKey, openQuoteId, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openFavoritesKey]);
 
-  // 알림의 명언을 맨 앞에 두고 '전체' 목록을 이어 붙인다.
+  // 알림(또는 사이드바의 오늘 따르는·따라 산 문장)의 명언을 맨 앞에 두고 '전체' 목록을 이어 붙인다.
   // 저장된 카테고리·관심 주제로 목록을 다시 만드는 effect들보다 뒤에 두어, 불러오기가 끝난 뒤 덮어쓴다.
   useEffect(() => {
     if (!pendingQuote || !isCategoryHydrated) return;
@@ -234,7 +239,7 @@ export const useQuotePager = ({ defaultQuotes, openFavoritesKey, openQuoteId, on
     if (quotes.length === 0) return;
     onNext?.();
 
-    // 내 명언·불씨 보관함은 마지막 명언에서 멈춘다. 전체 모드는 끝까지 보면 처음으로 돌아간다.
+    // 내 명언·저장한 문장은 마지막 명언에서 멈춘다. 전체 모드는 끝까지 보면 처음으로 돌아간다.
     if (filterMode !== "all" && currentIndex + 1 >= quotes.length) return;
     const nextIndex = currentIndex + 1 >= quotes.length ? 0 : currentIndex + 1;
     if (nextIndex >= quotes.length - 2) loadMoreQuotes();
@@ -263,7 +268,7 @@ export const useQuotePager = ({ defaultQuotes, openFavoritesKey, openQuoteId, on
     currentQuote,
     currentIndex: pager.currentIndex,
     maxIndex: pager.maxIndex,
-    // 내 명언·불씨 보관함은 정해진 목록이라 마지막 명언 다음으로는 넘기지 않는다.
+    // 내 명언·저장한 문장은 정해진 목록이라 마지막 명언 다음으로는 넘기지 않는다.
     canGoNext: filterMode === "all" ? pager.quotes.length > 1 : pager.currentIndex < pager.quotes.length - 1,
     canGoPrev: pager.currentIndex > 0,
     isCategoryHydrated,

@@ -8,6 +8,7 @@ import { LINE_HEIGHT_RATIO, MIN_QUOTE_FONT_SIZE, fitQuoteFontSize, shrinkToFit }
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useRef, useState } from "react";
 import { Image, StyleSheet, View, useWindowDimensions } from "react-native";
+import { NativeViewGestureHandler } from "react-native-gesture-handler";
 import ViewShot from "react-native-view-shot";
 import FeatherIcon from "./icon";
 import QuoteBar from "./quote-bar";
@@ -17,9 +18,26 @@ import { QUOTE_MARK_FONT, useLoadedFont } from "@/utils/fonts";
 type Props = Quote & {
   // 사용자가 직접 작성한 명언이면 '나만의 명언' 라벨을 붙인다.
   isCustom?: boolean;
+  // 카드 바로 아래, 액션 바 위에 붙는 자리 (홈: 이 문장대로 한 일 한 줄). 공유 이미지에는 들어가지 않는다.
+  footer?: React.ReactNode;
+  // 오늘 따르기로 정한 명언이면 카드 위에 '오늘 따르는 문장' 표시를 붙인다. (공유 이미지에는 들어가지 않는다)
+  isTodaysQuote?: boolean;
+  // footer에 화면 폭 전체를 주고, 저장·공유 버튼은 그 아래 줄로 내린다. (오늘 따르는 문장 화면: 오늘의 한 줄이 주인공)
+  footerStacked?: boolean;
+  // footerStacked일 때 저장·공유 버튼 왼쪽에 둘 것 (예: 다른 문장으로 바꾸기)
+  actionsLeading?: React.ReactNode;
 };
 
-const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom }) => {
+const QuoteItem: React.FC<Props> = ({
+  id,
+  text,
+  author,
+  isCustom,
+  footer,
+  isTodaysQuote,
+  footerStacked = false,
+  actionsLeading,
+}) => {
   const viewShotRef = useRef<ViewShot>(null);
   const { colors } = useAppTheme();
   const { currentFontId, currentFontSize } = useFontStore(
@@ -75,6 +93,8 @@ const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom }) => {
       <Box
         width="100%"
         alignItems="center"
+        // 카드 위에 걸친 '오늘 따르는 문장' 표시가 잘리지 않도록 그만큼 비워 두고, 글자 크기 맞춤에도 넣어 센다.
+        style={{ paddingTop: isTodaysQuote ? 14 : 0 }}
         onLayout={(e) => {
           contentHeight.current = e.nativeEvent.layout.height;
           fitToArea();
@@ -175,9 +195,49 @@ const QuoteItem: React.FC<Props> = ({ id, text, author, isCustom }) => {
               </Text>
             </Box>
           </ViewShot>
+
+          {/* 카드 윗선에 걸쳐 놓아 자리를 차지하지 않는다 (긴 명언도 글자 크기를 그대로 쓸 수 있게) */}
+          {isTodaysQuote && (
+            <Box
+              position="absolute"
+              alignSelf="center"
+              flexDirection="row"
+              alignItems="center"
+              bg="$flame"
+              borderRadius="pill"
+              px="md"
+              style={{ top: -13, gap: 4, paddingVertical: 4 }}
+              accessible
+              accessibilityLabel="오늘 따르는 문장"
+            >
+              <Ionicons name="flame" size={12} color={colors.$onPrimary} />
+              <Text color="$onPrimary" fontSize={12} fontWeight="800">
+                오늘 따르는 문장
+              </Text>
+            </Box>
+          )}
         </View>
 
-        <QuoteBar id={id} text={text} author={author} viewShotRef={viewShotRef} />
+        {footer && footerStacked ? (
+          <Box width="100%" style={{ marginTop: 16, gap: 12 }}>
+            {footer}
+            <Box flexDirection="row" alignItems="center" style={{ gap: 8 }}>
+              <Box flex={1}>{actionsLeading}</Box>
+              <QuoteBar id={id} text={text} author={author} viewShotRef={viewShotRef} inline />
+            </Box>
+          </Box>
+        ) : footer ? (
+          // 긴 명언도 카드가 들어갈 자리를 남기도록 footer와 저장·공유 버튼을 한 줄에 둔다.
+          <Box width="100%" flexDirection="row" alignItems="center" style={{ marginTop: 16, gap: 8 }}>
+            {/* 부모 Pan 제스처(스와이프)가 탭을 가로채지 않도록 감싼다 (quote-bar.tsx 참고) */}
+            <NativeViewGestureHandler>
+              <Box flex={1}>{footer}</Box>
+            </NativeViewGestureHandler>
+            <QuoteBar id={id} text={text} author={author} viewShotRef={viewShotRef} inline />
+          </Box>
+        ) : (
+          <QuoteBar id={id} text={text} author={author} viewShotRef={viewShotRef} />
+        )}
       </Box>
     </Box>
   );

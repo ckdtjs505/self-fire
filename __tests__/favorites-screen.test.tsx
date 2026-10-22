@@ -45,14 +45,14 @@ beforeEach(() => {
 });
 
 describe("FavoritesScreen", () => {
-  it("보관함이 비었으면 안내만 보여 준다", () => {
+  it("저장한 문장이 없으면 안내만 보여 준다", () => {
     useFavoriteQuoteStore.setState({ favorites: [], favoritesData: [] });
     renderScreen();
-    expect(screen.getByText("아직 보관한 불씨가 없어요")).toBeTruthy();
+    expect(screen.getByText("아직 저장한 문장이 없어요")).toBeTruthy();
     expect(screen.queryByLabelText("명언 검색")).toBeNull();
   });
 
-  it("최근 보관순으로 보여 주고 내용·작성자로 찾는다", () => {
+  it("최근 저장순으로 보여 주고 내용·작성자로 찾는다", () => {
     renderScreen();
     const texts = screen.getAllByText(/포기하지|실패는/).map((node) => node.props.children);
     expect(texts).toEqual(["실패는 성공의 어머니다.", "포기하지 마라."]);
@@ -62,12 +62,12 @@ describe("FavoritesScreen", () => {
     expect(screen.queryByText("실패는 성공의 어머니다.")).toBeNull();
 
     fireEvent.changeText(screen.getByLabelText("명언 검색"), "없는말");
-    expect(screen.getByText("‘없는말’에 맞는 불씨가 없어요")).toBeTruthy();
+    expect(screen.getByText("‘없는말’에 맞는 문장이 없어요")).toBeTruthy();
     fireEvent.press(screen.getByText("검색어 지우기"));
     expect(screen.getByText("포기하지 마라.")).toBeTruthy();
   });
 
-  it("명언을 누르면 홈의 보관함 보기에서 그 명언부터 연다", () => {
+  it("명언을 누르면 홈의 저장한 문장 보기에서 그 명언부터 연다", () => {
     renderScreen();
     fireEvent.press(screen.getByText("포기하지 마라."));
     expect(mockDismissTo).toHaveBeenCalledWith({
@@ -76,9 +76,9 @@ describe("FavoritesScreen", () => {
     });
   });
 
-  it("보관을 해제하고 되돌릴 수 있다", () => {
+  it("저장을 취소하고 되돌릴 수 있다", () => {
     renderScreen();
-    fireEvent.press(screen.getAllByLabelText("보관 해제")[0]);
+    fireEvent.press(screen.getAllByLabelText("저장 취소")[0]);
     expect(useFavoriteQuoteStore.getState().favorites).toEqual(["1"]);
 
     const { onUndo } = (Toast.show as jest.Mock).mock.calls[0][0].props;

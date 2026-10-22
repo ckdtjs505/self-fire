@@ -4,7 +4,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { stateStorage } from "@/utils/storage";
 
 interface FavoritesQuoteStore {
-  // 즐겨찾기(불씨 보관함)한 명언 ID 목록
+  // 즐겨찾기(저장한 문장)한 명언 ID 목록
   favorites: string[];
   // 즐겨찾기한 명언의 내용 (사이드바에서 바로 표시하기 위해 함께 저장)
   favoritesData: Quote[];

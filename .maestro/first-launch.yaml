@@ -1,17 +1,23 @@
-# 처음 설치: 주제 고르기 → 명언 → 문장대로 한 일 한 줄 → 불씨 점화(꾹 누르기) → 오늘의 모닥불 시트 → 홈 화면
+# 처음 설치: 주제 고르기 → 명언 → 오늘 따를 문장 정하기 → 할 일 한 가지 정하기 → 완료 → 불씨 점화(꾹 누르기) → 오늘의 모닥불 시트 → 홈 화면
 appId: com.changsunoh.selfFire
-name: 첫 실행과 오늘의 한 줄로 불씨 점화
+name: 첫 실행과 오늘 할 일 완료로 불씨 점화
 ---
 - launchApp:
     clearState: true
 - assertVisible: "어떤 불씨가 필요하세요?"
 - tapOn: "건너뛰고 모든 명언 보기"
 
-# 명언을 바로 보여 주고, 카드 아래에서 한 줄을 남긴다
-- tapOn: "이 문장대로 한 일 남기기"
-- tapOn: "오늘 이 문장대로 한 일"
-- inputText: "계단으로 올라갔다"
-- tapOn: "한 줄 남기고 불씨 지피기"
+# 명언을 바로 보여 주고, 카드 아래에서 오늘 따를 문장으로 정한 뒤 할 일 한 가지를 정한다
+- tapOn: "오늘 이 문장대로 살기"
+- tapOn: "오늘 이 문장대로 할 일 정하기"
+- tapOn: "오늘 이 문장대로 할 일"
+- inputText: "계단으로 오르기"
+- tapOn: "할 일 정하기"
+
+# 할 일을 정해도 불씨는 아직이다. 해냈다고 완료를 누르면 점화 화면이 뜬다
+- assertVisible: "계단으로 오르기"
+- assertNotVisible: "오늘의 불씨 켜기"
+- tapOn: "오늘 할 일 완료"
 
 # 점화 화면: 불씨를 꾹 누른다 (1.5초 이상)
 - assertVisible: "오늘의 불씨 켜기"
@@ -27,8 +33,7 @@ name: 첫 실행과 오늘의 한 줄로 불씨 점화
     commands:
       - tapOn: "괜찮아요"
 
-# 홈 화면 헤더와 오늘의 한 줄
+# 홈 화면 헤더와 오늘 해낸 일
 - assertVisible: "메뉴 열기"
-- assertVisible: "테마"
-- assertVisible: "글꼴"
-- assertVisible: "계단으로 올라갔다"
+- assertVisible: "오늘 이 문장대로 해낸 일"
+- assertVisible: "계단으로 오르기"

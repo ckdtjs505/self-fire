@@ -14,7 +14,7 @@ const FONT_SIZE_STEP = 2;
 
 const GAP = 10;
 
-const FONT_LIST: { id: FontId; name: string }[] = [
+export const FONT_LIST: { id: FontId; name: string }[] = [
   { id: "system", name: "시스템 기본" },
   { id: "NotoSansKR_400Regular", name: "노토 산스" },
   { id: "NanumMyeongjo_400Regular", name: "나눔 명조" },

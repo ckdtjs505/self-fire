@@ -61,6 +61,8 @@ export default function RootLayout() {
           <Stack.Screen name="terms" />
           <Stack.Screen name="my-quotes" />
           <Stack.Screen name="favorites" />
+          <Stack.Screen name="history" />
+          <Stack.Screen name="customize" />
           {/* 명언 추가/수정은 아래에서 올라오는 모달로 띄운다. */}
           <Stack.Screen name="add-quote" options={{ presentation: "modal" }} />
           <Stack.Screen name="deed" options={{ presentation: "modal" }} />

@@ -9,7 +9,7 @@
 import { orderQuotesForDay } from "@/data/daily-quote";
 import { notificationDataSchema } from "@/data/schemas";
 import { Quote } from "@/models";
-import { loadDailyCandidates } from "@/services/daily-candidates";
+import { loadDailyCandidates, loadTodayPick } from "@/services/daily-candidates";
 import { useStreakStore, whenStreakHydrated } from "@/store/streak";
 import { toDateString } from "@/utils/date";
 import * as Notifications from "expo-notifications";
@@ -31,7 +31,7 @@ export const STREAK_REMINDER_MINUTE = 30;
 
 // 오늘·내일 저녁에 보낼 불씨 알림.
 //   - 오늘: 아직 점화하지 않았고 이어 온 불씨가 있으면 오늘 저녁에 알린다.
-//   - 내일: 오늘 점화했으면 내일 저녁에 알린다. (내일 한 줄을 남겨 점화하면 다시 예약하며 사라진다)
+//   - 내일: 오늘 점화했으면 내일 저녁에 알린다. (내일 할 일을 해내고 점화하면 다시 예약하며 사라진다)
 // 그 뒤로는 스트릭이 이미 끊겼을 수 있어 예약하지 않는다.
 export const getStreakReminders = (
   { currentStreak, ignitedToday }: StreakReminderInput,
@@ -43,7 +43,7 @@ export const getStreakReminders = (
 
   const date = ignitedToday ? at(1) : at(0);
   if (date <= now) return [];
-  return [{ date, body: `${currentStreak}일째 이어 온 불씨가 오늘 밤 꺼질 수 있어요. 문장대로 한 일을 한 줄 남겨 지펴 주세요 🔥` }];
+  return [{ date, body: `${currentStreak}일째 이어 온 불씨가 오늘 밤 꺼질 수 있어요. 오늘 할 일을 해내고 완료를 눌러 지펴 주세요 🔥` }];
 };
 
 // 하루에 받을 수 있는 알림 횟수
@@ -72,11 +72,13 @@ export const daysAheadFor = (timesPerDay: number) =>
 // 기존 예약을 지우고, 앞으로 며칠 동안 매일 정한 시각마다 그날의 명언 알림을 예약한다.
 // 하루 n번째 알림에는 그날 홈 화면의 n번째 명언을 보낸다. (첫 알림 = '오늘의 명언')
 // candidates는 홈 화면 '전체' 모드와 같은 후보여야 알림 명언과 그날 홈 화면의 명언 순서가 같아진다.
+// todayPick: 오늘 고른 문장. 있으면 오늘 남은 알림의 첫 명언으로 보낸다. (홈 화면 첫 명언과 같다)
 export const scheduleUpcoming = async (
   times: NotificationTime[],
   candidates: Quote[],
   now: Date = new Date(),
   streak: StreakReminderInput | null = null,
+  todayPick: Quote | null = null,
 ) => {
   await Notifications.cancelAllScheduledNotificationsAsync();
 
@@ -84,16 +86,25 @@ export const scheduleUpcoming = async (
   const daysAhead = daysAheadFor(slots.length);
   for (let day = 0; day <= daysAhead; day++) {
     const dayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + day);
-    const ordered = orderQuotesForDay(candidates, dayDate);
+    const at = ({ hour, minute }: NotificationTime) =>
+      new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate(), hour, minute);
+    const daily = orderQuotesForDay(candidates, dayDate);
 
-    for (const [index, { hour, minute }] of slots.entries()) {
-      const date = new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate(), hour, minute);
+    // 오늘 고른 문장이 있으면 오늘 남은 알림에 오늘의 문장부터 차례로 싣는다.
+    // 그 밖의 날은 하루 n번째 알림에 그날 홈 화면의 n번째 명언을 싣는다.
+    const isPickedDay = day === 0 && !!todayPick;
+    const ordered = isPickedDay ? [todayPick, ...daily.filter((q) => q.id !== todayPick.id)] : daily;
+    const daySlots = isPickedDay ? slots.filter((slot) => at(slot) > now) : slots;
+
+    for (const [index, slot] of daySlots.entries()) {
+      const date = at(slot);
       const quote = ordered[index % Math.max(1, ordered.length)];
       if (date <= now || !quote) continue;
 
+      const title = index > 0 ? "🔥 불씨 한 줄 더" : isPickedDay ? "🔥 오늘 따르는 문장" : "🔥 오늘의 명언";
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: index === 0 ? "🔥 오늘의 명언" : "🔥 불씨 한 줄 더",
+          title,
           body: `"${quote.text}" - ${quote.author}`,
           sound: true,
           data: { type: "daily", quoteId: quote.id, text: quote.text, author: quote.author } satisfies NotificationData,
@@ -129,11 +140,12 @@ export type ReminderSettings = {
   streakReminderEnabled: boolean;
 };
 
-/** 지금 명언 후보·스트릭으로 알림을 다시 예약한다. */
+/** 지금 명언 후보·오늘 고른 문장·스트릭으로 알림을 다시 예약한다. */
 export const rescheduleNotifications = async ({ notificationTimes, streakReminderEnabled }: ReminderSettings) =>
   scheduleUpcoming(
     notificationTimes,
     await loadDailyCandidates(),
     new Date(),
     await loadStreakReminderInput(streakReminderEnabled),
+    await loadTodayPick(),
   );
