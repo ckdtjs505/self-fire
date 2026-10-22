@@ -37,3 +37,18 @@ export const upsertDeed = (deeds: Deed[], deed: Deed): Deed[] => {
 
 // 최근 기록부터 count개
 export const recentDeeds = (deeds: Deed[], count: number) => [...deeds].reverse().slice(0, count);
+
+export type DeedMonth = { title: string; data: Deed[] };
+
+// 해낸 일 기록 화면(app/history.tsx)용: 해낸 날만 최근 달부터, 달 안에서는 최근 날부터 묶는다.
+export const groupDoneDeedsByMonth = (deeds: Deed[]): DeedMonth[] => {
+  const months: DeedMonth[] = [];
+  for (const deed of [...deeds].filter(isDeedDone).sort((a, b) => b.date.localeCompare(a.date))) {
+    const [year, month] = deed.date.split("-").map(Number);
+    const title = `${year}년 ${month}월`;
+    const last = months[months.length - 1];
+    if (last?.title === title) last.data.push(deed);
+    else months.push({ title, data: [deed] });
+  }
+  return months;
+};

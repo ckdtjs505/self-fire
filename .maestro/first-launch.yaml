@@ -35,7 +35,5 @@ name: 첫 실행과 오늘 할 일 완료로 불씨 점화
 
 # 홈 화면 헤더와 오늘 해낸 일
 - assertVisible: "메뉴 열기"
-- assertVisible: "테마"
-- assertVisible: "글꼴"
 - assertVisible: "오늘 이 문장대로 해낸 일"
 - assertVisible: "계단으로 오르기"

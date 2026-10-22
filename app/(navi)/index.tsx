@@ -5,7 +5,7 @@
 //   - 명언 카드 표시 + 좌우 스와이프로 이전/다음 명언 전환
 //   - 필터 모드·카테고리·명언 풀·알림 명언 처리는 hooks/useQuotePager.ts
 //   - 기본 명언 로드·동기화는 hooks/useDefaultQuotes.ts
-//   - 테마/폰트 변경 바텀시트, 스트릭 배지를 누르면 나의 모닥불 시트
+//   - 스트릭 배지를 누르면 나의 모닥불 시트 (테마·글꼴은 사이드바의 꾸미기, app/customize.tsx)
 //   - AdMob 배너 광고 (광고 제거 미구매 시)
 //   - 첫 실행 주제 고르기 → 명언을 바로 보여 준다 (명언은 들어오는 문)
 //   - 카드 바로 아래 '오늘 이 문장대로 살기' → 정한 문장 아래 '오늘 이 문장대로 할 일 정하기' → 할 일 한 가지 작성(app/deed.tsx)
@@ -20,7 +20,6 @@ import { Box, SafeAreaView, Text } from "@/atom";
 import BannerAd from "@/components/banner-ad";
 import CategoryTabs from "@/components/category-tabs";
 import DeedPrompt from "@/components/deed-prompt";
-import FontPicker from "@/components/font-picker";
 import HeaderIconButton from "@/components/header-icon-button";
 import FeatherIcon from "@/components/icon";
 import IgniteResultSheet, { IgniteResultSheetHandle } from "@/components/ignite-result-sheet";
@@ -32,7 +31,6 @@ import QuoteItem from "@/components/quote-items";
 import QuoteSwiper from "@/components/quote-swiper";
 import StreakBadge from "@/components/streak-badge";
 import StreakSheet from "@/components/streak-sheet";
-import ThemePicker from "@/components/theme-picker";
 import { useBackgroundRefresh } from "@/hooks/useBackgroundRefresh";
 import { useDailyIgnite } from "@/hooks/useDailyIgnite";
 import { useDefaultQuotes } from "@/hooks/useDefaultQuotes";
@@ -80,7 +78,6 @@ export default function Index() {
   // 아직 한 번도 넘겨 보지 않았으면 오늘의 불씨를 켠 뒤 넘기기 힌트를 보여 준다.
   const { needsHint, markSwiped } = useSwipeHint();
   // 저장한 문장 목록에서 명언을 누르면 view=favorites(+ 그 명언의 quote)로 들어온다.
-  // 사이드바의 '전체 보기 · 나의 모닥불'을 누르면 view=campfire로 들어와 나의 모닥불 시트를 연다.
   const { view, at, quote } = useLocalSearchParams<{ view?: string; at?: string; quote?: string }>();
 
   const defaultQuotes = useDefaultQuotes();
@@ -99,14 +96,8 @@ export default function Index() {
 
   useBackgroundRefresh([currentCategoryId, interestIds, favorites, customQuotes, defaultQuotes, currentStreak, isIgnited, todayQuote?.id]);
 
-  const themePickerRef = useRef<PickerSheetHandle>(null);
-  const fontPickerRef = useRef<PickerSheetHandle>(null);
   const streakSheetRef = useRef<PickerSheetHandle>(null);
   const igniteResultRef = useRef<IgniteResultSheetHandle>(null);
-
-  useEffect(() => {
-    if (view === "campfire" && at) streakSheetRef.current?.open();
-  }, [view, at]);
 
   // 오늘 따르는 문장이 있으면 홈은 그 문장 하나에 머문다. 넘겨 보는 화면은 따로 열 때만:
   //   - '다른 문장으로 바꾸기'를 눌렀을 때
@@ -179,7 +170,8 @@ export default function Index() {
     <SafeAreaView flex={1} bg="$background">
       <Box flex={1} alignItems="center">
         {/* ── 상단 바 ──
-            왼쪽: 메뉴(넘겨 보는 중이면 오늘 따르는 문장으로 돌아가기) + 연속 점화 스트릭 / 오른쪽: 테마 · 글꼴 */}
+            메뉴(넘겨 보는 중이면 오늘 따르는 문장으로 돌아가기) + 연속 점화 스트릭.
+            테마·글꼴은 가끔 바꾸는 기능이라 사이드바의 꾸미기(app/customize.tsx)로 옮겼다. */}
         <Box
           width="100%"
           flexDirection="row"
@@ -197,23 +189,6 @@ export default function Index() {
               <MenuButton />
             )}
             <StreakBadge streak={currentStreak} onPress={() => streakSheetRef.current?.open()} />
-          </Box>
-
-          <Box
-            flexDirection="row"
-            alignItems="center"
-            bg="$surface"
-            borderWidth={1}
-            borderColor="$border"
-            borderRadius="pill"
-          >
-            <HeaderIconButton bare accessibilityLabel="테마" onPress={() => themePickerRef.current?.open()}>
-              <FeatherIcon name="image" size={19} />
-            </HeaderIconButton>
-
-            <HeaderIconButton bare accessibilityLabel="글꼴" onPress={() => fontPickerRef.current?.open()}>
-              <FeatherIcon name="type" size={19} />
-            </HeaderIconButton>
           </Box>
         </Box>
 
@@ -304,8 +279,6 @@ export default function Index() {
 
       {!isAdFree && <BannerAd />}
 
-      <ThemePicker ref={themePickerRef} />
-      <FontPicker ref={fontPickerRef} />
       <StreakSheet ref={streakSheetRef} />
       <IgniteResultSheet ref={igniteResultRef} />
 

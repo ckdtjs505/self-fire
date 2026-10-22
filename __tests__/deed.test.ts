@@ -4,7 +4,7 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 
 import { useDeedStore } from "@/store/deed";
 import { toDateString } from "@/utils/date";
-import { Deed, DEED_HISTORY_LIMIT, DEED_MAX_LENGTH, isDeedDone, normalizeDeedText, recentDeeds, upsertDeed } from "@/utils/deed";
+import { Deed, DEED_HISTORY_LIMIT, DEED_MAX_LENGTH, groupDoneDeedsByMonth, isDeedDone, normalizeDeedText, recentDeeds, upsertDeed } from "@/utils/deed";
 
 const quote = { id: "q-1", text: "천 리 길도 한 걸음부터", author: "속담" };
 const deed = (date: string, text = "계단으로 올라갔다"): Deed => ({ date, text, quote });
@@ -115,5 +115,24 @@ describe("useDeedStore.pickToday", () => {
     expect(deeds).toHaveLength(1);
     expect(deeds[0].quote).toEqual(other);
     expect(pick).toEqual({ date: toDateString(), quote: other });
+  });
+});
+
+describe("groupDoneDeedsByMonth", () => {
+  it("해낸 날만 최근 달부터, 달 안에서는 최근 날부터 묶는다", () => {
+    const deeds: Deed[] = [
+      deed("2026-09-30", "구월 끝"),
+      deed("2026-10-02", "시월 초"),
+      { ...deed("2026-10-05", "정하기만 함"), completed: false },
+      deed("2026-10-21", "시월 말"),
+    ];
+    expect(groupDoneDeedsByMonth(deeds)).toEqual([
+      { title: "2026년 10월", data: [deeds[3], deeds[1]] },
+      { title: "2026년 9월", data: [deeds[0]] },
+    ]);
+  });
+
+  it("해낸 날이 없으면 빈 목록", () => {
+    expect(groupDoneDeedsByMonth([{ ...deed("2026-10-05"), completed: false }])).toEqual([]);
   });
 });

@@ -1,8 +1,8 @@
 // ─────────────────────────────────────────────────────────────
 // sidebar.tsx — 홈 화면 왼쪽 서랍
-//   - 메뉴: 저장한 문장 · 나만의 명언 · 설정
+//   - 메뉴: 해낸 일 · 저장한 문장 · 나만의 명언 · 관심 주제(시트) · 꾸미기 · 설정
 //   - 오늘 따르는 문장: 오늘 고른 문장과 오늘 할 일·완료 여부 (누르면 홈에서 그 문장을 연다)
-//   - 따라 산 날들: 지난날 따른 문장과 그날 해낸 일 몇 개 (완료한 날만, 전체는 나의 모닥불 시트에서)
+//   - 따라 산 날들: 지난날 따른 문장과 그날 해낸 일 몇 개 (완료한 날만, 전체는 해낸 일 화면 app/history.tsx)
 // 저장한 문장은 다시 보려고 모아 두는 책갈피라 메뉴로만 두고,
 // 서랍에는 이 앱의 핵심인 '문장대로 산 기록'을 보여 준다.
 // ─────────────────────────────────────────────────────────────
@@ -15,10 +15,13 @@ import { toDateString } from "@/utils/date";
 import { Deed, isDeedDone, recentDeeds } from "@/utils/deed";
 import { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { Href, useRouter } from "expo-router";
+import { useRef } from "react";
 import { Image, ScrollView } from "react-native";
 import { Pressable } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FeatherIcon, { IconNames, Ionicon } from "./icon";
+import InterestsSheet from "./interests-sheet";
+import { PickerSheetHandle } from "./picker-sheet";
 
 // 섹션 제목 (메뉴, 오늘 따르는 문장, 따라 산 날들)
 const SectionTitle: React.FC<{ children: string }> = ({ children }) => (
@@ -47,7 +50,7 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, title, onPress }) => (
   </Pressable>
 );
 
-// 서랍에서 보여 줄 지난날 해낸 일 수 (전체는 나의 모닥불 시트에서)
+// 서랍에서 보여 줄 지난날 해낸 일 수 (전체는 해낸 일 화면에서)
 const RECENT_PAST_DEEDS = 3;
 
 // "10/21"
@@ -65,7 +68,10 @@ const TodayQuoteCard: React.FC<{ quote: Pick<Quote, "text" | "author">; deed: De
   <Pressable
     onPress={onPress}
     accessibilityRole="button"
-    accessibilityLabel={`오늘 따르는 문장: ${quote.text}`}
+    accessibilityLabel={
+      `오늘 따르는 문장: ${quote.text}` +
+      (deed ? `. 오늘 할 일: ${deed.text}, ${isDeedDone(deed) ? "해냄" : "아직 못 함"}` : "")
+    }
     accessibilityHint="홈에서 이 문장을 엽니다"
     style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
   >
@@ -80,13 +86,14 @@ const TodayQuoteCard: React.FC<{ quote: Pick<Quote, "text" | "author">; deed: De
           </Text>
         )}
         <Box flexDirection="row" alignItems="center" marginTop="md" style={{ gap: 6 }}>
+          {/* 체크박스처럼: 아직 못 한 할 일은 빈 동그라미, 해낸 할 일은 체크 동그라미 */}
           <Ionicon
-            name={!deed ? "flame-outline" : isDeedDone(deed) ? "checkmark-circle" : "flame"}
-            size={14}
-            color={deed ? "$flame" : "$muted"}
+            name={!deed ? "flame-outline" : isDeedDone(deed) ? "checkmark-circle" : "ellipse-outline"}
+            size={16}
+            color={deed && isDeedDone(deed) ? "$flame" : "$muted"}
           />
           <Text fontSize={13} fontWeight={deed ? "700" : "400"} color={deed ? "$foreground" : "$muted"} numberOfLines={2} style={{ flex: 1 }}>
-            {!deed ? "아직 오늘 할 일을 정하지 않았어요" : isDeedDone(deed) ? `해냈어요 · ${deed.text}` : `할 일 · ${deed.text}`}
+            {deed ? deed.text : "아직 오늘 할 일을 정하지 않았어요"}
           </Text>
         </Box>
       </Box>
@@ -127,10 +134,19 @@ const Sidebar = ({ navigation }: DrawerContentComponentProps) => {
   const todayDeed = useTodayDeed();
   const deeds = useDeedStore((s) => s.deeds);
   const today = toDateString();
+  const doneDeeds = deeds.filter(isDeedDone);
+  const doneCount = doneDeeds.length;
   const pastDeeds = recentDeeds(
-    deeds.filter((d) => d.date !== today && isDeedDone(d)),
+    doneDeeds.filter((d) => d.date !== today),
     RECENT_PAST_DEEDS
   );
+
+  // 관심 주제는 화면을 옮기지 않고 서랍을 닫은 뒤 그 자리에서 시트로 고른다. (고르면 홈의 명언 목록이 바로 바뀐다)
+  const interestsSheetRef = useRef<PickerSheetHandle>(null);
+  const openInterests = () => {
+    navigation.closeDrawer();
+    interestsSheetRef.current?.open();
+  };
 
   const navigateTo = (href: Href) => {
     navigation.closeDrawer();
@@ -141,12 +157,6 @@ const Sidebar = ({ navigation }: DrawerContentComponentProps) => {
   const openQuote = (quote: Quote) => {
     navigation.closeDrawer();
     usePendingQuoteStore.getState().setQuote({ id: quote.id, text: quote.text, author: quote.author });
-  };
-
-  // 홈의 나의 모닥불 시트를 연다. (at: 같은 요청을 다시 보내도 반영되도록)
-  const openCampfire = () => {
-    navigation.closeDrawer();
-    navigation.navigate("index", { view: "campfire", at: String(Date.now()) });
   };
 
   return (
@@ -169,8 +179,11 @@ const Sidebar = ({ navigation }: DrawerContentComponentProps) => {
         <Box marginBottom="xl">
           <SectionTitle>메뉴</SectionTitle>
           <Box bg="$surface" borderWidth={1} borderColor="$border" borderRadius="md" paddingVertical="xs">
+            <MenuItem icon="check-circle" title="해낸 일" onPress={() => navigateTo("/history")} />
             <MenuItem icon="bookmark" title="저장한 문장" onPress={() => navigateTo("/favorites")} />
             <MenuItem icon="edit-3" title="나만의 명언" onPress={() => navigateTo("/my-quotes")} />
+            <MenuItem icon="compass" title="관심 주제" onPress={openInterests} />
+            <MenuItem icon="image" title="꾸미기" onPress={() => navigateTo("/customize")} />
             <MenuItem icon="settings" title="설정" onPress={() => navigateTo("/settings")} />
           </Box>
         </Box>
@@ -207,17 +220,26 @@ const Sidebar = ({ navigation }: DrawerContentComponentProps) => {
                 <PastDeedRow key={deed.date} deed={deed} onPress={() => openQuote(deed.quote)} />
               ))}
             </Box>
-            <Pressable onPress={openCampfire} accessibilityRole="button" style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
-              <Box flexDirection="row" alignItems="center" justifyContent="center" py="md" gap="xs">
-                <Text fontSize={14} fontWeight="700" color="$flame">
-                  전체 보기 · 나의 모닥불
-                </Text>
-                <FeatherIcon name="chevron-right" size={16} color="$flame" />
-              </Box>
-            </Pressable>
           </Box>
         )}
+
+        {/* 지금까지 해낸 일 전부 (app/history.tsx). 오늘 처음 해낸 날에도 갈 수 있게 해낸 일이 하나라도 있으면 보인다. */}
+        {doneCount > 0 && (
+          <Pressable
+            onPress={() => navigateTo("/history")}
+            accessibilityRole="button"
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+          >
+            <Box flexDirection="row" alignItems="center" justifyContent="center" py="md" gap="xs">
+              <Text fontSize={14} fontWeight="700">
+                {`해낸 일 전체 보기 (${doneCount})`}
+              </Text>
+              <FeatherIcon name="chevron-right" size={16} color="$flame" />
+            </Box>
+          </Pressable>
+        )}
       </ScrollView>
+      <InterestsSheet ref={interestsSheetRef} />
     </Box>
   );
 };

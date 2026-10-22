@@ -4,7 +4,7 @@
 //   - 연속 점화 일수만큼 자란 모닥불 (components/campfire.tsx)
 //   - 최근 7일 동안 불씨를 지핀 날
 //   - 최장 기록 · 불씨 지키기 · 다음 단계까지 남은 일수
-//   - 최근에 문장대로 해낸 일들 (완료한 날만)
+//   - 최근에 문장대로 해낸 일들 (완료한 날만, 전체는 해낸 일 화면 app/history.tsx)
 //   - 7/30/100일 마일스톤 보상과 진행도
 // ─────────────────────────────────────────────────────────────
 
@@ -22,7 +22,9 @@ import {
   RecentDay,
   STREAK_MILESTONES,
 } from "@/utils/streak";
-import { forwardRef } from "react";
+import { useRouter } from "expo-router";
+import { forwardRef, useImperativeHandle, useRef } from "react";
+import { Pressable } from "react-native";
 import Campfire from "./campfire";
 import FeatherIcon, { Ionicon } from "./icon";
 import PickerSheet, { PickerSheetHandle } from "./picker-sheet";
@@ -154,6 +156,18 @@ const MilestoneRow: React.FC<{ milestone: number; currentStreak: number; unlocke
 };
 
 const StreakSheet = forwardRef<PickerSheetHandle>(function StreakSheet(_props, ref) {
+  const router = useRouter();
+  // '해낸 일 전체 보기'에서 시트를 닫고 기록 화면으로 가려고 시트를 직접 잡는다.
+  const sheetRef = useRef<PickerSheetHandle>(null);
+  useImperativeHandle(ref, () => ({
+    open: () => sheetRef.current?.open(),
+    close: () => sheetRef.current?.close(),
+  }));
+  const openHistory = () => {
+    sheetRef.current?.close();
+    router.push("/history");
+  };
+
   const record = useStreakStore(
     useShallow((s) => ({
       currentStreak: s.currentStreak,
@@ -180,7 +194,7 @@ const StreakSheet = forwardRef<PickerSheetHandle>(function StreakSheet(_props, r
         : "문장대로 할 일 한 가지를 해내고 모닥불을 피워 보세요";
 
   return (
-    <PickerSheet ref={ref} title="나의 모닥불" description="불씨를 지핀 날이 이어질수록 모닥불이 커져요">
+    <PickerSheet ref={sheetRef} title="나의 모닥불" description="불씨를 지핀 날이 이어질수록 모닥불이 커져요">
       <Campfire streak={currentStreak} dimmed={!ignitedToday && currentStreak > 0} />
 
       <Box alignItems="center" mt="lg" gap="xs">
@@ -224,6 +238,20 @@ const StreakSheet = forwardRef<PickerSheetHandle>(function StreakSheet(_props, r
               <DeedRow key={deed.date} deed={deed} today={today} />
             ))}
           </Box>
+          {/* 지금까지 해낸 일 전부 (app/history.tsx) */}
+          <Pressable
+            onPress={openHistory}
+            accessibilityRole="button"
+            hitSlop={8}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+          >
+            <Box flexDirection="row" alignItems="center" justifyContent="center" py="md" mt="s" gap="xs">
+              <Text fontSize={14} fontWeight="700">
+                {`해낸 일 전체 보기 (${deeds.length})`}
+              </Text>
+              <FeatherIcon name="chevron-right" size={16} color="$flame" />
+            </Box>
+          </Pressable>
         </>
       )}
 
