@@ -6,6 +6,7 @@ jest.mock("react-native-toast-message", () => ({ show: jest.fn() }));
 
 import { useQuotePager } from "@/hooks/useQuotePager";
 import { Quote } from "@/models";
+import { useCategoryStore } from "@/store/category";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { act, renderHook } from "@testing-library/react-native";
 import Toast from "react-native-toast-message";
@@ -20,9 +21,25 @@ const render = (props: Partial<Parameters<typeof useQuotePager>[0]> = {}) =>
 beforeEach(() => {
   jest.clearAllMocks();
   useFavoriteQuoteStore.setState({ favorites: [], favoritesData: [], customQuotes: [] });
+  useCategoryStore.setState({ currentCategoryId: null });
 });
 
 describe("useQuotePager", () => {
+  it("오늘 고른 문장이 있으면 첫 목록의 맨 앞에 둔다", () => {
+    const todayQuote: Quote = { id: "today", text: "오늘의 문장", author: "" };
+    const { result } = render({ todayQuote });
+    expect(result.current.currentQuote).toEqual(todayQuote);
+    act(() => result.current.showNextQuote());
+    expect(result.current.currentQuote?.id).not.toBe("today");
+  });
+
+  it("주제를 바꿔도 오늘 따르는 문장을 맨 앞에 둔다", () => {
+    const todayQuote: Quote = { id: "today", text: "오늘의 문장", author: "" };
+    const { result } = render({ todayQuote });
+    act(() => result.current.selectCategory("love"));
+    expect(result.current.currentQuote).toEqual(todayQuote);
+  });
+
   it("기본 명언으로 첫 목록을 만들고 앞뒤로 넘긴다", () => {
     const onNext = jest.fn();
     const { result } = render({ onNext });
@@ -44,14 +61,14 @@ describe("useQuotePager", () => {
     expect(result.current.currentIndex).toBe(1);
   });
 
-  it("비어 있는 불씨 보관함을 고르면 안내만 하고 모드를 바꾸지 않는다", () => {
+  it("비어 있는 저장한 문장을 고르면 안내만 하고 모드를 바꾸지 않는다", () => {
     const { result } = render();
     act(() => result.current.selectCategory("favorites"));
     expect(Toast.show).toHaveBeenCalled();
     expect(result.current.filterMode).toBe("all");
   });
 
-  it("내 명언 ↔ 불씨 보관함을 오가면 모드별로 보던 위치를 복원한다", () => {
+  it("내 명언 ↔ 저장한 문장을 오가면 모드별로 보던 위치를 복원한다", () => {
     act(() => {
       useFavoriteQuoteStore.getState().addCustomQuote("내 명언 1", "나");
       useFavoriteQuoteStore.getState().addFavorite("1", quotes[0]);
@@ -103,7 +120,7 @@ describe("useQuotePager", () => {
     expect(result.current.filterMode).toBe("all");
   });
 
-  it("openFavoritesKey가 바뀌면 불씨 보관함을 연다", () => {
+  it("openFavoritesKey가 바뀌면 저장한 문장을 연다", () => {
     act(() => useFavoriteQuoteStore.getState().addFavorite("1", quotes[0]));
     const { result, rerender } = render();
     expect(result.current.filterMode).toBe("all");
@@ -111,7 +128,7 @@ describe("useQuotePager", () => {
     expect(result.current.filterMode).toBe("favorites");
   });
 
-  it("openQuoteId가 있으면 최근 보관순으로 그 명언부터 연다", () => {
+  it("openQuoteId가 있으면 최근 저장순으로 그 명언부터 연다", () => {
     act(() => {
       quotes.slice(0, 3).forEach((q) => useFavoriteQuoteStore.getState().addFavorite(q.id, q));
     });
@@ -119,7 +136,7 @@ describe("useQuotePager", () => {
     rerender({ defaultQuotes: quotes, openFavoritesKey: "1", openQuoteId: "2" });
     expect(result.current.filterMode).toBe("favorites");
     expect(result.current.currentQuote?.id).toBe("2");
-    // 최근 보관순: 3 → 2 → 1
+    // 최근 저장순: 3 → 2 → 1
     expect(result.current.canGoPrev).toBe(true);
     act(() => result.current.showNextQuote());
     expect(result.current.currentQuote?.id).toBe("1");

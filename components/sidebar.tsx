@@ -1,6 +1,18 @@
+// ─────────────────────────────────────────────────────────────
+// sidebar.tsx — 홈 화면 왼쪽 서랍
+//   - 메뉴: 저장한 문장 · 나만의 명언 · 설정
+//   - 오늘 따르는 문장: 오늘 고른 문장과 오늘의 한 줄 (누르면 홈에서 그 문장을 연다)
+//   - 따라 산 날들: 지난날 따른 문장과 그날의 한 줄 몇 개 (전체는 나의 모닥불 시트에서)
+// 저장한 문장은 다시 보려고 모아 두는 책갈피라 메뉴로만 두고,
+// 서랍에는 이 앱의 핵심인 '문장대로 산 기록'을 보여 준다.
+// ─────────────────────────────────────────────────────────────
+
 import { Box, Text } from "@/atom";
 import { Quote } from "@/models";
-import { useFavoriteQuoteStore } from "@/store/quote";
+import { useDeedStore, useTodayDeed, useTodayQuote } from "@/store/deed";
+import { usePendingQuoteStore } from "@/store/notification";
+import { toDateString } from "@/utils/date";
+import { Deed, recentDeeds } from "@/utils/deed";
 import { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { Href, useRouter } from "expo-router";
 import { Image, ScrollView } from "react-native";
@@ -8,17 +20,10 @@ import { Pressable } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FeatherIcon, { IconNames, Ionicon } from "./icon";
 
-// 섹션 제목 (메뉴, 불씨 보관함)
-const SectionTitle: React.FC<{ children: string; count?: number }> = ({ children, count }) => (
-  <Box flexDirection="row" alignItems="center" marginBottom="s" marginLeft="xs" style={{ gap: 6 }}>
+// 섹션 제목 (메뉴, 오늘 따르는 문장, 따라 산 날들)
+const SectionTitle: React.FC<{ children: string }> = ({ children }) => (
+  <Box marginBottom="s" marginLeft="xs">
     <Text variant="overline">{children}</Text>
-    {count !== undefined && count > 0 && (
-      <Box bg="$primarySoft" borderRadius="pill" px="s" style={{ paddingVertical: 1 }}>
-        <Text color="$primary" fontSize={11} fontWeight="800">
-          {count}
-        </Text>
-      </Box>
-    )}
   </Box>
 );
 
@@ -42,33 +47,70 @@ const MenuItem: React.FC<MenuItemProps> = ({ icon, title, onPress }) => (
   </Pressable>
 );
 
-// 사이드바에서 보여 줄 최근 불씨 개수 (전체 목록·검색은 불씨 보관함 화면에서)
-const RECENT_FAVORITES = 3;
+// 서랍에서 보여 줄 지난 한 줄 수 (전체는 나의 모닥불 시트에서)
+const RECENT_PAST_DEEDS = 3;
 
-// 불씨 보관함에 저장된 명언 카드. 누르면 홈의 불씨 보관함 보기에서 그 명언부터 보여 준다.
-// (보관 해제는 홈에서 카드 아래 불씨 버튼으로 — 홈과 같은 방식 하나로 맞춘다)
-const FavoriteQuoteCard: React.FC<{ quote: Quote; onPress: () => void }> = ({ quote, onPress }) => (
-  <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
-    <Box
-      bg="$surface"
-      borderWidth={1}
-      borderColor="$border"
-      borderRadius="md"
-      padding="lg"
-      marginBottom="s"
-      flexDirection="row"
-      style={{ gap: 12 }}
-    >
-      <Box width={3} borderRadius="pill" bg="$flame" style={{ opacity: 0.8 }} />
-      <Box flex={1}>
-        <Text fontSize={14} lineHeight={22} fontWeight="500">
+// "10/21"
+const shortDate = (date: string) => {
+  const [, m, d] = date.split("-").map(Number);
+  return `${m}/${d}`;
+};
+
+// 오늘 따르는 문장 카드. 한 줄을 남겼으면 그 한 줄도 함께 보여 준다.
+const TodayQuoteCard: React.FC<{ quote: Pick<Quote, "text" | "author">; deed: Deed | null; onPress: () => void }> = ({
+  quote,
+  deed,
+  onPress,
+}) => (
+  <Pressable
+    onPress={onPress}
+    accessibilityRole="button"
+    accessibilityLabel={`오늘 따르는 문장: ${quote.text}`}
+    accessibilityHint="홈에서 이 문장을 엽니다"
+    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+  >
+    <Box bg="$surface" borderWidth={1} borderColor="$border" borderRadius="md" padding="lg">
+      <Box>
+        <Text fontSize={14} lineHeight={22} fontWeight="600" numberOfLines={4}>
           {quote.text}
         </Text>
         {!!quote.author && (
-          <Text variant="caption" fontSize={12} marginTop="s">
+          <Text variant="caption" fontSize={12} marginTop="xs">
             {quote.author}
           </Text>
         )}
+        <Box flexDirection="row" alignItems="center" marginTop="md" style={{ gap: 6 }}>
+          <Ionicon name={deed ? "flame" : "flame-outline"} size={14} color={deed ? "$flame" : "$muted"} />
+          <Text fontSize={13} fontWeight={deed ? "700" : "400"} color={deed ? "$foreground" : "$muted"} numberOfLines={2} style={{ flex: 1 }}>
+            {deed ? deed.text : "아직 오늘의 한 줄을 남기지 않았어요"}
+          </Text>
+        </Box>
+      </Box>
+    </Box>
+  </Pressable>
+);
+
+// 지난날 따른 문장 한 줄: 날짜 · 그날의 한 줄 · 따른 문장. 누르면 홈에서 그 문장을 연다.
+const PastDeedRow: React.FC<{ deed: Deed; onPress: () => void }> = ({ deed, onPress }) => (
+  <Pressable
+    onPress={onPress}
+    accessibilityRole="button"
+    accessibilityLabel={`${shortDate(deed.date)}, ${deed.text}, ${deed.quote.text}`}
+    style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+  >
+    <Box flexDirection="row" paddingVertical="s" paddingHorizontal="md" gap="md">
+      <Box width={40} pt="xs">
+        <Text variant="micro" color="$muted">
+          {shortDate(deed.date)}
+        </Text>
+      </Box>
+      <Box flex={1} gap="xs">
+        <Text fontSize={14} fontWeight="700" numberOfLines={2}>
+          {deed.text}
+        </Text>
+        <Text variant="caption" fontSize={12} numberOfLines={1}>
+          {`“${deed.quote.text}”`}
+        </Text>
       </Box>
     </Box>
   </Pressable>
@@ -77,28 +119,31 @@ const FavoriteQuoteCard: React.FC<{ quote: Quote; onPress: () => void }> = ({ qu
 const Sidebar = ({ navigation }: DrawerContentComponentProps) => {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const favorites = useFavoriteQuoteStore((state) => state.favorites);
-  const favoritesData = useFavoriteQuoteStore((state) => state.favoritesData) || [];
-  const customQuotes = useFavoriteQuoteStore((state) => state.customQuotes);
-
-  // 즐겨찾기 ID 순서대로 명언 내용을 찾는다. (저장된 데이터 → 나만의 명언 순)
-  const favoriteQuotes = favorites
-    .map((id) => favoritesData.find((q) => q.id === id) || customQuotes.find((q) => q.id === id))
-    .filter((quote): quote is Quote => !!quote);
+  const todayQuote = useTodayQuote();
+  const todayDeed = useTodayDeed();
+  const deeds = useDeedStore((s) => s.deeds);
+  const today = toDateString();
+  const pastDeeds = recentDeeds(
+    deeds.filter((d) => d.date !== today),
+    RECENT_PAST_DEEDS
+  );
 
   const navigateTo = (href: Href) => {
     navigation.closeDrawer();
     router.push(href);
   };
 
-  // 홈 화면을 불씨 보관함 보기로 바꾸고 누른 명언부터 보여 준다. (at: 같은 요청을 다시 보내도 반영되도록)
-  const openFavorite = (quote: Quote) => {
+  // 홈에서 이 문장을 맨 앞에 두고 보여 준다. (알림을 눌렀을 때와 같은 길, hooks/useQuotePager.ts)
+  const openQuote = (quote: Quote) => {
     navigation.closeDrawer();
-    navigation.navigate("index", { view: "favorites", at: String(Date.now()), quote: quote.id });
+    usePendingQuoteStore.getState().setQuote({ id: quote.id, text: quote.text, author: quote.author });
   };
 
-  // 최근에 보관한 순서로 몇 개만
-  const recentFavorites = favoriteQuotes.slice(-RECENT_FAVORITES).reverse();
+  // 홈의 나의 모닥불 시트를 연다. (at: 같은 요청을 다시 보내도 반영되도록)
+  const openCampfire = () => {
+    navigation.closeDrawer();
+    navigation.navigate("index", { view: "campfire", at: String(Date.now()) });
+  };
 
   return (
     <Box flex={1} backgroundColor="$background" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
@@ -120,42 +165,53 @@ const Sidebar = ({ navigation }: DrawerContentComponentProps) => {
         <Box marginBottom="xl">
           <SectionTitle>메뉴</SectionTitle>
           <Box bg="$surface" borderWidth={1} borderColor="$border" borderRadius="md" paddingVertical="xs">
-            <MenuItem icon="archive" title="불씨 보관함" onPress={() => navigateTo("/favorites")} />
+            <MenuItem icon="bookmark" title="저장한 문장" onPress={() => navigateTo("/favorites")} />
             <MenuItem icon="edit-3" title="나만의 명언" onPress={() => navigateTo("/my-quotes")} />
             <MenuItem icon="settings" title="설정" onPress={() => navigateTo("/settings")} />
           </Box>
         </Box>
 
-        {/* ── 불씨 보관함 ── */}
-        <SectionTitle count={favoriteQuotes.length}>불씨 보관함</SectionTitle>
-
-        {favoriteQuotes.length === 0 ? (
-          <Box
-            alignItems="center"
-            padding="xl"
-            borderRadius="md"
-            borderColor="$border"
-            style={{ borderStyle: "dashed", borderWidth: 1.5 }}
-          >
-            <Ionicon name="flame-outline" size={26} color="$muted" />
-            <Text variant="caption" marginTop="s" textAlign="center" lineHeight={19}>
-              마음에 닿은 문장에{"\n"}불씨를 지펴 보관해 보세요
-            </Text>
-          </Box>
-        ) : (
-          <>
-            {recentFavorites.map((quote) => (
-              <FavoriteQuoteCard key={quote.id} quote={quote} onPress={() => openFavorite(quote)} />
-            ))}
-            <Pressable onPress={() => navigateTo("/favorites")} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
-              <Box flexDirection="row" alignItems="center" justifyContent="center" py="md" gap="xs">
-                <Text fontSize={14} fontWeight="700" color="$primary">
-                  전체 보기 · 검색 ({favoriteQuotes.length})
+        {/* ── 오늘 따르는 문장 ── */}
+        <Box marginBottom="xl">
+          <SectionTitle>오늘 따르는 문장</SectionTitle>
+          {todayQuote ? (
+            <TodayQuoteCard quote={todayQuote} deed={todayDeed} onPress={() => openQuote(todayQuote)} />
+          ) : (
+            <Pressable onPress={() => navigation.closeDrawer()} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+              <Box
+                alignItems="center"
+                padding="xl"
+                borderRadius="md"
+                borderColor="$border"
+                style={{ borderStyle: "dashed", borderWidth: 1.5 }}
+              >
+                <Ionicon name="flame-outline" size={26} color="$muted" />
+                <Text variant="caption" marginTop="s" textAlign="center" lineHeight={19}>
+                  {"아직 오늘 따를 문장을 정하지 않았어요\n마음에 닿는 문장 아래 '오늘 이 문장대로 살기'를 눌러 보세요"}
                 </Text>
-                <FeatherIcon name="chevron-right" size={16} color="$primary" />
               </Box>
             </Pressable>
-          </>
+          )}
+        </Box>
+
+        {/* ── 따라 산 날들 ── */}
+        {pastDeeds.length > 0 && (
+          <Box>
+            <SectionTitle>따라 산 날들</SectionTitle>
+            <Box bg="$surface" borderWidth={1} borderColor="$border" borderRadius="md" paddingVertical="xs">
+              {pastDeeds.map((deed) => (
+                <PastDeedRow key={deed.date} deed={deed} onPress={() => openQuote(deed.quote)} />
+              ))}
+            </Box>
+            <Pressable onPress={openCampfire} accessibilityRole="button" style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+              <Box flexDirection="row" alignItems="center" justifyContent="center" py="md" gap="xs">
+                <Text fontSize={14} fontWeight="700" color="$flame">
+                  전체 보기 · 나의 모닥불
+                </Text>
+                <FeatherIcon name="chevron-right" size={16} color="$flame" />
+              </Box>
+            </Pressable>
+          </Box>
         )}
       </ScrollView>
     </Box>

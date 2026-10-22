@@ -4,7 +4,7 @@ import { Pressable } from "react-native-gesture-handler";
 type Props = {
   label: string;
   onPress: () => void;
-  // 켜진 상태이면 불씨 색으로 채운다. (예: 불씨 보관함에 담긴 명언)
+  // 켜진 상태이면 회색 바탕으로 눌린 듯 보인다. (예: 저장한 명언 — 강조색은 오늘 이 문장대로 사는 흐름에만 쓴다)
   active?: boolean;
   children: React.ReactNode;
 };
@@ -21,8 +21,8 @@ const ActionButton: React.FC<Props> = ({ label, onPress, active = false, childre
       borderRadius="pill"
       justifyContent="center"
       alignItems="center"
-      bg={active ? "$flame" : "$surface"}
-      borderWidth={active ? 0 : 1}
+      bg={active ? "$surfaceMuted" : "$surface"}
+      borderWidth={1}
       borderColor="$border"
     >
       {children}

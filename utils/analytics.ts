@@ -45,6 +45,7 @@ type EventParams = Record<string, string | number | boolean>;
 export type AnalyticsEvent =
   | "ignite_complete" // 하루 첫 점화 완료
   | "deed_save" // 오늘의 한 줄(문장대로 한 일) 저장 (edit, length)
+  | "today_quote_pick" // 오늘의 문장을 정함 (change: 이미 고른 문장을 바꿨는지)
   | "streak_freeze_used" // 불씨 지키기로 빠진 하루를 지킴
   | "streak_milestone" // 7/30/100일 마일스톤 도달 (보상 해금)
   | "reminder_offer" // 점화 후 알림 받기 제안에 응답 (accepted, granted, hour)
@@ -52,11 +53,11 @@ export type AnalyticsEvent =
   | "quote_share" // 명언 공유
   | "quote_add" // 내 명언 추가
   | "quote_edit" // 내 명언 수정
-  | "favorite_add" // 불씨 보관함에 저장
-  | "favorite_remove" // 불씨 보관함에서 해제
+  | "favorite_add" // 저장한 문장에 저장
+  | "favorite_remove" // 저장한 문장에서 해제
   | "favorite_undo" // 해제 직후 되돌리기
-  | "favorites_search" // 보관함 목록에서 검색을 시작함 (화면을 열 때마다 한 번)
-  | "favorite_open" // 보관함 목록에서 명언을 눌러 홈에서 엶
+  | "favorites_search" // 저장한 문장 목록에서 검색을 시작함 (화면을 열 때마다 한 번)
+  | "favorite_open" // 저장한 문장 목록에서 명언을 눌러 홈에서 엶
   | "notification_open" // 알림을 눌러 앱을 엶 (type: daily | streak)
   | "onboarding_skip" // 첫 실행 주제 고르기를 건너뜀
   | "widget_prompt_shown" // 점화 완료 시트에서 위젯 추가 제안 (streak)

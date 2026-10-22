@@ -12,7 +12,7 @@ import { createTheme } from "@shopify/restyle";
 //   primary      강조색 (선택 상태, 주요 버튼)
 //   primarySoft  강조색을 옅게 깐 배경
 //   onPrimary    강조색 위의 글자
-//   flame        불씨(즐겨찾기·스트릭) 색
+//   flame        불씨(실천·스트릭) 색
 // ─────────────────────────────────────────────────────────────
 export type Palette = {
   background: string;

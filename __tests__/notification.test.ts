@@ -47,6 +47,28 @@ describe("scheduleUpcoming", () => {
     });
   });
 
+  it("오늘 고른 문장이 있으면 오늘 남은 첫 알림에 싣고, 내일부터는 오늘의 명언으로 돌아간다", async () => {
+    const picked: Quote = { id: "picked", text: "오늘 고른 문장", author: "나" };
+    const times = [
+      { hour: 8, minute: 0 },
+      { hour: 13, minute: 0 },
+      { hour: 20, minute: 0 },
+    ];
+    await scheduleUpcoming(times, candidates, new Date(2026, 9, 14, 9, 0), null, picked);
+
+    const [first, second] = schedule.mock.calls.map(([req]) => req);
+    expect(first.trigger.date).toEqual(new Date(2026, 9, 14, 13, 0));
+    expect(first.content.title).toBe("🔥 오늘 따르는 문장");
+    expect(first.content.body).toBe(`"${picked.text}" - ${picked.author}`);
+    expect(first.content.data.quoteId).toBe(picked.id);
+    expect(second.trigger.date).toEqual(new Date(2026, 9, 14, 20, 0));
+    expect(second.content.data.quoteId).not.toBe(picked.id);
+
+    const tomorrow = schedule.mock.calls.find(([req]) => req.trigger.date.getDate() === 15 && req.trigger.date.getHours() === 8)![0];
+    expect(tomorrow.content.title).toBe("🔥 오늘의 명언");
+    expect(tomorrow.content.data.quoteId).toBe(getDailyQuote(candidates, new Date(2026, 9, 15))!.id);
+  });
+
   it("오늘 알림 시각이 아직 안 지났으면 오늘 것도 예약한다", async () => {
     await scheduleUpcoming([{ hour: 21, minute: 30 }], candidates, new Date(2026, 9, 14, 9, 0));
     expect(schedule).toHaveBeenCalledTimes(31);

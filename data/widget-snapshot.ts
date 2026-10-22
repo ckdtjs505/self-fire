@@ -16,7 +16,8 @@ export const WIDGET_SNAPSHOT_KEY = "widget_snapshot";
 // 앱을 열 때마다 다시 채우므로 이 기간 안에 한 번이라도 앱을 열면 위젯 명언이 끊기지 않는다.
 export const WIDGET_DAYS_AHEAD = 14;
 
-export type WidgetDailyQuote = { date: string; text: string; author: string };
+// picked: 그날 사용자가 고른 오늘의 문장이면 true (위젯 라벨을 '오늘 따르는 문장'으로 바꾼다)
+export type WidgetDailyQuote = { date: string; text: string; author: string; picked?: boolean };
 
 export type WidgetSnapshot = {
   quotes: WidgetDailyQuote[];
@@ -31,7 +32,8 @@ export type WidgetSnapshot = {
 export type FlameStatus = "lit" | "waiting" | "out";
 
 export type WidgetView = {
-  quote: { text: string; author: string } | null;
+  // picked: 오늘 고른 오늘의 문장이면 true
+  quote: { text: string; author: string; picked?: boolean } | null;
   flame: FlameStatus;
   streak: number; // 지금 이어지고 있는 연속 일수 (꺼졌으면 0)
 };
@@ -41,20 +43,24 @@ const addDays = (date: Date, days: number) =>
 
 // 오늘부터 WIDGET_DAYS_AHEAD일 동안 날짜별 '오늘의 명언'을 담은 스냅샷을 만든다.
 // candidates는 홈 화면 '전체' 모드와 같은 후보여야 위젯 명언과 그날 홈 화면의 첫 명언이 같아진다.
+// todayPick: 오늘 고른 문장. 있으면 오늘 날짜에는 '오늘의 명언' 대신 이 문장을 담는다. (홈 화면 첫 명언과 같다)
 export const buildWidgetSnapshot = (params: {
   candidates: Quote[];
   currentStreak: number;
   lastStreakDate: string | null;
   freezeUsedWeek: string | null;
   lastIgnitedDate: string | null;
+  todayPick?: Quote | null;
   now?: Date;
 }): WidgetSnapshot => {
-  const { candidates, now = new Date(), ...flame } = params;
+  const { candidates, todayPick = null, now = new Date(), ...flame } = params;
   const quotes: WidgetDailyQuote[] = [];
   for (let day = 0; day < WIDGET_DAYS_AHEAD; day++) {
     const date = addDays(now, day);
-    const quote = getDailyQuote(candidates, date);
-    if (quote) quotes.push({ date: toDateString(date), text: quote.text, author: quote.author });
+    const picked = day === 0 && !!todayPick;
+    const quote = picked ? todayPick : getDailyQuote(candidates, date);
+    if (!quote) continue;
+    quotes.push({ date: toDateString(date), text: quote.text, author: quote.author, ...(picked && { picked }) });
   }
   return { quotes, ...flame };
 };
@@ -68,7 +74,8 @@ export const resolveWidgetView = (snapshot: WidgetSnapshot | null, now: Date = n
   // 저장된 기간이 지났으면(오래 앱을 열지 않음) 마지막 명언이라도 보여 준다.
   const pastOrToday = snapshot.quotes.filter((q) => q.date <= today);
   const daily = pastOrToday[pastOrToday.length - 1] ?? null;
-  const quote = daily && { text: daily.text, author: daily.author };
+  // 오늘 고른 문장은 그날만 '오늘 따르는 문장'이다. (지난날 고른 문장을 이어 보여 줄 때는 보통 명언으로)
+  const quote = daily && { text: daily.text, author: daily.author, picked: !!daily.picked && daily.date === today };
 
   // 앱과 같은 규칙으로 계산한다. (어제 하루를 빠뜨렸어도 불씨 지키기가 남았으면 이어진 것으로 본다)
   const { record } = reconcileStreak(

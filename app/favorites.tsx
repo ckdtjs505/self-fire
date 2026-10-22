@@ -1,8 +1,8 @@
 // ─────────────────────────────────────────────────────────────
 // app/favorites.tsx
-// 불씨 보관함 목록. 보관한 명언을 최근 보관순으로 보여 주고, 내용·작성자로 찾을 수 있다.
-//   - 명언을 누르면 홈의 불씨 보관함 보기에서 그 명언부터 넘겨 본다.
-//   - 불씨 버튼으로 보관을 해제한다. (토스트의 '되돌리기'로 바로 되살릴 수 있다)
+// 저장한 문장 목록. 저장한 명언을 최근 저장순으로 보여 주고, 내용·작성자로 찾을 수 있다.
+//   - 명언을 누르면 홈의 저장한 문장 보기에서 그 명언부터 넘겨 본다.
+//   - 저장 버튼으로 저장을 취소한다. (토스트의 '되돌리기'로 바로 되살릴 수 있다)
 // ─────────────────────────────────────────────────────────────
 
 import { Box, SafeAreaView, Text } from "@/atom";
@@ -22,17 +22,17 @@ import { FlatList, Pressable } from "react-native";
 import Toast from "react-native-toast-message";
 import { useShallow } from "zustand/react/shallow";
 
-// 보관함이 비었을 때
+// 저장한 문장이 없을 때
 const EmptyState = () => (
   <Box flex={1} justifyContent="center" alignItems="center" padding="xl" style={{ marginTop: 96 }}>
-    <Box width={76} height={76} borderRadius="pill" bg="$primarySoft" justifyContent="center" alignItems="center">
-      <Ionicon name="flame-outline" size={32} color="$flame" />
+    <Box width={76} height={76} borderRadius="pill" bg="$surfaceMuted" justifyContent="center" alignItems="center">
+      <Ionicon name="bookmark-outline" size={30} color="$muted" />
     </Box>
     <Text variant="heading" marginTop="xl">
-      아직 보관한 불씨가 없어요
+      아직 저장한 문장이 없어요
     </Text>
     <Text variant="caption" fontSize={14} marginTop="s" textAlign="center" lineHeight={21}>
-      마음에 닿은 문장 아래{"\n"}불씨 버튼을 눌러 보관해 보세요.
+      마음에 닿은 문장 아래{"\n"}저장 버튼을 눌러 모아 보세요.
     </Text>
   </Box>
 );
@@ -42,7 +42,7 @@ const NoResults: React.FC<{ query: string; onClear: () => void }> = ({ query, on
   <Box alignItems="center" padding="xl" style={{ marginTop: 72 }}>
     <FeatherIcon name="search" size={28} color="$muted" />
     <Text variant="body" marginTop="md" textAlign="center">
-      ‘{query.trim()}’에 맞는 불씨가 없어요
+      ‘{query.trim()}’에 맞는 문장이 없어요
     </Text>
     <Text variant="caption" marginTop="xs" textAlign="center">
       띄어쓰기 없이 짧게 찾거나 작성자 이름으로 찾아보세요.
@@ -61,7 +61,7 @@ type FavoriteRowProps = {
   onRemove: () => void;
 };
 
-// 보관한 명언 한 장: 누르면 홈에서 열고, 불씨 버튼으로 보관 해제
+// 저장한 명언 한 장: 누르면 홈에서 열고, 저장 버튼으로 저장 취소
 const FavoriteRow: React.FC<FavoriteRowProps> = ({ quote, onOpen, onRemove }) => (
   <Pressable
     onPress={onOpen}
@@ -81,7 +81,7 @@ const FavoriteRow: React.FC<FavoriteRowProps> = ({ quote, onOpen, onRemove }) =>
       alignItems="flex-start"
       style={{ gap: 12 }}
     >
-      <Box width={3} alignSelf="stretch" borderRadius="pill" bg="$flame" style={{ opacity: 0.8 }} />
+      <Box width={3} alignSelf="stretch" borderRadius="pill" bg="$border" />
       <Box flex={1}>
         <Text fontSize={16} fontWeight="600" lineHeight={25}>
           {quote.text}
@@ -97,11 +97,11 @@ const FavoriteRow: React.FC<FavoriteRowProps> = ({ quote, onOpen, onRemove }) =>
         onPress={onRemove}
         hitSlop={8}
         accessibilityRole="button"
-        accessibilityLabel="보관 해제"
+        accessibilityLabel="저장 취소"
         style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
       >
-        <Box width={34} height={34} borderRadius="pill" bg="$flame" justifyContent="center" alignItems="center">
-          <Ionicon name="flame" size={16} color="white" />
+        <Box width={34} height={34} borderRadius="pill" bg="$surfaceMuted" justifyContent="center" alignItems="center">
+          <Ionicon name="bookmark" size={15} color="$foreground" />
         </Box>
       </Pressable>
     </Box>
@@ -122,7 +122,7 @@ export default function FavoritesScreen() {
   const [query, setQuery] = useState("");
   const searchTracked = useRef(false);
 
-  // 최근에 보관한 명언이 위로 오게 한다. (id만 저장된 예전 보관은 번들 명언에서 보충)
+  // 최근에 저장한 명언이 위로 오게 한다. (id만 저장된 예전 저장은 번들 명언에서 보충)
   const allFavorites = getFavoriteQuotes(favorites, favoritesData, [...bundledQuotes, ...customQuotes]).reverse();
   const results = searchQuotes(allFavorites, query);
   const isSearching = query.trim().length > 0;
@@ -135,7 +135,7 @@ export default function FavoritesScreen() {
     }
   };
 
-  // 홈으로 돌아가 불씨 보관함 보기에서 이 명언부터 보여 준다. (at: 같은 명언을 다시 눌러도 반영되도록)
+  // 홈으로 돌아가 저장한 문장 보기에서 이 명언부터 보여 준다. (at: 같은 명언을 다시 눌러도 반영되도록)
   const openOnHome = (quote: Quote) => {
     trackEvent("favorite_open");
     router.dismissTo({ pathname: "/", params: { view: "favorites", at: String(Date.now()), quote: quote.id } });
@@ -147,7 +147,7 @@ export default function FavoritesScreen() {
     trackEvent("favorite_remove");
     Toast.show({
       type: "undo",
-      text1: "불씨가 꺼졌습니다",
+      text1: "저장을 취소했어요",
       props: {
         onUndo: () => {
           addFavorite(quote.id, quote);
@@ -162,13 +162,13 @@ export default function FavoritesScreen() {
 
   return (
     <SafeAreaView flex={1} bg="$background">
-      <ScreenHeader title="불씨 보관함" />
+      <ScreenHeader title="저장한 문장" />
 
       {hasFavorites && (
         <Box paddingBottom="s">
           <SearchBar value={query} onChangeText={changeQuery} />
           <Text variant="caption" fontSize={12} marginTop="md" marginHorizontal="xl" style={{ fontVariant: ["tabular-nums"] }}>
-            {isSearching ? `${allFavorites.length}개 중 ${results.length}개` : `최근 보관순 · ${allFavorites.length}개`}
+            {isSearching ? `${allFavorites.length}개 중 ${results.length}개` : `최근 저장순 · ${allFavorites.length}개`}
           </Text>
         </Box>
       )}

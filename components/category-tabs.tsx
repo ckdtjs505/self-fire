@@ -3,25 +3,24 @@
 // 헤더 아래에서 무엇을 볼지 고르는 칩.
 //   - 평소에는 지금 보고 있는 항목만 작은 알약으로 보여준다.
 //   - 누르면 그 자리에서 가로 스크롤 탭 한 줄로 펼쳐지고, 고르면 다시 접힌다.
-//   - 보기: 전체 / 불씨 보관함 / 내 명언, 주제: 명언 카테고리
+//   - 보기: 전체 / 저장한 문장 / 내 명언, 주제: 명언 카테고리
 // 펼칠 때 선택된 탭이 화면 안으로 스크롤된다.
 // ─────────────────────────────────────────────────────────────
 
 import { Box, Text } from "@/atom";
 import { CATEGORIES, CategoryId } from "@/data/quote-categories";
-import { Theme } from "@/themes";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView } from "react-native";
 import FeatherIcon from "./icon";
 
-// null: 전체, "favorites": 불씨 보관함, "mine": 내가 직접 작성한 명언
+// null: 전체, "favorites": 저장한 문장, "mine": 내가 직접 작성한 명언
 export type CategorySelection = CategoryId | "favorites" | "mine" | null;
 
-type Item = { id: CategorySelection; label: string; emoji: string; activeColor?: keyof Theme["colors"] };
+type Item = { id: CategorySelection; label: string; emoji: string };
 
 const MODE_ITEMS: Item[] = [
   { id: null, label: "전체", emoji: "✨" },
-  { id: "favorites", label: "불씨 보관함", emoji: "🔥", activeColor: "$flame" },
+  { id: "favorites", label: "저장한 문장", emoji: "🔖" },
   { id: "mine", label: "내 명언", emoji: "✍️" },
 ];
 
@@ -30,7 +29,7 @@ const SIDE_PADDING = 20;
 type Props = {
   selectedId: CategorySelection;
   onSelect: (id: CategorySelection) => void;
-  // 불씨 보관함 탭 옆에 보여줄 개수
+  // 저장한 문장 탭 옆에 보여줄 개수
   favoritesCount: number;
   // 이 값이 바뀌면 펼친 탭을 접는다 (예: 명언을 넘겼을 때)
   collapseKey?: unknown;
@@ -85,7 +84,7 @@ const CategoryTabs: React.FC<Props> = ({ selectedId, onSelect, favoritesCount, c
           alignItems="center"
           height={34}
           borderRadius="pill"
-          bg={isActive ? item.activeColor ?? "$primary" : "$surfaceMuted"}
+          bg={isActive ? "$primary" : "$surfaceMuted"}
           style={{ gap: 5, paddingHorizontal: 13 }}
         >
           <Text fontSize={13}>{item.emoji}</Text>

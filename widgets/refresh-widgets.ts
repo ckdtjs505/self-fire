@@ -7,7 +7,7 @@
 import { buildWidgetSnapshot, resolveWidgetView, saveWidgetSnapshot } from "@/data/widget-snapshot";
 import { loadWidgetStyle } from "@/data/widget-style";
 import { LAST_IGNITED_DATE_KEY } from "@/hooks/useDailyIgnite";
-import { loadDailyCandidates } from "@/services/daily-candidates";
+import { loadDailyCandidates, loadTodayPick } from "@/services/daily-candidates";
 import { useStreakStore, whenStreakHydrated } from "@/store/streak";
 import { Platform } from "react-native";
 import { requestWidgetUpdate } from "react-native-android-widget";
@@ -29,6 +29,7 @@ const refreshNow = async () => {
     const { currentStreak, lastStreakDate, freezeUsedWeek } = useStreakStore.getState();
     const snapshot = buildWidgetSnapshot({
       candidates: await loadDailyCandidates(),
+      todayPick: await loadTodayPick(),
       currentStreak,
       lastStreakDate,
       freezeUsedWeek,

@@ -46,6 +46,26 @@ describe("buildWidgetSnapshot", () => {
     });
   });
 
+  it("오늘 고른 문장이 있으면 오늘은 그 문장을 '오늘 따르는 문장'으로 담고, 내일부터는 오늘의 명언을 담는다", () => {
+    const todayPick: Quote = { id: "picked", text: "오늘 고른 문장", author: "나" };
+    const snapshot = buildWidgetSnapshot({
+      candidates,
+      todayPick,
+      currentStreak: 3,
+      lastStreakDate: null,
+      freezeUsedWeek: null,
+      lastIgnitedDate: null,
+      now,
+    });
+
+    expect(snapshot.quotes[0]).toEqual({ date: "2026-10-18", text: todayPick.text, author: todayPick.author, picked: true });
+    expect(snapshot.quotes[1].picked).toBeUndefined();
+    expect(resolveWidgetView(snapshot, now).quote).toEqual({ text: todayPick.text, author: todayPick.author, picked: true });
+    // 오래 앱을 열지 않아 지난날의 문장을 보여 줄 때는 '오늘 따르는 문장'이라 하지 않는다
+    const stale = { ...snapshot, quotes: [snapshot.quotes[0]] };
+    expect(resolveWidgetView(stale, new Date(2026, 9, 20)).quote?.picked).toBe(false);
+  });
+
   it("후보 명언이 없으면 명언 없이 만든다", () => {
     const snapshot = buildWidgetSnapshot({
       candidates: [],

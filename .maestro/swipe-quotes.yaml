@@ -1,10 +1,13 @@
-# 홈 화면: 명언을 넘기고, 이전 명언으로 돌아갔다가 '새 명언으로'로 복귀
-# first-launch 다음에 실행한다 (오늘의 불씨를 이미 켠 상태)
+# 홈 화면: 오늘 따르는 문장에서 '다른 문장으로 바꾸기'로 명언을 넘겨 보고,
+# 이전 명언으로 돌아갔다가 '새 명언으로'로 복귀한 뒤 오늘 따르는 문장으로 돌아온다
+# first-launch 다음에 실행한다 (오늘 따를 문장을 정하고 불씨를 이미 켠 상태)
 appId: com.changsunoh.selfFire
 name: 명언 넘기기
 ---
 - launchApp
 - assertVisible: "메뉴 열기"
+- tapOn: "다른 문장으로 바꾸기"
+- assertVisible: "오늘 따르는 문장으로 돌아가기"
 
 # 왼쪽으로 두 번 넘겨 다음 명언으로
 - swipe:
@@ -21,3 +24,8 @@ name: 명언 넘기기
 - assertVisible: "새 명언으로"
 - tapOn: "새 명언으로"
 - assertNotVisible: "새 명언으로"
+
+# 바꾸지 않고 돌아오면 오늘 따르는 문장 화면이다
+- tapOn: "오늘 따르는 문장으로 돌아가기"
+- assertVisible: "메뉴 열기"
+- assertVisible: "다른 문장으로 바꾸기"

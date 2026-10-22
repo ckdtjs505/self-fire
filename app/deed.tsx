@@ -3,11 +3,14 @@
 // 실천 한 줄: 명언을 읽고 그 문장대로 한 일을 한 줄로 남기는 화면. (/deed)
 // - 홈 화면에서 지금 보고 있는 명언(quoteId, text, author)을 넘겨 받는다.
 // - 오늘 이미 남긴 한 줄이 있으면 그 줄과 그때 따른 문장으로 고치기 모드가 된다.
+// - 한 줄을 남긴 뒤 다른 문장을 넘겨 받으면 문장 바꾸기 모드: 새 문장 아래에 기존 한 줄을 채워 두고,
+//   새 문장에 맞게 다듬어 남기면 오늘 따르는 문장과 한 줄이 함께 바뀐다. (닫으면 아무것도 바뀌지 않는다)
 // - 처음 남기면 홈으로 돌아가 불씨 점화(Hold to Ignite)로 이어진다. (app/(navi)/index.tsx)
 // - 고친 내용이 있는데 닫으면 버릴지 한 번 묻는다
 // ─────────────────────────────────────────────────────────────
 
 import { Box, SafeAreaView, Text } from "@/atom";
+import FeatherIcon from "@/components/icon";
 import ScreenHeader from "@/components/screen-header";
 import { useDeedStore, useTodayDeed } from "@/store/deed";
 import { useAppTheme } from "@/themes";
@@ -35,9 +38,12 @@ export default function DeedScreen() {
 
   const todayDeed = useTodayDeed();
   const saveToday = useDeedStore((s) => s.saveToday);
-  const isEditing = !!todayDeed;
-  // 고칠 때는 그날 따른 문장을 그대로 보여 준다.
-  const quote = todayDeed?.quote ?? { id: params.quoteId ?? "", text: params.text ?? "", author: params.author ?? "" };
+  const paramQuote = { id: params.quoteId ?? "", text: params.text ?? "", author: params.author ?? "" };
+  // 한 줄을 남긴 뒤 다른 문장을 넘겨 받았으면 그 문장으로 바꾸는 중이다.
+  const isChangingQuote = !!todayDeed && !!paramQuote.id && paramQuote.id !== todayDeed.quote.id;
+  const isEditing = !!todayDeed && !isChangingQuote;
+  // 고칠 때는 그날 따른 문장을 그대로, 바꿀 때는 새 문장을 보여 준다.
+  const quote = isEditing ? todayDeed.quote : paramQuote;
 
   const [text, setText] = useState(todayDeed?.text ?? "");
   const [placeholder] = useState(() => PLACEHOLDERS[Math.floor(Math.random() * PLACEHOLDERS.length)]);
@@ -65,15 +71,19 @@ export default function DeedScreen() {
     const deed = saveToday(quote, text);
     if (!deed) return;
     isSaving.current = true;
-    trackEvent("deed_save", { edit: isEditing, length: deed.text.length });
-    if (isEditing) Toast.show({ type: "success", text2: "오늘의 한 줄을 고쳤어요" });
+    trackEvent("deed_save", { edit: !!todayDeed, change_quote: isChangingQuote, length: deed.text.length });
+    if (isChangingQuote) Toast.show({ type: "success", text2: "오늘 따르는 문장을 바꿨어요" });
+    else if (isEditing) Toast.show({ type: "success", text2: "오늘의 한 줄을 고쳤어요" });
     router.back();
   };
 
   return (
     <SafeAreaView flex={1} backgroundColor="$background">
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
-        <ScreenHeader title={isEditing ? "오늘의 한 줄 고치기" : "오늘의 한 줄"} backIcon="x" />
+        <ScreenHeader
+          title={isChangingQuote ? "새 문장으로 한 줄 다듬기" : isEditing ? "오늘의 한 줄 고치기" : "오늘의 한 줄"}
+          backIcon="x"
+        />
 
         <ScrollView
           style={{ flex: 1 }}
@@ -101,7 +111,7 @@ export default function DeedScreen() {
             borderRadius="lg"
             padding="lg"
             borderWidth={1.5}
-            borderColor={focused ? "$primary" : "$border"}
+            borderColor={focused ? "$flame" : "$border"}
           >
             <TextInput
               autoFocus
@@ -111,7 +121,7 @@ export default function DeedScreen() {
               maxLength={DEED_MAX_LENGTH}
               placeholder={placeholder}
               placeholderTextColor={colors.$muted}
-              selectionColor={colors.$primary}
+              selectionColor={colors.$flame}
               value={text}
               onChangeText={setText}
               onSubmitEditing={handleSave}
@@ -123,10 +133,17 @@ export default function DeedScreen() {
             />
           </Box>
 
+          {/* 안내는 하나만: 문장을 바꾸는 중이면 지금 한 줄이 이전 문장대로 쓴 것임을, 아니면 부담을 덜어 주는 말 */}
           <Box flexDirection="row" bg="$surfaceMuted" borderRadius="md" padding="md" gap="s" marginTop="lg">
-            <Text fontSize={13}>🔥</Text>
+            {isChangingQuote ? (
+              <FeatherIcon name="repeat" size={14} color="$muted" style={{ marginTop: 2 }} />
+            ) : (
+              <Text fontSize={13}>🔥</Text>
+            )}
             <Text variant="caption" lineHeight={19} style={{ flex: 1 }}>
-              크지 않아도 괜찮아요. 문장대로 한 작은 일 하나가 오늘의 불씨가 됩니다.
+              {isChangingQuote
+                ? "지금 한 줄은 이전 문장대로 쓴 거예요. 새 문장에 맞게 다듬어 남겨 주세요."
+                : "크지 않아도 괜찮아요. 문장대로 한 작은 일 하나가 오늘의 불씨가 됩니다."}
             </Text>
           </Box>
         </ScrollView>
@@ -138,9 +155,9 @@ export default function DeedScreen() {
             accessibilityState={{ disabled: !canSave }}
             style={({ pressed }) => ({ opacity: !canSave ? 0.45 : pressed ? 0.8 : 1 })}
           >
-            <Box height={52} borderRadius="pill" bg="$primary" justifyContent="center" alignItems="center">
+            <Box height={52} borderRadius="pill" bg="$flame" justifyContent="center" alignItems="center">
               <Text color="$onPrimary" fontSize={16} fontWeight="800">
-                {isEditing ? "고치기" : "한 줄 남기고 불씨 지피기"}
+                {isChangingQuote ? "이 문장으로 바꾸기" : isEditing ? "고치기" : "한 줄 남기고 불씨 지피기"}
               </Text>
             </Box>
           </Pressable>
