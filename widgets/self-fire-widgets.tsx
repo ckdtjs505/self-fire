@@ -3,24 +3,26 @@
 // Android 홈 화면 위젯 화면. (react-native-android-widget)
 //   - QuoteWidget: 오늘의 명언 + 불씨 상태 (4x2)
 //   - FlameWidget: 불씨 상태(연속 일수)만 크게 (2x2)
+// 색상·배경 투명도·글자 크기·작가 표시는 설정 > 위젯 꾸미기에서 고른다. (data/widget-style.ts)
 // 위젯은 RemoteViews로 그려지므로 일반 RN 컴포넌트·테마 대신 위젯 전용 컴포넌트와 hex 색을 쓴다.
 // 이름(QUOTE_WIDGET 등)은 app.json의 react-native-android-widget 플러그인 설정과 같아야 한다.
 // ─────────────────────────────────────────────────────────────
 
 import { FlameStatus, WidgetView } from "@/data/widget-snapshot";
+import {
+  DEFAULT_WIDGET_STYLE,
+  getWidgetPalette,
+  getWidgetTextScale,
+  WidgetStyle,
+  withOpacity,
+} from "@/data/widget-style";
 import { FlexWidget, TextWidget } from "react-native-android-widget";
-import type { HexColor } from "react-native-android-widget";
 
 export const QUOTE_WIDGET = "Quote";
 export const FLAME_WIDGET = "Flame";
 
 // 위젯 명언 글꼴 (app.json 플러그인 fonts에 등록한 파일 이름)
 const QUOTE_FONT = "NanumMyeongjo_700Bold";
-
-// themes/light.tsx · themes/dark.tsx 와 같은 색
-type Palette = { background: HexColor; foreground: HexColor; muted: HexColor; flame: HexColor; flameSoft: HexColor };
-const LIGHT: Palette = { background: "#FFFFFF", foreground: "#1F1B17", muted: "#857C72", flame: "#F0521F", flameSoft: "#FDEDE6" };
-const DARK: Palette = { background: "#1E1B19", foreground: "#F4EFE9", muted: "#A39A91", flame: "#FF6A2C", flameSoft: "#3A2419" };
 
 const FLAME_EMOJI: Record<FlameStatus, string> = { lit: "🔥", waiting: "🔥", out: "🪵" };
 
@@ -42,19 +44,19 @@ const flameCaption = ({ flame }: WidgetView) => {
   }
 };
 
-// 명언 길이·위젯 크기에 맞춘 글자 크기 (긴 명언은 작게)
-const quoteFontSize = (text: string, width: number, height: number) => {
+// 명언 길이·위젯 크기에 맞춘 글자 크기 (긴 명언은 작게). userScale은 꾸미기에서 고른 글자 크기
+const quoteFontSize = (text: string, width: number, height: number, userScale = 1) => {
   const base = Math.min(width / 14, height / 6.5, 20);
   const scale = text.length > 90 ? 0.72 : text.length > 55 ? 0.84 : 1;
-  return Math.max(12, Math.round(base * scale));
+  return Math.max(11, Math.round(base * scale * userScale));
 };
 
-type Props = { view: WidgetView; width: number; height: number; dark?: boolean };
+type Props = { view: WidgetView; width: number; height: number; dark?: boolean; style?: WidgetStyle };
 
-export function QuoteWidget({ view, width, height, dark }: Props) {
-  const c = dark ? DARK : LIGHT;
+export function QuoteWidget({ view, width, height, dark, style = DEFAULT_WIDGET_STYLE }: Props) {
+  const c = getWidgetPalette(style.paletteId, !!dark);
   const quote = view.quote ?? { text: "앱을 열어 오늘의 명언을 받아 보세요.", author: "selfFire" };
-  const fontSize = quoteFontSize(quote.text, width, height);
+  const fontSize = quoteFontSize(quote.text, width, height, getWidgetTextScale(style.textSize));
   const lit = view.flame !== "out";
 
   return (
@@ -65,7 +67,7 @@ export function QuoteWidget({ view, width, height, dark }: Props) {
         width: "match_parent",
         flexDirection: "column",
         justifyContent: "space-between",
-        backgroundColor: c.background,
+        backgroundColor: withOpacity(c.background, style.opacity),
         borderRadius: 24,
         paddingHorizontal: 18,
         paddingVertical: 14,
@@ -77,7 +79,7 @@ export function QuoteWidget({ view, width, height, dark }: Props) {
         <TextWidget text="오늘의 명언" style={{ fontSize: 12, fontWeight: "700", color: c.muted }} />
         <FlexWidget
           style={{
-            backgroundColor: lit ? c.flameSoft : c.background,
+            backgroundColor: lit ? c.flameSoft : withOpacity(c.background, style.opacity),
             borderRadius: 999,
             paddingHorizontal: 10,
             paddingVertical: 3,
@@ -92,7 +94,7 @@ export function QuoteWidget({ view, width, height, dark }: Props) {
 
       <TextWidget
         text={quote.text}
-        maxLines={Math.max(2, Math.floor((height - 72) / (fontSize * 1.45)))}
+        maxLines={Math.max(2, Math.floor((height - (style.showAuthor ? 72 : 52)) / (fontSize * 1.45)))}
         truncate="END"
         style={{
           width: "match_parent",
@@ -103,18 +105,22 @@ export function QuoteWidget({ view, width, height, dark }: Props) {
         }}
       />
 
-      <TextWidget
-        text={`— ${quote.author}`}
-        maxLines={1}
-        truncate="END"
-        style={{ width: "match_parent", fontSize: 12, color: c.muted, textAlign: "right" }}
-      />
+      {style.showAuthor ? (
+        <TextWidget
+          text={`— ${quote.author}`}
+          maxLines={1}
+          truncate="END"
+          style={{ width: "match_parent", fontSize: 12, color: c.muted, textAlign: "right" }}
+        />
+      ) : (
+        <FlexWidget style={{ height: 1 }} />
+      )}
     </FlexWidget>
   );
 }
 
-export function FlameWidget({ view, dark }: Props) {
-  const c = dark ? DARK : LIGHT;
+export function FlameWidget({ view, dark, style = DEFAULT_WIDGET_STYLE }: Props) {
+  const c = getWidgetPalette(style.paletteId, !!dark);
   const lit = view.flame === "lit";
 
   return (
@@ -126,7 +132,7 @@ export function FlameWidget({ view, dark }: Props) {
         flexDirection: "column",
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: lit ? c.flameSoft : c.background,
+        backgroundColor: withOpacity(lit ? c.flameSoft : c.background, style.opacity),
         borderRadius: 24,
         padding: 12,
       }}
@@ -149,10 +155,17 @@ export function FlameWidget({ view, dark }: Props) {
 }
 
 // 위젯 이름에 맞는 화면을 라이트/다크 두 벌로 만든다. (시스템 다크 모드에 맞춰 런처가 고른다)
-export function renderSelfFireWidget(widgetName: string, view: WidgetView, width: number, height: number) {
+// 꾸미기에서 '자동' 외의 색을 고르면 두 벌이 같은 색이 된다.
+export function renderSelfFireWidget(
+  widgetName: string,
+  view: WidgetView,
+  width: number,
+  height: number,
+  style: WidgetStyle = DEFAULT_WIDGET_STYLE,
+) {
   const Widget = widgetName === FLAME_WIDGET ? FlameWidget : QuoteWidget;
   return {
-    light: <Widget view={view} width={width} height={height} />,
-    dark: <Widget view={view} width={width} height={height} dark />,
+    light: <Widget view={view} width={width} height={height} style={style} />,
+    dark: <Widget view={view} width={width} height={height} style={style} dark />,
   };
 }

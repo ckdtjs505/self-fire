@@ -1,10 +1,11 @@
 // ─────────────────────────────────────────────────────────────
 // widgets/refresh-widgets.ts
 // 앱에서 위젯 데이터(스냅샷)를 새로 저장하고, 홈 화면에 놓인 위젯을 바로 다시 그린다.
-// 앱 시작, 오늘의 명언 후보(카테고리·즐겨찾기·명언)가 바뀔 때, 불씨를 지폈을 때 호출한다.
+// 앱 시작, 오늘의 명언 후보(카테고리·즐겨찾기·명언)가 바뀔 때, 불씨를 지폈을 때, 위젯 꾸미기를 바꿨을 때 호출한다.
 // ─────────────────────────────────────────────────────────────
 
 import { buildWidgetSnapshot, resolveWidgetView, saveWidgetSnapshot } from "@/data/widget-snapshot";
+import { loadWidgetStyle } from "@/data/widget-style";
 import { LAST_IGNITED_DATE_KEY } from "@/hooks/useDailyIgnite";
 import { loadDailyCandidates } from "@/services/daily-candidates";
 import { useStreakStore, whenStreakHydrated } from "@/store/streak";
@@ -36,11 +37,12 @@ const refreshNow = async () => {
     await saveWidgetSnapshot(snapshot);
 
     const view = resolveWidgetView(snapshot);
+    const style = await loadWidgetStyle();
     await Promise.all(
       [QUOTE_WIDGET, FLAME_WIDGET].map((widgetName) =>
         requestWidgetUpdate({
           widgetName,
-          renderWidget: ({ width, height }) => renderSelfFireWidget(widgetName, view, width, height),
+          renderWidget: ({ width, height }) => renderSelfFireWidget(widgetName, view, width, height, style),
         }),
       ),
     );
