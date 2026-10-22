@@ -63,6 +63,7 @@ export default function RootLayout() {
           <Stack.Screen name="favorites" />
           {/* 명언 추가/수정은 아래에서 올라오는 모달로 띄운다. */}
           <Stack.Screen name="add-quote" options={{ presentation: "modal" }} />
+          <Stack.Screen name="deed" options={{ presentation: "modal" }} />
         </Stack>
 
         <Toast position="bottom" bottomOffset={76} config={toastConfig} />

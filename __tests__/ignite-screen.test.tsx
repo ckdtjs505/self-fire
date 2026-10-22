@@ -9,7 +9,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native";
 const renderScreen = (onIgnited = jest.fn()) => {
   render(
     <ThemeProvider theme={getTheme("dark")}>
-      <IgniteScreen onIgnited={onIgnited} previewText="오늘 걷는 한 걸음이 내일의 길이 된다" />
+      <IgniteScreen onIgnited={onIgnited} deedText="미뤄 둔 전화를 오늘 걸었다" />
     </ThemeProvider>
   );
   return { onIgnited, flame: screen.getByLabelText("오늘의 불씨 켜기") };
@@ -27,9 +27,9 @@ afterEach(() => {
 });
 
 describe("IgniteScreen", () => {
-  it("오늘의 명언 첫머리만 미리 보여 준다", () => {
+  it("불씨를 지필 오늘의 한 줄을 보여 준다", () => {
     renderScreen();
-    expect(screen.getByText("“오늘 걷는 한 걸음이 내일…", { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.getByText("미뤄 둔 전화를 오늘 걸었다", { includeHiddenElements: true })).toBeTruthy();
   });
 
   it("스크린리더로 두 번 탭하면 점화되고, 애니메이션이 끝나면 한 번만 알린다", async () => {
