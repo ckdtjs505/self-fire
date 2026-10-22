@@ -31,7 +31,7 @@ export const STREAK_REMINDER_MINUTE = 30;
 
 // 오늘·내일 저녁에 보낼 불씨 알림.
 //   - 오늘: 아직 점화하지 않았고 이어 온 불씨가 있으면 오늘 저녁에 알린다.
-//   - 내일: 오늘 점화했으면 내일 저녁에 알린다. (내일 앱을 열어 점화하면 다시 예약하며 사라진다)
+//   - 내일: 오늘 점화했으면 내일 저녁에 알린다. (내일 한 줄을 남겨 점화하면 다시 예약하며 사라진다)
 // 그 뒤로는 스트릭이 이미 끊겼을 수 있어 예약하지 않는다.
 export const getStreakReminders = (
   { currentStreak, ignitedToday }: StreakReminderInput,
@@ -43,7 +43,7 @@ export const getStreakReminders = (
 
   const date = ignitedToday ? at(1) : at(0);
   if (date <= now) return [];
-  return [{ date, body: `${currentStreak}일째 이어 온 불씨가 오늘 밤 꺼질 수 있어요. 지금 지펴 주세요 🔥` }];
+  return [{ date, body: `${currentStreak}일째 이어 온 불씨가 오늘 밤 꺼질 수 있어요. 문장대로 한 일을 한 줄 남겨 지펴 주세요 🔥` }];
 };
 
 // 하루에 받을 수 있는 알림 횟수

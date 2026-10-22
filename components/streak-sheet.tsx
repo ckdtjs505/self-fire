@@ -4,13 +4,16 @@
 //   - 연속 점화 일수만큼 자란 모닥불 (components/campfire.tsx)
 //   - 최근 7일 동안 불씨를 지핀 날
 //   - 최장 기록 · 불씨 지키기 · 다음 단계까지 남은 일수
+//   - 최근에 남긴 '문장대로 한 일' 한 줄들
 //   - 7/30/100일 마일스톤 보상과 진행도
 // ─────────────────────────────────────────────────────────────
 
 import { Box, Text } from "@/atom";
 import { getMilestoneRewardNames } from "@/data/streak-rewards";
+import { useDeedStore } from "@/store/deed";
 import { useStreakStore } from "@/store/streak";
 import { toDateString } from "@/utils/date";
+import { Deed, recentDeeds } from "@/utils/deed";
 import {
   CAMPFIRE_STAGES,
   getCampfireStage,
@@ -79,6 +82,34 @@ const RecentDays: React.FC<{ days: RecentDay[] }> = ({ days }) => (
   </Box>
 );
 
+// 모닥불 시트에 보여 줄 최근 한 줄 수
+const RECENT_DEED_COUNT = 5;
+
+const dateLabel = (date: string, today: string) => {
+  if (date === today) return "오늘";
+  const [, m, d] = date.split("-").map(Number);
+  return `${m}/${d} ${weekdayOf(date)}`;
+};
+
+// 문장대로 한 일 한 줄: 날짜 · 한 줄 · 따른 문장
+const DeedRow: React.FC<{ deed: Deed; today: string }> = ({ deed, today }) => (
+  <Box flexDirection="row" gap="md" accessible accessibilityLabel={`${dateLabel(deed.date, today)}, ${deed.text}, ${deed.quote.text}`}>
+    <Box width={44} pt="xs">
+      <Text variant="micro" color={deed.date === today ? "$primary" : "$muted"}>
+        {dateLabel(deed.date, today)}
+      </Text>
+    </Box>
+    <Box flex={1} gap="xs">
+      <Text fontSize={15} fontWeight="700">
+        {deed.text}
+      </Text>
+      <Text variant="caption" fontSize={12} numberOfLines={1}>
+        {`“${deed.quote.text}”`}
+      </Text>
+    </Box>
+  </Box>
+);
+
 // 마일스톤 한 줄: 일수 · 보상 이름 · 진행 막대 (열렸으면 체크)
 const MilestoneRow: React.FC<{ milestone: number; currentStreak: number; unlocked: boolean }> = ({
   milestone,
@@ -133,6 +164,7 @@ const StreakSheet = forwardRef<PickerSheetHandle>(function StreakSheet(_props, r
     }))
   );
   const { currentStreak, longestStreak, lastStreakDate, ignitedDates } = record;
+  const deeds = useDeedStore((s) => s.deeds);
   const today = toDateString();
   const ignitedToday = lastStreakDate === today;
   const stage = getCampfireStage(currentStreak);
@@ -141,10 +173,10 @@ const StreakSheet = forwardRef<PickerSheetHandle>(function StreakSheet(_props, r
   const caption = ignitedToday
     ? "오늘도 불씨를 지폈어요. 내일도 장작을 더해 주세요"
     : currentStreak > 0
-      ? "오늘의 불씨를 지피면 불이 더 커져요"
+      ? "오늘 문장대로 한 일을 남기면 불이 더 커져요"
       : longestStreak > 0
         ? `최장 ${longestStreak}일까지 키워 본 불이에요. 오늘 다시 한 개비부터 시작해요`
-        : "불씨를 지펴 다시 모닥불을 피워 보세요";
+        : "문장대로 한 일 한 줄로 모닥불을 피워 보세요";
 
   return (
     <PickerSheet ref={ref} title="나의 모닥불" description="불씨를 지핀 날이 이어질수록 모닥불이 커져요">
@@ -180,6 +212,19 @@ const StreakSheet = forwardRef<PickerSheetHandle>(function StreakSheet(_props, r
           value={nextStage ? `${nextStage.minDays - currentStreak}일` : "🔥"}
         />
       </Box>
+
+      {deeds.length > 0 && (
+        <>
+          <Text variant="stat" fontWeight="700" style={{ marginTop: 24, marginBottom: 12 }}>
+            문장대로 산 날
+          </Text>
+          <Box style={{ gap: 14 }}>
+            {recentDeeds(deeds, RECENT_DEED_COUNT).map((deed) => (
+              <DeedRow key={deed.date} deed={deed} today={today} />
+            ))}
+          </Box>
+        </>
+      )}
 
       <Text variant="stat" fontWeight="700" style={{ marginTop: 24, marginBottom: 12 }}>
         보상

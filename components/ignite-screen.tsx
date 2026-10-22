@@ -10,7 +10,7 @@
 //   - 누르는 동안 점점 세지는 진동, 점화 순간 완료 진동
 //   - 스크린리더: 두 번 탭(activate)하면 바로 점화
 //   - 기기의 '동작 줄이기'가 켜져 있으면 깜빡임·맥박·파티클·플래시 없이 홀드 진행과 페이드만 보여 준다
-//   - 오늘의 명언 첫머리를 흐릿하게 미리 보여 주어, 불씨를 켜면 무엇이 기다리는지 알려 준다
+//   - 방금 남긴 '오늘의 한 줄'을 흐릿하게 보여 주어, 이 한 줄로 불씨를 지핀다는 것을 알려 준다
 // ─────────────────────────────────────────────────────────────
 
 import React, { useRef, useEffect } from 'react';
@@ -51,16 +51,13 @@ const PARTICLES = [
 ];
 type ParticleConfig = (typeof PARTICLES)[number];
 
-// 미리 보여 줄 명언 첫머리 글자 수
-const PREVIEW_LENGTH = 14;
-
 type Props = {
   onIgnited: () => void;
-  // 불씨를 켜면 보게 될 오늘의 명언 (첫머리만 흐릿하게 보여 준다)
-  previewText?: string;
+  // 불씨를 지피는 오늘의 한 줄 (흐릿하게 보여 준다)
+  deedText?: string;
 };
 
-export const IgniteScreen: React.FC<Props> = ({ onIgnited, previewText }) => {
+export const IgniteScreen: React.FC<Props> = ({ onIgnited, deedText }) => {
   // 회전·창 크기 변경에 맞춰 다시 계산되도록 렌더 시점에 읽는다.
   const { width, height } = useWindowDimensions();
   const reduceMotion = useReduceMotion();
@@ -258,24 +255,24 @@ export const IgniteScreen: React.FC<Props> = ({ onIgnited, previewText }) => {
         <Ionicons name="flame" size={92} color="#FF4500" />
       </Animated.View>
 
-      {/* ── 오늘의 명언 미리보기 (첫머리만 흐릿하게) ─────────── */}
-      {!!previewText && (
+      {/* ── 오늘의 한 줄 ────────────────────────────────────── */}
+      {!!deedText && (
         <Animated.View
           pointerEvents="none"
           importantForAccessibility="no-hide-descendants"
           accessibilityElementsHidden
           style={[styles.previewContainer, { top: height * 0.16 }, hintStyle]}
         >
-          <Text style={styles.previewLabel}>오늘의 문장</Text>
-          <Text style={styles.previewText} numberOfLines={1}>
-            {`“${previewText.slice(0, PREVIEW_LENGTH).trim()}${previewText.length > PREVIEW_LENGTH ? '…' : '”'}`}
+          <Text style={styles.previewLabel}>오늘의 한 줄</Text>
+          <Text style={styles.previewText} numberOfLines={2}>
+            {deedText}
           </Text>
         </Animated.View>
       )}
 
       {/* ── 힌트 텍스트 ──────────────────────────────────────── */}
       <Animated.View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={[styles.hintContainer, { bottom: height * 0.2 }, hintStyle]}>
-        <Text style={styles.hintText}>꾹 누르면{'\n'}오늘의 불씨가 켜집니다</Text>
+        <Text style={styles.hintText}>꾹 누르면{'\n'}이 한 줄로 불씨가 켜집니다</Text>
       </Animated.View>
 
       {/* ── 점화 완료 순간 화이트/황금빛 플래시 ─────────────── */}

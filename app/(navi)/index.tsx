@@ -7,13 +7,16 @@
 //   - 기본 명언 로드·동기화는 hooks/useDefaultQuotes.ts
 //   - 테마/폰트 변경 바텀시트, 스트릭 배지를 누르면 나의 모닥불 시트
 //   - AdMob 배너 광고 (광고 제거 미구매 시)
-//   - 첫 실행 주제 고르기 → 하루 1번 불씨 점화(Hold to Ignite) 화면(오늘의 명언 첫머리 미리보기) → 점화 완료 시트 (모닥불 + 첫 알림 제안)
+//   - 첫 실행 주제 고르기 → 명언을 바로 보여 준다 (명언은 들어오는 문)
+//   - 카드 아래 '이 문장대로 한 일 남기기' → 한 줄 작성(app/deed.tsx) → 그 한 줄로 불씨 점화(Hold to Ignite)
+//     → 점화 완료 시트 (모닥불 + 첫 알림 제안). 불씨는 명언을 연 날이 아니라 문장대로 산 날에 켜진다.
 //   - 알림 예약·홈 화면 위젯 갱신 (hooks/useBackgroundRefresh.ts)
 // ─────────────────────────────────────────────────────────────
 
 import { Box, SafeAreaView } from "@/atom";
 import BannerAd from "@/components/banner-ad";
 import CategoryTabs from "@/components/category-tabs";
+import DeedPrompt from "@/components/deed-prompt";
 import FontPicker from "@/components/font-picker";
 import HeaderIconButton from "@/components/header-icon-button";
 import FeatherIcon from "@/components/icon";
@@ -34,6 +37,7 @@ import { useStreak } from "@/hooks/useStreak";
 import { useSwipeHint } from "@/hooks/useSwipeHint";
 import { useAdStore } from "@/store/ad-store";
 import { useCategoryStore } from "@/store/category";
+import { useTodayDeed } from "@/store/deed";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { useLocalSearchParams } from "expo-router";
 import { useRef } from "react";
@@ -56,6 +60,9 @@ export default function Index() {
   );
   const { currentStreak } = useStreak();
   const { isIgnited, isFirstVisit, markIgnited } = useDailyIgnite();
+  const todayDeed = useTodayDeed();
+  // 오늘의 한 줄을 남겼는데 아직 불씨를 지피지 않았으면 점화 화면을 띄운다. (앱을 껐다 켜도 이어진다)
+  const showIgnite = !isIgnited && !!todayDeed;
   // 아직 한 번도 넘겨 보지 않았으면 오늘의 불씨를 켠 뒤 넘기기 힌트를 보여 준다.
   const { needsHint, markSwiped } = useSwipeHint();
   // 사이드바·보관함 목록에서 명언을 누르면 view=favorites(+ 그 명언의 quote)로 들어온다.
@@ -71,7 +78,7 @@ export default function Index() {
   const { currentQuote, filterMode } = pager;
   const isFavoritesMode = filterMode === "favorites";
 
-  // 처음 설치한 사용자에게만 점화 화면보다 먼저 주제 고르기를 보여 준다.
+  // 처음 설치한 사용자에게만 명언보다 먼저 주제 고르기를 보여 준다.
   const showOnboarding = isFirstVisit && pager.isCategoryHydrated && !hasPickedInterests;
 
   useBackgroundRefresh([currentCategoryId, interestIds, favorites, customQuotes, defaultQuotes, currentStreak, isIgnited]);
@@ -145,8 +152,13 @@ export default function Index() {
           onNext={pager.showNextQuote}
           onPrev={pager.showPrevQuote}
           onJumpToLatest={pager.showLatestQuote}
-          showSwipeHint={needsHint && isIgnited && !showOnboarding}
+          showSwipeHint={needsHint && !showIgnite && !showOnboarding}
         />
+
+        {/* 이 문장대로 한 일 한 줄 (남겼으면 오늘의 한 줄) */}
+        <Box width="100%" px="lg" pb="md">
+          <DeedPrompt quote={currentQuote} todayDeed={todayDeed} />
+        </Box>
       </Box>
 
       {!isAdFree && <BannerAd />}
@@ -156,10 +168,10 @@ export default function Index() {
       <StreakSheet ref={streakSheetRef} />
       <IgniteResultSheet ref={igniteResultRef} />
 
-      {/* 불씨를 직접 켜는 오버레이. 오늘 아직 점화하지 않았을 때만 표시 */}
-      {!isIgnited && <IgniteScreen onIgnited={handleIgnited} previewText={currentQuote?.text} />}
+      {/* 오늘의 한 줄로 불씨를 직접 켜는 오버레이 */}
+      {showIgnite && <IgniteScreen onIgnited={handleIgnited} deedText={todayDeed.text} />}
 
-      {/* 처음 설치했을 때 한 번: 주제 고르기 (고르면 아래 점화 화면으로 이어진다) */}
+      {/* 처음 설치했을 때 한 번: 주제 고르기 (고르면 명언으로 이어진다) */}
       {showOnboarding && <OnboardingTopics />}
     </SafeAreaView>
   );
