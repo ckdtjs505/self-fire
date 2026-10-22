@@ -72,8 +72,7 @@ export default function DeedScreen() {
     if (!deed) return;
     isSaving.current = true;
     trackEvent("deed_save", { edit: !!todayDeed, change_quote: isChangingQuote, length: deed.text.length });
-    if (isChangingQuote) Toast.show({ type: "success", text2: "오늘 따르는 문장을 바꿨어요" });
-    else if (isEditing) Toast.show({ type: "success", text2: "오늘 할 일을 고쳤어요" });
+    // 돌아간 홈 화면에 바뀐 할 일·문장이 바로 보이므로 토스트는 띄우지 않는다.
     router.back();
   };
 

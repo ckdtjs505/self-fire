@@ -73,17 +73,17 @@ const ShareSheet = forwardRef<PickerSheetHandle, Props>(function ShareSheet({ te
         case "save": {
           const { status } = await MediaLibrary.requestPermissionsAsync();
           if (status !== "granted") {
-            Toast.show({ type: "error", text2: "갤러리 저장을 위해 사진 접근 권한이 필요합니다." });
+            Toast.show({ type: "error", text2: "갤러리에 저장하려면 사진 접근을 허용해 주세요" });
             return;
           }
           await MediaLibrary.saveToLibraryAsync(await capture());
-          Toast.show({ type: "success", text2: "명언 이미지가 갤러리에 저장되었습니다!" });
+          Toast.show({ type: "success", text2: "갤러리에 이미지를 저장했어요" });
           break;
         }
       }
       trackEvent("quote_share", { method });
     } catch (e) {
-      Toast.show({ type: "error", text2: method === "save" ? "이미지 저장에 실패했습니다." : "공유하지 못했어요." });
+      Toast.show({ type: "error", text2: method === "save" ? "이미지를 저장하지 못했어요. 다시 시도해 주세요" : "공유하지 못했어요. 다시 시도해 주세요" });
       console.error(e);
     }
   };

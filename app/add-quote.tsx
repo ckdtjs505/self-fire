@@ -79,7 +79,7 @@ export default function AddQuoteScreen() {
   const handleSave = () => {
     // 명언 내용 필수 입력 검사
     if (!text.trim()) {
-      Toast.show({ type: "error", text1: "알림", text2: "명언 내용을 입력해주세요." });
+      Toast.show({ type: "error", text2: "명언 내용을 적어 주세요" });
       return;
     }
     // 작성자/출처는 비워 두면 '나'로 저장한다.
@@ -90,12 +90,12 @@ export default function AddQuoteScreen() {
       // 수정 모드: 기존 명언 업데이트
       updateCustomQuote(params.id, text, savedAuthor);
       trackEvent("quote_edit");
-      Toast.show({ type: "success", text1: "성공", text2: "명언이 수정되었습니다." });
+      Toast.show({ type: "success", text2: "명언을 고쳤어요" });
     } else {
       // 추가 모드: 새 명언 등록
       addCustomQuote(text, savedAuthor);
       trackEvent("quote_add");
-      Toast.show({ type: "success", text1: "성공", text2: "새로운 명언이 등록되었습니다." });
+      Toast.show({ type: "success", text2: "새 명언을 추가했어요" });
     }
     router.back(); // 저장 완료 후 이전 화면으로 이동
   };

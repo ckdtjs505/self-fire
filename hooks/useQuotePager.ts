@@ -174,11 +174,10 @@ export const useQuotePager = ({ defaultQuotes, openFavoritesKey, openQuoteId, on
       if (isEmpty) {
         Toast.show({
           type: "info",
-          text1: "알림",
           text2:
             selection === "favorites"
-              ? "아직 저장한 문장이 없습니다. 마음에 와닿는 문장을 저장해 보세요!"
-              : "아직 직접 작성한 명언이 없습니다. 명언을 먼저 등록해 보세요!",
+              ? "아직 저장한 문장이 없어요. 마음에 닿는 문장을 저장해 보세요"
+              : "아직 직접 쓴 명언이 없어요. 먼저 명언을 추가해 보세요",
         });
         return;
       }
@@ -251,10 +250,6 @@ export const useQuotePager = ({ defaultQuotes, openFavoritesKey, openQuoteId, on
     }));
   };
 
-  const showLatestQuote = () => {
-    setPager((prev) => ({ ...prev, currentIndex: prev.maxIndex }));
-  };
-
   const showPrevQuote = () => {
     setPager((prev) => ({ ...prev, currentIndex: Math.max(prev.currentIndex - 1, 0) }));
   };
@@ -275,6 +270,5 @@ export const useQuotePager = ({ defaultQuotes, openFavoritesKey, openQuoteId, on
     selectCategory,
     showNextQuote,
     showPrevQuote,
-    showLatestQuote,
   };
 };

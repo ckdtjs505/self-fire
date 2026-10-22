@@ -12,6 +12,7 @@ import { Quote } from "@/models";
 import { useFavoriteQuoteStore } from "@/store/quote";
 import { trackEvent } from "@/utils/analytics";
 import { tapHaptic } from "@/utils/haptics";
+import { useRouter } from "expo-router";
 import { useRef } from "react";
 import { NativeViewGestureHandler } from "react-native-gesture-handler";
 import Toast from "react-native-toast-message";
@@ -30,6 +31,7 @@ type Props = Quote & {
 };
 
 const QuoteBar: React.FC<Props> = ({ id, text, author, viewShotRef, inline = false }) => {
+  const router = useRouter();
   const { addFavorite, removeFavorite, favorites } = useFavoriteQuoteStore(
     useShallow((s) => ({
       addFavorite: s.addFavorite,
@@ -61,7 +63,20 @@ const QuoteBar: React.FC<Props> = ({ id, text, author, viewShotRef, inline = fal
     } else {
       addFavorite(id, { id, text, author });
       trackEvent("favorite_add");
-      Toast.show({ type: "success", text1: "저장한 문장에 담았어요" });
+      // 저장 버튼이 채워져 결과는 보이지만, 모아 둔 곳으로 바로 갈 수 있게 '보기'를 붙인다. (Instagram 저장과 같은 방식)
+      Toast.show({
+        type: "success",
+        text1: "저장한 문장에 담았어요",
+        props: {
+          action: {
+            label: "보기",
+            onPress: () => {
+              Toast.hide();
+              router.push("/favorites");
+            },
+          },
+        },
+      });
     }
   };
 
