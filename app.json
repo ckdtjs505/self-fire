@@ -7,9 +7,16 @@
     "icon": "./assets/images/fire-icon.png",
     "scheme": "selffire",
     "userInterfaceStyle": "automatic",
+    "locales": {
+      "ko": "./languages/ko.json"
+    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.changsunoh.selfFire"
+      "bundleIdentifier": "com.changsunoh.selfFire",
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true,
+        "CFBundleDisplayName": "셀프파이어"
+      }
     },
     "android": {
       "adaptiveIcon": {
