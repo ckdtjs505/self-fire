@@ -5,7 +5,8 @@ const expoConfig = require("eslint-config-expo/flat");
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: ["dist/*", "android/*", "ios/*"],
+    // admin/은 서버에 따로 올리는 PHP 어드민 (브라우저 전역 스크립트)
+    ignores: ["dist/*", "android/*", "ios/*", "admin/*"],
   },
   {
     // Node에서 실행되는 빌드 스크립트 / Expo 설정 플러그인

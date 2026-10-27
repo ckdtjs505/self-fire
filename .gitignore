@@ -42,3 +42,6 @@ github-pages/
 
 # 명언 전체 데이터 (npm run update-quotes 로 생성)
 data/quotes.json
+
+# SFTP 업로드 설정 (서버 비밀번호 포함)
+.vscode/sftp.json

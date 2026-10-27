@@ -1,0 +1,2 @@
+# 공통 include 파일은 직접 접근 차단
+Require all denied
