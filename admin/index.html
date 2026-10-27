@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>셀프파이어 관리자</title>
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+
+<body>
+  <!-- ===== 로그인 화면 ===== -->
+  <div id="loginView" class="login-view" hidden>
+    <form id="loginForm" class="login-card">
+      <h1>🔥 셀프파이어 관리자</h1>
+      <p class="muted">함온성 관리자 계정으로 로그인하세요.</p>
+      <label>아이디<input name="username" autocomplete="username" required></label>
+      <label>비밀번호<input name="password" type="password" autocomplete="current-password" required></label>
+      <p id="loginError" class="form-error" hidden></p>
+      <button type="submit" class="admin-btn admin-btn-primary">로그인</button>
+    </form>
+  </div>
+
+  <!-- ===== 관리자 화면 ===== -->
+  <div id="adminView" class="admin-layout" hidden>
+    <!-- data-target 속성: main.js에서 해당 값으로 섹션을 찾아 표시/숨김 처리 -->
+    <aside class="admin-sidebar">
+      <div class="sidebar-header">
+        <h2>🔥 셀프파이어</h2>
+        <button id="mobileMenuToggle" class="mobile-menu-toggle" aria-label="메뉴">☰</button>
+      </div>
+      <nav id="sidebarMenu" class="sidebar-menu">
+        <button class="admin-nav-item" data-target="home">대시보드 홈</button>
+        <button class="admin-nav-item" data-target="quotes">명언 관리</button>
+        <div class="desktop-spacer"></div>
+        <button id="logoutBtn" class="admin-nav-item">로그아웃</button>
+      </nav>
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-header">
+        <h1 id="pageTitle">대시보드 홈</h1>
+        <div id="adminUserArea" class="muted"></div>
+      </header>
+
+      <!-- Home Section -->
+      <section id="homeSection" class="admin-card" hidden>
+        <h3>요약</h3>
+        <div id="homeStats" class="stat-grid"></div>
+
+        <h3>카테고리별 지정 수</h3>
+        <p class="muted small">카테고리를 지정하지 않은 명언은 앱에서 본문 키워드로 자동 분류됩니다.</p>
+        <div id="homeCategories" class="category-bars"></div>
+
+        <h3>최근 추가된 명언</h3>
+        <div class="table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>명언</th>
+                <th>작가</th>
+              </tr>
+            </thead>
+            <tbody id="homeRecentBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Quotes Section -->
+      <section id="quotesSection" class="admin-card" hidden>
+        <div class="toolbar">
+          <input id="quoteSearch" type="search" placeholder="본문·작가·ID 검색">
+          <select id="quoteCategoryFilter">
+            <option value="">전체 카테고리</option>
+            <option value="none">미지정 (자동 분류)</option>
+          </select>
+          <label class="check"><input id="quoteFeaturedFilter" type="checkbox"> 대표 명언만</label>
+          <select id="quoteSort">
+            <option value="id_desc">최신순</option>
+            <option value="id_asc">오래된순</option>
+          </select>
+          <div class="spacer"></div>
+          <button id="addQuoteBtn" class="admin-btn admin-btn-primary">+ 명언 추가</button>
+        </div>
+        <p id="quoteCount" class="muted small"></p>
+        <div class="table-wrap">
+          <table class="admin-table quote-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>명언</th>
+                <th>작가</th>
+                <th>카테고리</th>
+                <th title="오늘의 명언 후보">대표</th>
+                <th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="quoteBody"></tbody>
+          </table>
+        </div>
+        <div id="quotePager" class="pager"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ===== 명언 추가/수정 모달 ===== -->
+  <dialog id="quoteDialog" class="admin-dialog">
+    <form id="quoteForm" method="dialog">
+      <h3 id="quoteDialogTitle">명언 추가</h3>
+      <input type="hidden" name="id">
+      <label>명언
+        <textarea name="text" rows="4" maxlength="1000" required></textarea>
+      </label>
+      <label>작가
+        <input name="author" maxlength="100" placeholder="비우면 앱에서 '작자 미상'으로 표시">
+      </label>
+      <fieldset>
+        <legend>카테고리</legend>
+        <div id="quoteCategoryChecks" class="category-checks"></div>
+        <p id="quoteAutoCategories" class="muted small"></p>
+      </fieldset>
+      <label class="check"><input name="featured" type="checkbox"> 대표 명언 (오늘의 명언 후보)</label>
+      <p class="muted small">새 명언은 앱이 다음 동기화 때 받아갑니다. 기존 명언 수정·삭제는 앱 다음 빌드부터 반영됩니다.</p>
+      <p id="quoteFormError" class="form-error" hidden></p>
+      <div class="dialog-actions">
+        <button type="button" id="quoteCancelBtn" class="admin-btn">취소</button>
+        <button type="submit" class="admin-btn admin-btn-primary">저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/categories.js"></script>
+  <script src="js/home.js"></script>
+  <script src="js/quotes.js"></script>
+  <script src="js/main.js"></script>
+</body>
+
+</html>
