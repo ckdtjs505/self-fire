@@ -19,6 +19,7 @@
 
 import { Box, SafeAreaView, Text } from "@/atom";
 import BannerAd from "@/components/banner-ad";
+import Campfire from "@/components/campfire";
 import CategoryTabs from "@/components/category-tabs";
 import DeedPrompt from "@/components/deed-prompt";
 import HomeTabBar, { HomeTab } from "@/components/home-tab-bar";
@@ -183,6 +184,21 @@ export default function Index() {
             <StreakBadge streak={currentStreak} onPress={() => streakSheetRef.current?.open()} />
           </Box>
         </Box>
+
+        {/* 미니 모닥불: 앱을 열면 바로 모닥불 얼굴이 보이게 오늘 탭 맨 위에 둔다. 누르면 나의 모닥불 시트. */}
+        {tab === "today" && (
+          <Pressable
+            style={{ width: "100%", paddingHorizontal: 16, paddingTop: 8 }}
+            accessibilityRole="button"
+            accessibilityHint="나의 모닥불을 열어요"
+            onPress={() => {
+              trackEvent("campfire_mini_open", { streak: currentStreak, ignited: isIgnited });
+              streakSheetRef.current?.open();
+            }}
+          >
+            <Campfire streak={currentStreak} dimmed={!isIgnited && currentStreak > 0} compact />
+          </Pressable>
+        )}
 
         {/* 오늘의 단계: 문장 고르기 → 할 일 정하기 → 해내고 완료 → 불씨. 지금 어디쯤인지와 불씨를 켜는 법을 알려 준다.
             오늘 탭과, 아직 문장을 고르기 전(새날)의 명언 탭에 보여 준다. 문장을 정한 뒤 명언 탭에서는 숨긴다. */}

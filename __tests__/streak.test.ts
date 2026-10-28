@@ -7,6 +7,7 @@ import { toDateString } from "@/utils/date";
 import {
   campfireIntensity,
   daysBetween,
+  getCampfireMood,
   getCampfireStage,
   getRecentDays,
   igniteStreak,
@@ -201,6 +202,16 @@ describe("모닥불 단계", () => {
     expect(campfireIntensity(10)).toBeGreaterThan(campfireIntensity(5));
     expect(campfireIntensity(100)).toBe(1);
     expect(campfireIntensity(500)).toBe(1);
+  });
+
+  it("표정은 꺼짐 → 잠, 오늘 아직 → 기다림, 막 지핌 → 기쁨, 황금 불꽃 → 뿌듯함", () => {
+    expect(getCampfireMood(0)).toBe("sleep");
+    expect(getCampfireMood(0, { cheer: true })).toBe("sleep");
+    expect(getCampfireMood(5, { dimmed: true })).toBe("waiting");
+    expect(getCampfireMood(5)).toBe("content");
+    expect(getCampfireMood(5, { cheer: true })).toBe("joy");
+    expect(getCampfireMood(120)).toBe("proud");
+    expect(getCampfireMood(120, { cheer: true })).toBe("joy");
   });
 });
 
