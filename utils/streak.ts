@@ -149,3 +149,17 @@ export const getCampfireStage = (streak: number): CampfireStage =>
 // 불의 세기 0~1. 단계 안에서도 하루하루 조금씩 커지도록 연속 일수에 따라 부드럽게 늘린다. (100일에 최대)
 export const campfireIntensity = (streak: number) =>
   streak <= 0 ? 0 : Math.min(1, Math.log(streak + 1) / Math.log(101));
+
+// 모닥불 얼굴 표정. 꺼졌으면 잠들고, 오늘 아직이면 기다리고, 막 지폈으면 기뻐하고, 황금 불꽃이면 뿌듯해한다.
+export type CampfireMood = "sleep" | "waiting" | "content" | "joy" | "proud";
+
+export const getCampfireMood = (
+  streak: number,
+  { dimmed = false, cheer = false }: { dimmed?: boolean; cheer?: boolean } = {}
+): CampfireMood => {
+  const { level } = getCampfireStage(streak);
+  if (level === 0) return "sleep";
+  if (dimmed) return "waiting";
+  if (cheer) return "joy";
+  return level === 5 ? "proud" : "content";
+};

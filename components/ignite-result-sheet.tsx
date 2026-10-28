@@ -118,7 +118,7 @@ const IgniteResultSheet = forwardRef<IgniteResultSheetHandle>(function IgniteRes
 
   return (
     <PickerSheet ref={sheetRef} title={title} description={description}>
-      <Campfire streak={streak} />
+      <Campfire streak={streak} cheer />
 
       {!!unlockedMilestone && (
         <Box mt="lg" p="lg" borderRadius="md" bg="$primarySoft" gap="xs">
