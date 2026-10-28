@@ -5,7 +5,7 @@
 //   - 최근 7일 동안 불씨를 지핀 날
 //   - 최장 기록 · 불씨 지키기 · 다음 단계까지 남은 일수
 //   - 최근에 문장대로 해낸 일들 (완료한 날만, 전체는 해낸 일 화면 app/history.tsx)
-//   - 7/30/100일 마일스톤 보상과 진행도
+//   - 3/7/14/30/50/100일 마일스톤 보상과 진행도
 // ─────────────────────────────────────────────────────────────
 
 import { Box, Text } from "@/atom";
@@ -145,7 +145,7 @@ const MilestoneRow: React.FC<{ milestone: number; currentStreak: number; unlocke
           </Text>
         </Box>
         <Text variant="caption" fontSize={12} numberOfLines={1}>
-          {getMilestoneRewardNames(milestone)}
+          {getMilestoneRewardNames(milestone) || "중간 목표"}
         </Text>
         <Box height={5} borderRadius="pill" bg="$surfaceMuted" overflow="hidden">
           <Box height={5} borderRadius="pill" bg="$flame" style={{ width: `${progress * 100}%` }} />

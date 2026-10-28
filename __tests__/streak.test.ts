@@ -112,8 +112,8 @@ describe("불씨 지키기 (주 1회)", () => {
 });
 
 describe("마일스톤 보상", () => {
-  it("7/30/100일에 처음 닿으면 알려 준다", () => {
-    for (const m of [7, 30, 100]) {
+  it("3/7/14/30/50/100일에 처음 닿으면 알려 준다", () => {
+    for (const m of [3, 7, 14, 30, 50, 100]) {
       const { unlockedMilestone } = igniteStreak(record({ currentStreak: m - 1, longestStreak: m - 1 }), TODAY);
       expect(unlockedMilestone).toBe(m);
     }
@@ -135,8 +135,10 @@ describe("마일스톤 보상", () => {
   });
 
   it("다음 마일스톤까지 남은 일수", () => {
+    expect(nextMilestone(0)).toEqual({ milestone: 3, daysLeft: 3 });
     expect(nextMilestone(3)).toEqual({ milestone: 7, daysLeft: 4 });
-    expect(nextMilestone(7)).toEqual({ milestone: 30, daysLeft: 23 });
+    expect(nextMilestone(7)).toEqual({ milestone: 14, daysLeft: 7 });
+    expect(nextMilestone(30)).toEqual({ milestone: 50, daysLeft: 20 });
     expect(nextMilestone(100)).toBeNull();
   });
 });

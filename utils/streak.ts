@@ -4,11 +4,12 @@
 //   - 스트릭은 앱을 연 날이 아니라 불씨를 점화(Hold to Ignite)한 날로 센다.
 //   - 불씨 지키기: 하루를 빠뜨려도 주 1회(월~일)는 스트릭을 지켜 준다. (빠진 날은 세지 않는다)
 //   - 7/30/100일 마일스톤에 배경·테마를 해금한다. 해금은 최장 기록 기준이라 다시 잠기지 않는다.
+//   - 3/14/50일은 보상 없는 중간 마일스톤. 다음 보상까지 멀게 느껴지지 않도록 축하만 해 준다.
 // ─────────────────────────────────────────────────────────────
 
 import { toDateString } from "@/utils/date";
 
-export const STREAK_MILESTONES = [7, 30, 100] as const;
+export const STREAK_MILESTONES = [3, 7, 14, 30, 50, 100] as const;
 
 export type StreakRecord = {
   currentStreak: number;
