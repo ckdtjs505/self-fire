@@ -52,6 +52,7 @@ export type AnalyticsEvent =
   | "reminder_offer" // 점화 후 알림 받기 제안에 응답 (accepted, granted, hour)
   | "interests_set" // 관심 주제 저장 (source: onboarding | settings, count, topics)
   | "quote_share" // 명언 공유
+  | "deed_share" // 오늘 할 일 공유 (method)
   | "quote_add" // 내 명언 추가
   | "quote_edit" // 내 명언 수정
   | "favorite_add" // 저장한 문장에 저장

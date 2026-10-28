@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────
-// share-sheet.tsx — 명언 공유하기
-// 명언 카드 아래 공유 버튼을 누르면 여는 바텀시트.
+// share-sheet.tsx — 명언·오늘 할 일 공유하기
+// 명언 카드 아래 공유 버튼, 오늘 할 일 카드의 공유 버튼(deed-prompt.tsx)을 누르면 여는 바텀시트.
 //   - 이미지로 공유: 카드를 PNG로 캡처해 시스템 공유 창으로 보낸다 (인스타그램 스토리·카카오톡 등)
 //   - 텍스트로 공유 / 텍스트 복사 / 이미지 저장(갤러리)
 // RN Share는 Android에서 이미지(url)를 무시하므로 이미지 공유는 expo-sharing을 쓴다.
@@ -23,19 +23,29 @@ type Props = {
   text: string;
   // 이미지로 캡처할 명언 카드
   viewShotRef?: React.RefObject<ViewShot | null>;
+  // 무엇을 공유하는지. 안내 문구와 분석 이벤트가 달라진다. (기본: 명언)
+  subject?: ShareSubject;
+};
+
+type ShareSubject = "quote" | "deed";
+
+const SUBJECTS: Record<ShareSubject, { label: string; event: "quote_share" | "deed_share" }> = {
+  quote: { label: "명언", event: "quote_share" },
+  deed: { label: "할 일", event: "deed_share" },
 };
 
 type ShareMethod = "image" | "text" | "copy" | "save";
 
-const OPTIONS: { method: ShareMethod; icon: IconNames; title: string; description: string }[] = [
+const getOptions = (label: string): { method: ShareMethod; icon: IconNames; title: string; description: string }[] => [
   { method: "image", icon: "image", title: "이미지로 공유", description: "인스타그램 스토리, 카카오톡 등으로 카드 그대로 보내요" },
-  { method: "text", icon: "message-circle", title: "텍스트로 공유", description: "명언 글만 보내요" },
+  { method: "text", icon: "message-circle", title: "텍스트로 공유", description: `${label} 글만 보내요` },
   { method: "copy", icon: "copy", title: "텍스트 복사", description: "어디든 붙여 넣을 수 있게 복사해요" },
   { method: "save", icon: "download", title: "이미지 저장", description: "갤러리에 카드 이미지를 저장해요" },
 ];
 
-const ShareSheet = forwardRef<PickerSheetHandle, Props>(function ShareSheet({ text, viewShotRef }, ref) {
+const ShareSheet = forwardRef<PickerSheetHandle, Props>(function ShareSheet({ text, viewShotRef, subject = "quote" }, ref) {
   const sheetRef = useRef<PickerSheetHandle>(null);
+  const { label, event } = SUBJECTS[subject];
 
   useImperativeHandle(ref, () => ({
     open: () => sheetRef.current?.open(),
@@ -60,7 +70,7 @@ const ShareSheet = forwardRef<PickerSheetHandle, Props>(function ShareSheet({ te
             await shareText();
             break;
           }
-          await Sharing.shareAsync(await capture(), { mimeType: "image/png", dialogTitle: "명언 공유" });
+          await Sharing.shareAsync(await capture(), { mimeType: "image/png", dialogTitle: `${label} 공유` });
           break;
         }
         case "text":
@@ -68,7 +78,7 @@ const ShareSheet = forwardRef<PickerSheetHandle, Props>(function ShareSheet({ te
           break;
         case "copy":
           await Clipboard.setStringAsync(text);
-          Toast.show({ type: "success", text2: "명언을 복사했어요" });
+          Toast.show({ type: "success", text2: `${label}을 복사했어요` });
           break;
         case "save": {
           const { status } = await MediaLibrary.requestPermissionsAsync();
@@ -81,7 +91,7 @@ const ShareSheet = forwardRef<PickerSheetHandle, Props>(function ShareSheet({ te
           break;
         }
       }
-      trackEvent("quote_share", { method });
+      trackEvent(event, { method });
     } catch (e) {
       Toast.show({ type: "error", text2: method === "save" ? "이미지를 저장하지 못했어요. 다시 시도해 주세요" : "공유하지 못했어요. 다시 시도해 주세요" });
       console.error(e);
@@ -91,7 +101,7 @@ const ShareSheet = forwardRef<PickerSheetHandle, Props>(function ShareSheet({ te
   return (
     <PickerSheet ref={sheetRef} title="공유하기">
       <Box gap="xs">
-        {OPTIONS.map((option) => (
+        {getOptions(label).map((option) => (
           <Pressable
             key={option.method}
             onPress={() => run(option.method)}

@@ -6,6 +6,7 @@
 //   - 정한 문장 아래에서는: 오늘 이 문장대로 할 일 정하기 버튼
 //   - 할 일을 정했으면: 할 일 카드 (크게, 자르지 않고) + 완료 버튼. 할 일을 누르면 고친다
 //   - 완료했으면: 오늘 해낸 일 카드 (그날 기록으로 굳어 고치지 않는다)
+//   - 할 일 카드의 공유 버튼: 할 일과 따른 문장을 이미지·텍스트로 공유하거나 갤러리에 저장한다 (deed-share-card.tsx)
 //   - 다른 문장 아래에서는: 이 문장으로 바꾸는 버튼 (완료 전까지만)
 //     할 일을 정한 뒤라면 바로 바꾸지 않고, 기존 할 일을 채운 할 일 쓰기 화면을 열어 새 문장에 맞게 다듬게 한다
 // 스와이프 영역(quote-swiper.tsx) 안에 놓이므로 Pressable은 react-native-gesture-handler 것을 쓴다.
@@ -16,9 +17,13 @@ import { Quote } from "@/models";
 import { Deed, isDeedDone } from "@/utils/deed";
 import { tapHaptic } from "@/utils/haptics";
 import { useRouter } from "expo-router";
-import { ComponentProps } from "react";
+import { ComponentProps, useRef, useState } from "react";
 import { Pressable } from "react-native-gesture-handler";
+import ViewShot from "react-native-view-shot";
+import DeedShareCard, { deedShareText } from "./deed-share-card";
 import FeatherIcon, { Ionicon } from "./icon";
+import { PickerSheetHandle } from "./picker-sheet";
+import ShareSheet from "./share-sheet";
 
 type Props = {
   quote: Quote | null;
@@ -72,6 +77,30 @@ const PillButton: React.FC<PillButtonProps> = ({ icon, label, accessibilityLabel
   </Pressable>
 );
 
+// 할 일 카드의 공유 버튼. 완료 버튼 옆, 해낸 일 머리말 옆에 둔다.
+const ShareButton: React.FC<{ size: number; onPress: () => void }> = ({ size, onPress }) => (
+  <Pressable
+    onPress={onPress}
+    hitSlop={8}
+    accessibilityRole="button"
+    accessibilityLabel="오늘 할 일 공유"
+    accessibilityHint="할 일과 따른 문장을 이미지나 글로 공유하거나 갤러리에 저장해요"
+    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+  >
+    <Box
+      width={size}
+      height={size}
+      borderRadius="pill"
+      borderWidth={1}
+      borderColor="$flame"
+      justifyContent="center"
+      alignItems="center"
+    >
+      <FeatherIcon name="share" size={size > 40 ? 19 : 16} color="$flame" />
+    </Box>
+  </Pressable>
+);
+
 // 오늘 할 일 카드. 이 앱의 주인공이라 자르지 않고 전부 보여 주고, 불씨 색 테두리로 명언 다음에 바로 눈이 가게 한다.
 // 완료 전: 할 일을 누르면 고치고, 아래 완료 버튼으로 해냈다고 표시한다.
 // 완료 후: 오늘 해낸 일로 굳는다.
@@ -82,6 +111,17 @@ const TodayTaskCard: React.FC<{ deed: Deed; wide: boolean; onEdit: () => void; o
   onComplete,
 }) => {
   const done = isDeedDone(deed);
+  const shareSheetRef = useRef<PickerSheetHandle>(null);
+  const shareCardRef = useRef<ViewShot>(null);
+  // 공유 이미지 카드는 처음 공유를 누를 때 그린다. (시트에서 고르는 사이 그려져 캡처할 수 있다)
+  const [isShareReady, setIsShareReady] = useState(false);
+
+  const share = () => {
+    tapHaptic();
+    setIsShareReady(true);
+    shareSheetRef.current?.open();
+  };
+
   const taskText = (
     <Text fontSize={wide ? 21 : 16} lineHeight={wide ? 30 : 23} fontWeight="800">
       {deed.text}
@@ -91,14 +131,17 @@ const TodayTaskCard: React.FC<{ deed: Deed; wide: boolean; onEdit: () => void; o
   return (
     <Box bg="$surface" borderWidth={1.5} borderColor="$flame" borderRadius="lg" px="lg" py="md" style={{ gap: 10 }}>
       {done ? (
-        <Box accessible accessibilityLabel={`오늘 이 문장대로 해낸 일: ${deed.text}`} style={{ gap: 6 }}>
-          <Box flexDirection="row" alignItems="center" style={{ gap: 6 }}>
-            <Ionicon name="checkmark-circle" size={17} color="$flame" />
-            <Text fontSize={13} fontWeight="800" color="$muted">
-              오늘 이 문장대로 해낸 일
-            </Text>
+        <Box flexDirection="row" alignItems="flex-start" style={{ gap: 10 }}>
+          <Box flex={1} accessible accessibilityLabel={`오늘 이 문장대로 해낸 일: ${deed.text}`} style={{ gap: 6 }}>
+            <Box flexDirection="row" alignItems="center" style={{ gap: 6 }}>
+              <Ionicon name="checkmark-circle" size={17} color="$flame" />
+              <Text fontSize={13} fontWeight="800" color="$muted">
+                오늘 이 문장대로 해낸 일
+              </Text>
+            </Box>
+            {taskText}
           </Box>
-          {taskText}
+          <ShareButton size={36} onPress={share} />
         </Box>
       ) : (
         <>
@@ -118,30 +161,35 @@ const TodayTaskCard: React.FC<{ deed: Deed; wide: boolean; onEdit: () => void; o
             </Box>
             {taskText}
           </Pressable>
-          <Pressable
-            onPress={onComplete}
-            accessibilityRole="button"
-            accessibilityLabel="오늘 할 일 완료"
-            accessibilityHint="해냈다면 눌러서 오늘의 불씨를 지펴요"
-            style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
-          >
-            <Box
-              flexDirection="row"
-              alignItems="center"
-              justifyContent="center"
-              bg="$flame"
-              height={48}
-              borderRadius="pill"
-              gap="s"
+          <Box flexDirection="row" alignItems="center" style={{ gap: 8 }}>
+            <Pressable
+              onPress={onComplete}
+              accessibilityRole="button"
+              accessibilityLabel="오늘 할 일 완료"
+              accessibilityHint="해냈다면 눌러서 오늘의 불씨를 지펴요"
+              style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1, flex: 1 })}
             >
-              <Ionicon name="checkmark" size={19} color="$onPrimary" />
-              <Text color="$onPrimary" fontSize={16} fontWeight="800">
-                완료
-              </Text>
-            </Box>
-          </Pressable>
+              <Box
+                flexDirection="row"
+                alignItems="center"
+                justifyContent="center"
+                bg="$flame"
+                height={48}
+                borderRadius="pill"
+                gap="s"
+              >
+                <Ionicon name="checkmark" size={19} color="$onPrimary" />
+                <Text color="$onPrimary" fontSize={16} fontWeight="800">
+                  완료
+                </Text>
+              </Box>
+            </Pressable>
+            <ShareButton size={48} onPress={share} />
+          </Box>
         </>
       )}
+      {isShareReady && <DeedShareCard ref={shareCardRef} deed={deed} />}
+      <ShareSheet ref={shareSheetRef} text={deedShareText(deed)} viewShotRef={shareCardRef} subject="deed" />
     </Box>
   );
 };
