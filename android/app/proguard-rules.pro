@@ -25,6 +25,11 @@
     java.lang.Object readResolve();
 }
 
+# Expo 모듈 Record 옵션(예: expo-sharing의 SharingOptions)은 @Field 어노테이션을 Kotlin 리플렉션으로 읽는다.
+# R8이 Record/Field 클래스 이름을 바꾸면 변환이 NullPointerException으로 실패해,
+# 릴리스에서만 '이미지로 공유'(Sharing.shareAsync)가 동작하지 않는다.
+-keep class expo.modules.kotlin.records.** { *; }
+
 # Firebase Crashlytics: 난독화된 스택트레이스를 매핑 파일로 복원하기 위해 줄 번호 유지
 -keepattributes SourceFile,LineNumberTable
 -keep public class * extends java.lang.Exception

@@ -1,0 +1,8 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "셀프파이어"
+  },
+  "android": {
+    "app_name": "셀프파이어"
+  }
+}

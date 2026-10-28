@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { Box, Text } from "@/atom";
-import { trackEvent } from "@/utils/analytics";
+import { reportError, trackEvent } from "@/utils/analytics";
 import * as Clipboard from "expo-clipboard";
 import * as MediaLibrary from "expo-media-library";
 import * as Sharing from "expo-sharing";
@@ -58,19 +58,32 @@ const ShareSheet = forwardRef<PickerSheetHandle, Props>(function ShareSheet({ te
     return uri;
   };
 
-  const shareText = () => Share.share({ message: text });
+  // 공유 창을 열 수 없는 환경(웹 브라우저 등)이면 텍스트를 복사해 대신 건넨다.
+  const shareText = async () => {
+    try {
+      await Share.share({ message: text });
+    } catch (e) {
+      console.warn("[share_text]", e);
+      reportError(e, "share_text");
+      await Clipboard.setStringAsync(text);
+      Toast.show({ type: "info", text2: "공유 창을 열 수 없어 명언을 복사했어요" });
+    }
+  };
 
   const run = async (method: ShareMethod) => {
     sheetRef.current?.close();
     try {
       switch (method) {
         case "image": {
-          // 이미지 공유를 못 하는 환경이면 텍스트로 대신 공유한다.
-          if (!(await Sharing.isAvailableAsync())) {
+          // 이미지 공유를 못 하는 환경이거나 캡처·공유가 실패하면 텍스트로 대신 공유한다.
+          try {
+            if (!(await Sharing.isAvailableAsync())) throw new Error("sharing unavailable");
+            await Sharing.shareAsync(await capture(), { mimeType: "image/png", dialogTitle: `${label} 공유` });
+          } catch (e) {
+            console.warn("[share_image]", e);
+            reportError(e, "share_image");
             await shareText();
-            break;
           }
-          await Sharing.shareAsync(await capture(), { mimeType: "image/png", dialogTitle: `${label} 공유` });
           break;
         }
         case "text":
