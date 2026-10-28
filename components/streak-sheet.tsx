@@ -4,8 +4,9 @@
 //   - 연속 점화 일수만큼 자란 모닥불 (components/campfire.tsx)
 //   - 최근 7일 동안 불씨를 지핀 날
 //   - 최장 기록 · 불씨 지키기 · 다음 단계까지 남은 일수
+//   - 불씨 지키기가 무엇인지, 이번 주에 남았는지 안내 문구
 //   - 최근에 문장대로 해낸 일들 (완료한 날만, 전체는 해낸 일 화면 app/history.tsx)
-//   - 7/30/100일 마일스톤 보상과 진행도
+//   - 3/7/14/30/50/100일 마일스톤 보상과 진행도
 // ─────────────────────────────────────────────────────────────
 
 import { Box, Text } from "@/atom";
@@ -145,7 +146,7 @@ const MilestoneRow: React.FC<{ milestone: number; currentStreak: number; unlocke
           </Text>
         </Box>
         <Text variant="caption" fontSize={12} numberOfLines={1}>
-          {getMilestoneRewardNames(milestone)}
+          {getMilestoneRewardNames(milestone) || "중간 목표"}
         </Text>
         <Box height={5} borderRadius="pill" bg="$surfaceMuted" overflow="hidden">
           <Box height={5} borderRadius="pill" bg="$flame" style={{ width: `${progress * 100}%` }} />
@@ -184,6 +185,10 @@ const StreakSheet = forwardRef<PickerSheetHandle>(function StreakSheet(_props, r
   const ignitedToday = lastStreakDate === today;
   const stage = getCampfireStage(currentStreak);
   const nextStage = CAMPFIRE_STAGES.find((s) => s.minDays > currentStreak);
+  const freezeAvailable = isFreezeAvailable(record, today);
+  const freezeGuide = freezeAvailable
+    ? "🛡️ 하루를 빠뜨려도 한 주(월~일)에 한 번은 불씨를 지켜 줘요. 빠진 날은 연속 일수에 세지 않아요"
+    : "🛡️ 이번 주 불씨 지키기는 썼어요. 다음 주 월요일에 다시 채워져요";
 
   const caption = ignitedToday
     ? "오늘도 불씨를 지폈어요. 내일도 장작을 더해 주세요"
@@ -220,13 +225,16 @@ const StreakSheet = forwardRef<PickerSheetHandle>(function StreakSheet(_props, r
         <StatCell label="최장 기록" value={`${longestStreak}일`} />
         <StatCell
           label="불씨 지키기 (주 1회)"
-          value={isFreezeAvailable(record, today) ? "🛡️ 남음" : "사용함"}
+          value={freezeAvailable ? "🛡️ 남음" : "사용함"}
         />
         <StatCell
           label={nextStage ? `${nextStage.name}까지` : "최고 단계"}
           value={nextStage ? `${nextStage.minDays - currentStreak}일` : "🔥"}
         />
       </Box>
+      <Text variant="caption" fontSize={12} mt="s">
+        {freezeGuide}
+      </Text>
 
       {deeds.length > 0 && (
         <>

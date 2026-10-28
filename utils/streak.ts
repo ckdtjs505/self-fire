@@ -4,11 +4,12 @@
 //   - 스트릭은 앱을 연 날이 아니라 불씨를 점화(Hold to Ignite)한 날로 센다.
 //   - 불씨 지키기: 하루를 빠뜨려도 주 1회(월~일)는 스트릭을 지켜 준다. (빠진 날은 세지 않는다)
 //   - 7/30/100일 마일스톤에 배경·테마를 해금한다. 해금은 최장 기록 기준이라 다시 잠기지 않는다.
+//   - 3/14/50일은 보상 없는 중간 마일스톤. 다음 보상까지 멀게 느껴지지 않도록 축하만 해 준다.
 // ─────────────────────────────────────────────────────────────
 
 import { toDateString } from "@/utils/date";
 
-export const STREAK_MILESTONES = [7, 30, 100] as const;
+export const STREAK_MILESTONES = [3, 7, 14, 30, 50, 100] as const;
 
 export type StreakRecord = {
   currentStreak: number;
@@ -148,3 +149,17 @@ export const getCampfireStage = (streak: number): CampfireStage =>
 // 불의 세기 0~1. 단계 안에서도 하루하루 조금씩 커지도록 연속 일수에 따라 부드럽게 늘린다. (100일에 최대)
 export const campfireIntensity = (streak: number) =>
   streak <= 0 ? 0 : Math.min(1, Math.log(streak + 1) / Math.log(101));
+
+// 모닥불 얼굴 표정. 꺼졌으면 잠들고, 오늘 아직이면 기다리고, 막 지폈으면 기뻐하고, 황금 불꽃이면 뿌듯해한다.
+export type CampfireMood = "sleep" | "waiting" | "content" | "joy" | "proud";
+
+export const getCampfireMood = (
+  streak: number,
+  { dimmed = false, cheer = false }: { dimmed?: boolean; cheer?: boolean } = {}
+): CampfireMood => {
+  const { level } = getCampfireStage(streak);
+  if (level === 0) return "sleep";
+  if (dimmed) return "waiting";
+  if (cheer) return "joy";
+  return level === 5 ? "proud" : "content";
+};

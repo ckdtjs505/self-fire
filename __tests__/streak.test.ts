@@ -7,6 +7,7 @@ import { toDateString } from "@/utils/date";
 import {
   campfireIntensity,
   daysBetween,
+  getCampfireMood,
   getCampfireStage,
   getRecentDays,
   igniteStreak,
@@ -112,8 +113,8 @@ describe("불씨 지키기 (주 1회)", () => {
 });
 
 describe("마일스톤 보상", () => {
-  it("7/30/100일에 처음 닿으면 알려 준다", () => {
-    for (const m of [7, 30, 100]) {
+  it("3/7/14/30/50/100일에 처음 닿으면 알려 준다", () => {
+    for (const m of [3, 7, 14, 30, 50, 100]) {
       const { unlockedMilestone } = igniteStreak(record({ currentStreak: m - 1, longestStreak: m - 1 }), TODAY);
       expect(unlockedMilestone).toBe(m);
     }
@@ -135,8 +136,10 @@ describe("마일스톤 보상", () => {
   });
 
   it("다음 마일스톤까지 남은 일수", () => {
+    expect(nextMilestone(0)).toEqual({ milestone: 3, daysLeft: 3 });
     expect(nextMilestone(3)).toEqual({ milestone: 7, daysLeft: 4 });
-    expect(nextMilestone(7)).toEqual({ milestone: 30, daysLeft: 23 });
+    expect(nextMilestone(7)).toEqual({ milestone: 14, daysLeft: 7 });
+    expect(nextMilestone(30)).toEqual({ milestone: 50, daysLeft: 20 });
     expect(nextMilestone(100)).toBeNull();
   });
 });
@@ -199,6 +202,16 @@ describe("모닥불 단계", () => {
     expect(campfireIntensity(10)).toBeGreaterThan(campfireIntensity(5));
     expect(campfireIntensity(100)).toBe(1);
     expect(campfireIntensity(500)).toBe(1);
+  });
+
+  it("표정은 꺼짐 → 잠, 오늘 아직 → 기다림, 막 지핌 → 기쁨, 황금 불꽃 → 뿌듯함", () => {
+    expect(getCampfireMood(0)).toBe("sleep");
+    expect(getCampfireMood(0, { cheer: true })).toBe("sleep");
+    expect(getCampfireMood(5, { dimmed: true })).toBe("waiting");
+    expect(getCampfireMood(5)).toBe("content");
+    expect(getCampfireMood(5, { cheer: true })).toBe("joy");
+    expect(getCampfireMood(120)).toBe("proud");
+    expect(getCampfireMood(120, { cheer: true })).toBe("joy");
   });
 });
 

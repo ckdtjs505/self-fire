@@ -2,7 +2,7 @@
 // ignite-result-sheet.tsx — 점화 완료
 // 불씨를 점화(Hold to Ignite)한 직후 한 번 띄우는 바텀시트.
 //   - 오늘까지 쌓인 모닥불과 연속 일수, 다음 단계까지 남은 일수
-//   - 마일스톤에 처음 닿았으면 새로 열린 보상
+//   - 마일스톤에 처음 닿았으면 새로 열린 보상 (보상 없는 중간 마일스톤이면 다음 목표)
 //   - 알림이 꺼져 있으면 (처음 한 번만) 매일 알림 받기를 제안한다
 //   - 불씨를 3일·7일 이어 간 날에는 홈 화면 위젯 추가를 제안한다 (Android, 위젯을 아직 놓지 않았을 때)
 //   - 제안 없이 '확인'으로 닫을 때, 7일 이상 이어 왔으면 인앱 리뷰를 한 번 요청한다 (services/store-review.ts)
@@ -15,7 +15,7 @@ import { maybeRequestReview } from "@/services/store-review";
 import { useNotificationStore } from "@/store/notification";
 import { useWidgetPromptStore } from "@/store/widget-prompt";
 import { trackEvent } from "@/utils/analytics";
-import { CAMPFIRE_STAGES, getCampfireStage } from "@/utils/streak";
+import { CAMPFIRE_STAGES, getCampfireStage, nextMilestone } from "@/utils/streak";
 import { countInstalledWidgets, isWidgetSupported, shouldPromptWidget } from "@/widgets/widget-pin";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { Pressable } from "react-native";
@@ -108,6 +108,8 @@ const IgniteResultSheet = forwardRef<IgniteResultSheetHandle>(function IgniteRes
   };
 
   const { streak, unlockedMilestone } = result;
+  const rewardNames = unlockedMilestone ? getMilestoneRewardNames(unlockedMilestone) : "";
+  const nextGoal = nextMilestone(streak);
   const nextStage = CAMPFIRE_STAGES.find((s) => s.minDays > streak);
   const title = streak <= 1 ? "첫 불씨가 켜졌어요" : `${streak}일째 불씨가 켜졌어요`;
   const description = nextStage
@@ -116,15 +118,19 @@ const IgniteResultSheet = forwardRef<IgniteResultSheetHandle>(function IgniteRes
 
   return (
     <PickerSheet ref={sheetRef} title={title} description={description}>
-      <Campfire streak={streak} />
+      <Campfire streak={streak} cheer />
 
       {!!unlockedMilestone && (
         <Box mt="lg" p="lg" borderRadius="md" bg="$primarySoft" gap="xs">
           <Text fontSize={15} fontWeight="800">
-            🎁 {unlockedMilestone}일 연속 달성!
+            {rewardNames ? "🎁" : "🔥"} {unlockedMilestone}일 연속 달성!
           </Text>
           <Text variant="caption">
-            새 보상: {getMilestoneRewardNames(unlockedMilestone)} — 테마 메뉴에서 바로 써 보세요
+            {rewardNames
+              ? `새 보상: ${rewardNames} — 테마 메뉴에서 바로 써 보세요`
+              : nextGoal
+                ? `다음 목표는 ${nextGoal.milestone}일, ${nextGoal.daysLeft}일 남았어요`
+                : "꾸준히 이어 가고 있어요"}
           </Text>
         </Box>
       )}

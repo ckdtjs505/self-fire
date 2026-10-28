@@ -15,7 +15,7 @@ import * as StoreReview from "expo-store-review";
 // 리뷰를 요청한 날짜 ("YYYY-MM-DD"). 값이 있으면 다시 요청하지 않는다.
 export const REVIEW_REQUESTED_KEY = "review_requested";
 
-// 리뷰를 요청하는 최소 연속 일수 (첫 마일스톤)
+// 리뷰를 요청하는 최소 연속 일수 (첫 보상 마일스톤)
 export const REVIEW_MIN_STREAK = 7;
 
 export const shouldRequestReview = ({ streak, requested }: { streak: number; requested: boolean }) =>

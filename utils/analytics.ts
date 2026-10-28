@@ -48,10 +48,12 @@ export type AnalyticsEvent =
   | "deed_complete" // 오늘 할 일을 해내고 완료를 누름 (이어서 점화)
   | "today_quote_pick" // 오늘의 문장을 정함 (change: 이미 고른 문장을 바꿨는지)
   | "streak_freeze_used" // 불씨 지키기로 빠진 하루를 지킴
-  | "streak_milestone" // 7/30/100일 마일스톤 도달 (보상 해금)
+  | "campfire_mini_open" // 오늘 탭 미니 모닥불을 눌러 나의 모닥불 시트를 엶 (streak, ignited)
+  | "streak_milestone" // 3/7/14/30/50/100일 마일스톤 도달 (7/30/100일은 보상 해금)
   | "reminder_offer" // 점화 후 알림 받기 제안에 응답 (accepted, granted, hour)
   | "interests_set" // 관심 주제 저장 (source: onboarding | settings, count, topics)
   | "quote_share" // 명언 공유
+  | "deed_share" // 오늘 할 일 공유 (method)
   | "quote_add" // 내 명언 추가
   | "quote_edit" // 내 명언 수정
   | "favorite_add" // 저장한 문장에 저장

@@ -1,5 +1,23 @@
 jest.mock("@/utils/haptics", () => ({ tapHaptic: jest.fn() }));
 
+// 공유 시트는 바텀시트 모듈이 필요하므로, 연 횟수와 받은 공유 내용만 확인한다.
+const mockShareOpen = jest.fn();
+jest.mock("@/components/share-sheet", () => {
+  const { forwardRef, useImperativeHandle } = jest.requireActual("react");
+  const { Text } = jest.requireActual("react-native");
+  return forwardRef(function MockShareSheet(props: { text: string; subject?: string }, ref: unknown) {
+    useImperativeHandle(ref, () => ({ open: mockShareOpen, close: jest.fn() }));
+    return <Text testID="share-sheet">{`${props.subject}|${props.text}`}</Text>;
+  });
+});
+jest.mock("react-native-view-shot", () => {
+  const { forwardRef } = jest.requireActual("react");
+  const { View } = jest.requireActual("react-native");
+  return forwardRef(function MockViewShot(props: object, ref: unknown) {
+    return <View ref={ref} {...props} />;
+  });
+});
+
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
@@ -29,6 +47,7 @@ const renderPrompt = (quote: Quote | null, todayDeed: Deed | null, todayQuote: Q
 describe("DeedPrompt", () => {
   beforeEach(() => {
     mockPush.mockClear();
+    mockShareOpen.mockClear();
     onPick.mockClear();
     onComplete.mockClear();
   });
@@ -74,6 +93,22 @@ describe("DeedPrompt", () => {
     expect(screen.getByText("오늘 이 문장대로 해낸 일")).toBeTruthy();
     expect(screen.queryByLabelText("오늘 할 일 완료")).toBeNull();
     expect(screen.queryByLabelText(`오늘 이 문장대로 할 일: ${done.text}`)).toBeNull();
+  });
+
+  it("할 일 카드에서 공유를 누르면 할 일과 따른 문장으로 공유 시트를 연다", () => {
+    renderPrompt(followed, task, followed);
+    fireEvent.press(screen.getByLabelText("오늘 할 일 공유"));
+    expect(mockShareOpen).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("share-sheet").props.children).toBe(
+      `deed|오늘 이 문장대로 할 일: ${task.text}\n“${followed.text}” -${followed.author}`
+    );
+  });
+
+  it("해낸 일도 공유할 수 있다", () => {
+    renderPrompt(followed, done, followed);
+    fireEvent.press(screen.getByLabelText("오늘 할 일 공유"));
+    expect(mockShareOpen).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("share-sheet").props.children).toContain(`오늘 이 문장대로 해낸 일: ${done.text}`);
   });
 
   it("할 일을 정한 뒤 다른 문장에서 바꾸면 바로 바꾸지 않고 그 문장으로 할 일 쓰기 화면을 연다", () => {
